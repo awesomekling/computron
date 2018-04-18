@@ -331,6 +331,12 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Interrupt same privilege from ring%u to ring%u", originalCPL, descriptor.DPL());
 #endif
+        if (getVM() && (codeDescriptor.conforming() || codeDescriptor.DPL() != 0)) {
+            ASSERT_NOT_REACHED();
+            throw GeneralProtectionFault(gate.selector() & ~3, "Interrupt in VM86 mode to code segment with DPL != 0");
+        }
+
+
         setCPL(originalCPL);
     } else {
         ASSERT_NOT_REACHED();
@@ -463,34 +469,35 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
 
     auto descriptor = getDescriptor(selector, SegmentRegisterIndex::CS);
 
-    if (!(selectorRPL >= getCPL())) {
-        throw GeneralProtectionFault(selector, QString("IRET with !(RPL(%1) >= CPL(%2))").arg(selectorRPL).arg(getCPL()));
-    }
-    if (descriptor.isNull()) {
-        throw GeneralProtectionFault(selector, "IRET to null selector");
-    }
+    if (descriptor.isNull())
+        throw GeneralProtectionFault(0, "IRET to null selector");
 
-    if (descriptor.isSystemDescriptor()) {
-        ASSERT_NOT_REACHED();
-        throw GeneralProtectionFault(selector, "IRET to system descriptor!?");
-    }
+    if (descriptor.isOutsideTableLimits())
+        throw GeneralProtectionFault(selector, "IRET to selector outside table limit");
 
     if (!descriptor.isCode()) {
         dumpDescriptor(descriptor);
         throw GeneralProtectionFault(selector, "Not a code segment");
     }
 
+    if (selectorRPL < getCPL())
+        throw GeneralProtectionFault(selector, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
+
     auto& codeSegment = descriptor.asCodeSegmentDescriptor();
+
+    if (codeSegment.conforming() && codeSegment.DPL() > selectorRPL)
+        throw GeneralProtectionFault(selector, "IRET to conforming code segment with DPL > RPL");
+
+    if (!codeSegment.conforming() && codeSegment.DPL() != selectorRPL)
+        throw GeneralProtectionFault(selector, "IRET to non-conforming code segment with DPL != RPL");
+
+    if (!codeSegment.present())
+        throw NotPresent(selector, "Code segment not present");
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.
-    if (!codeSegment.is32Bit()) {
+    if (!codeSegment.is32Bit())
         offset &= 0xffff;
-    }
-
-    if (!codeSegment.present()) {
-        throw NotPresent(selector, "Code segment not present");
-    }
 
     if (offset > codeSegment.effectiveLimit()) {
         vlog(LogCPU, "IRET to eip(%08x) outside limit(%08x)", offset, codeSegment.effectiveLimit());
@@ -498,6 +505,7 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
+    // FIXME: Validate SS before clobbering CS:EIP.
     setCS(selector);
     setEIP(offset);
 

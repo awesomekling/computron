@@ -841,6 +841,10 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
+    // FIXME: Validate SS before clobbering CS:EIP.
+    setCS(selector);
+    setEIP(offset);
+
     if (selectorRPL > originalCPL) {
         BEGIN_ASSERT_NO_EXCEPTIONS
         DWORD newESP = popper.popOperandSizedValue();
@@ -853,17 +857,12 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
         setSS(newSS);
         setESP(newESP);
 
-        setCS(selector);
-        setEIP(offset);
-
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::ES, JumpType::RETF);
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::FS, JumpType::RETF);
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::GS, JumpType::RETF);
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::DS, JumpType::RETF);
         END_ASSERT_NO_EXCEPTIONS
     } else {
-        setCS(selector);
-        setEIP(offset);
         popper.commit();
     }
 
