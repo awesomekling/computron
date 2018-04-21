@@ -153,43 +153,28 @@ void CPU::_PUSH_GS(Instruction&)
 
 void CPU::_POP_DS(Instruction&)
 {
-    if (o16())
-        setDS(pop16());
-    else
-        setDS(pop32());
+    setDS(popOperandSizedValue());
 }
 
 void CPU::_POP_ES(Instruction&)
 {
-    if (o16())
-        setES(pop16());
-    else
-        setES(pop32());
+    setES(popOperandSizedValue());
 }
 
 void CPU::_POP_SS(Instruction&)
 {
-    if (o16())
-        setSS(pop16());
-    else
-        setSS(pop32());
+    setSS(popOperandSizedValue());
     makeNextInstructionUninterruptible();
 }
 
 void CPU::_POP_FS(Instruction&)
 {
-    if (o16())
-        setFS(pop16());
-    else
-        setFS(pop32());
+    setFS(popOperandSizedValue());
 }
 
 void CPU::_POP_GS(Instruction&)
 {
-    if (o16())
-        setGS(pop16());
-    else
-        setGS(pop32());
+    setGS(popOperandSizedValue());
 }
 
 void CPU::_PUSHFD(Instruction&)
