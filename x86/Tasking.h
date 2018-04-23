@@ -29,46 +29,6 @@
 
 class CPU;
 
-struct TSS32 {
-    WORD backlink, __blh;
-    DWORD esp0;
-    WORD ss0, __ss0h;
-    DWORD esp1;
-    WORD ss1, __ss1h;
-    DWORD esp2;
-    WORD ss2, __ss2h;
-    DWORD CR3, EIP, EFlags;
-    DWORD EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI;
-    WORD ES, __esh;
-    WORD CS, __csh;
-    WORD SS, __ssh;
-    WORD DS, __dsh;
-    WORD FS, __fsh;
-    WORD GS, __gsh;
-    WORD LDT, __ldth;
-    WORD trace, iomapbase;
-} __attribute__ ((packed));
-
-struct TSS16 {
-    WORD backlink;
-    WORD sp0;
-    WORD ss0;
-    WORD sp1;
-    WORD ss1;
-    WORD sp2;
-    WORD ss2;
-    WORD IP;
-    WORD flags;
-    WORD AX, CX, DX, BX, SP, BP, SI, DI;
-    WORD ES;
-    WORD CS;
-    WORD SS;
-    WORD DS;
-    WORD FS;
-    WORD GS;
-    WORD LDT;
-} __attribute__ ((packed));
-
 class TSS {
 public:
     TSS(CPU&, LinearAddress, bool is32Bit);
@@ -86,6 +46,13 @@ public:
     WORD getSS0() const;
     WORD getSS1() const;
     WORD getSS2() const;
+
+    void setSS0(WORD);
+    void setSS1(WORD);
+    void setSS2(WORD);
+    void setESP0(DWORD);
+    void setESP1(DWORD);
+    void setESP2(DWORD);
 
     WORD getBacklink() const;
     WORD getLDT() const;
@@ -131,11 +98,7 @@ public:
     void setBacklink(WORD);
 
 private:
-    TSS16& tss16();
-    TSS32& tss32();
-    const TSS16& tss16() const;
-    const TSS32& tss32() const;
-
-    BYTE* m_pointer { nullptr };
+    CPU& m_cpu;
+    LinearAddress m_base;
     bool m_is32Bit { false };
 };

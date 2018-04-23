@@ -335,382 +335,116 @@ TSS CPU::currentTSS()
     return TSS(*this, TR.base, TR.is32Bit);
 }
 
-TSS::TSS(CPU& cpu, LinearAddress linearAddress, bool is32Bit)
-    : m_pointer(cpu.memoryPointer(linearAddress))
+struct TSS32 {
+    WORD Backlink, __blh;
+    DWORD ESP0;
+    WORD SS0, __ss0h;
+    DWORD ESP1;
+    WORD SS1, __ss1h;
+    DWORD ESP2;
+    WORD SS2, __ss2h;
+    DWORD CR3, EIP, EFlags;
+    DWORD EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI;
+    WORD ES, __esh;
+    WORD CS, __csh;
+    WORD SS, __ssh;
+    WORD DS, __dsh;
+    WORD FS, __fsh;
+    WORD GS, __gsh;
+    WORD LDT, __ldth;
+    WORD trace, iomapbase;
+} __attribute__ ((packed));
+
+struct TSS16 {
+    WORD Backlink;
+    WORD SP0;
+    WORD SS0;
+    WORD SP1;
+    WORD SS1;
+    WORD SP2;
+    WORD SS2;
+    WORD IP;
+    WORD Flags;
+    WORD AX, CX, DX, BX, SP, BP, SI, DI;
+    WORD ES;
+    WORD CS;
+    WORD SS;
+    WORD DS;
+    WORD FS;
+    WORD GS;
+    WORD LDT;
+} __attribute__ ((packed));
+
+TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
+    : m_cpu(cpu)
+    , m_base(base)
     , m_is32Bit(is32Bit)
 {
-    ASSERT(m_pointer);
 }
 
-TSS16& TSS::tss16()
-{
-    ASSERT(!m_is32Bit);
-    return *reinterpret_cast<TSS16*>(m_pointer);
-}
-TSS32& TSS::tss32()
-{
-    ASSERT(m_is32Bit);
-    return *reinterpret_cast<TSS32*>(m_pointer);
-}
+#define TSS_FIELD_16(name) \
+    void TSS::set ## name(WORD value) { \
+        if (m_is32Bit) \
+            m_cpu.writeMemory16(m_base.offset(offsetof(TSS32, name)), value); \
+        else \
+            m_cpu.writeMemory16(m_base.offset(offsetof(TSS16, name)), value); \
+    } \
+    WORD TSS::get ## name() const { \
+        if (m_is32Bit) \
+            return m_cpu.readMemory16(m_base.offset(offsetof(TSS32, name))); \
+        return m_cpu.readMemory16(m_base.offset(offsetof(TSS16, name))); \
+    }
 
-const TSS16& TSS::tss16() const
-{
-    ASSERT(!m_is32Bit);
-    return *reinterpret_cast<const TSS16*>(m_pointer);
-}
-const TSS32& TSS::tss32() const
-{
-    ASSERT(m_is32Bit);
-    return *reinterpret_cast<const TSS32*>(m_pointer);
-}
-
-void TSS::setBacklink(WORD value)
-{
-    if (m_is32Bit)
-        tss32().backlink = value;
-    else
-        tss16().backlink = value;
-}
-
-WORD TSS::getBacklink() const
-{
-    if (m_is32Bit)
-        return tss32().backlink;
-    else
-        return tss16().backlink;
-}
-
-void TSS::setLDT(WORD value)
-{
-    if (m_is32Bit)
-        tss32().LDT = value;
-    else
-        tss16().LDT = value;
-}
-
-WORD TSS::getLDT() const
-{
-    if (m_is32Bit)
-        return tss32().LDT;
-    else
-        return tss16().LDT;
-}
+#define TSS_FIELD_16OR32(name) \
+    DWORD TSS::getE ## name() const { \
+        if (m_is32Bit) \
+            return m_cpu.readMemory32(m_base.offset(offsetof(TSS32, E ## name))); \
+        return m_cpu.readMemory16(m_base.offset(offsetof(TSS16, name))); \
+    } \
+    void TSS::setE ## name(DWORD value) { \
+        if (m_is32Bit) \
+            m_cpu.writeMemory32(m_base.offset(offsetof(TSS32, E ## name)), value); \
+        else \
+            m_cpu.writeMemory16(m_base.offset(offsetof(TSS16, name)), value); \
+    }
 
 DWORD TSS::getCR3() const
 {
     ASSERT(m_is32Bit);
-    return tss32().CR3;
+    return m_cpu.readMemory32(m_base.offset(offsetof(TSS32, CR3)));
 }
 
 void TSS::setCR3(DWORD value)
 {
     ASSERT(m_is32Bit);
-    tss32().CR3 = value;
+    m_cpu.writeMemory32(m_base.offset(offsetof(TSS32, CR3)), value);
 }
 
-DWORD TSS::getEAX() const
-{
-    if (m_is32Bit)
-        return tss32().EAX;
-    else
-        return tss16().AX;
-}
+TSS_FIELD_16OR32(AX)
+TSS_FIELD_16OR32(BX)
+TSS_FIELD_16OR32(CX)
+TSS_FIELD_16OR32(DX)
+TSS_FIELD_16OR32(SI)
+TSS_FIELD_16OR32(DI)
+TSS_FIELD_16OR32(BP)
+TSS_FIELD_16OR32(SP)
+TSS_FIELD_16OR32(IP)
+TSS_FIELD_16OR32(SP0)
+TSS_FIELD_16OR32(SP1)
+TSS_FIELD_16OR32(SP2)
+TSS_FIELD_16OR32(Flags)
 
-DWORD TSS::getEBX() const
-{
-    if (m_is32Bit)
-        return tss32().EBX;
-    else
-        return tss16().BX;
-}
-
-DWORD TSS::getECX() const
-{
-    if (m_is32Bit)
-        return tss32().ECX;
-    else
-        return tss16().CX;
-}
-
-DWORD TSS::getEDX() const
-{
-    if (m_is32Bit)
-        return tss32().EDX;
-    else
-        return tss16().DX;
-}
-
-DWORD TSS::getESI() const
-{
-    if (m_is32Bit)
-        return tss32().ESI;
-    else
-        return tss16().SI;
-}
-
-DWORD TSS::getEDI() const
-{
-    if (m_is32Bit)
-        return tss32().EDI;
-    else
-        return tss16().DI;
-}
-
-DWORD TSS::getEBP() const
-{
-    if (m_is32Bit)
-        return tss32().EBP;
-    else
-        return tss16().BP;
-}
-
-DWORD TSS::getESP() const
-{
-    if (m_is32Bit)
-        return tss32().ESP;
-    else
-        return tss16().SP;
-}
-
-DWORD TSS::getEIP() const
-{
-    if (m_is32Bit)
-        return tss32().EIP;
-    else
-        return tss16().IP;
-}
-
-DWORD TSS::getEFlags() const
-{
-    if (m_is32Bit)
-        return tss32().EFlags;
-    else
-        return tss16().flags;
-}
-
-void TSS::setEAX(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EAX = value;
-    else
-        tss16().AX = value;
-}
-
-void TSS::setEBX(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EBX = value;
-    else
-        tss16().BX = value;
-}
-
-void TSS::setECX(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().ECX = value;
-    else
-        tss16().CX = value;
-}
-
-void TSS::setEDX(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EDX = value;
-    else
-        tss16().DX = value;
-}
-
-void TSS::setEBP(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EBP = value;
-    else
-        tss16().BP = value;
-}
-
-void TSS::setESP(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().ESP = value;
-    else
-        tss16().SP = value;
-}
-
-void TSS::setESI(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().ESI = value;
-    else
-        tss16().SI = value;
-}
-
-void TSS::setEDI(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EDI = value;
-    else
-        tss16().DI = value;
-}
-
-void TSS::setEIP(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EIP = value;
-    else
-        tss16().IP = value;
-}
-
-void TSS::setEFlags(DWORD value)
-{
-    if (m_is32Bit)
-        tss32().EFlags = value;
-    else
-        tss16().flags = value;
-}
-
-void TSS::setCS(WORD value)
-{
-    if (m_is32Bit)
-        tss32().CS = value;
-    else
-        tss16().CS = value;
-}
-
-void TSS::setDS(WORD value)
-{
-    if (m_is32Bit)
-        tss32().DS = value;
-    else
-        tss16().DS = value;
-}
-
-void TSS::setES(WORD value)
-{
-    if (m_is32Bit)
-        tss32().ES = value;
-    else
-        tss16().ES = value;
-}
-
-void TSS::setSS(WORD value)
-{
-    if (m_is32Bit)
-        tss32().SS = value;
-    else
-        tss16().SS = value;
-}
-
-void TSS::setFS(WORD value)
-{
-    if (m_is32Bit)
-        tss32().FS = value;
-    else
-        tss16().FS = value;
-}
-
-void TSS::setGS(WORD value)
-{
-    if (m_is32Bit)
-        tss32().GS = value;
-    else
-        tss16().GS = value;
-}
-
-WORD TSS::getCS() const
-{
-    if (m_is32Bit)
-        return tss32().CS;
-    else
-        return tss16().CS;
-}
-
-WORD TSS::getDS() const
-{
-    if (m_is32Bit)
-        return tss32().DS;
-    else
-        return tss16().DS;
-}
-
-WORD TSS::getES() const
-{
-    if (m_is32Bit)
-        return tss32().ES;
-    else
-        return tss16().ES;
-}
-
-WORD TSS::getSS() const
-{
-    if (m_is32Bit)
-        return tss32().SS;
-    else
-        return tss16().SS;
-}
-
-WORD TSS::getFS() const
-{
-    if (m_is32Bit)
-        return tss32().FS;
-    else
-        return tss16().FS;
-}
-
-WORD TSS::getGS() const
-{
-    if (m_is32Bit)
-        return tss32().GS;
-    else
-        return tss16().GS;
-}
-
-DWORD TSS::getESP0() const
-{
-    if (m_is32Bit)
-        return tss32().esp0;
-    else
-        return tss16().sp0;
-}
-
-DWORD TSS::getESP1() const
-{
-    if (m_is32Bit)
-        return tss32().esp1;
-    else
-        return tss16().sp1;
-}
-
-DWORD TSS::getESP2() const
-{
-    if (m_is32Bit)
-        return tss32().esp2;
-    else
-        return tss16().sp2;
-}
-
-WORD TSS::getSS0() const
-{
-    if (m_is32Bit)
-        return tss32().ss0;
-    else
-        return tss16().ss0;
-}
-
-WORD TSS::getSS1() const
-{
-    if (m_is32Bit)
-        return tss32().ss1;
-    else
-        return tss16().ss1;
-}
-
-WORD TSS::getSS2() const
-{
-    if (m_is32Bit)
-        return tss32().ss2;
-    else
-        return tss16().ss2;
-}
+TSS_FIELD_16(Backlink)
+TSS_FIELD_16(LDT)
+TSS_FIELD_16(CS)
+TSS_FIELD_16(DS)
+TSS_FIELD_16(ES)
+TSS_FIELD_16(SS)
+TSS_FIELD_16(FS)
+TSS_FIELD_16(GS)
+TSS_FIELD_16(SS0)
+TSS_FIELD_16(SS1)
+TSS_FIELD_16(SS2)
 
 DWORD TSS::getRingESP(BYTE ring) const
 {
@@ -739,5 +473,5 @@ WORD TSS::getRingSS(BYTE ring) const
 WORD TSS::getIOMapBase() const
 {
     ASSERT(m_is32Bit);
-    return tss32().iomapbase;
+    return m_cpu.readMemory16(m_base.offset(offsetof(TSS32, iomapbase)));
 }

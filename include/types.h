@@ -71,6 +71,7 @@ public:
     LinearAddress() { }
     explicit LinearAddress(DWORD address) : m_address(address) { }
 
+    LinearAddress offset(DWORD o) const { return LinearAddress(m_address + o); }
     DWORD get() const { return m_address; }
     void set(DWORD address) { m_address = address; }
     void mask(DWORD m) { m_address &= m; }
