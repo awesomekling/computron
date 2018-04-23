@@ -60,5 +60,5 @@ void ROM::writeMemory8(DWORD address, BYTE data)
 
 const BYTE* ROM::memoryPointer(DWORD address)
 {
-    return &m_data.data()[address - baseAddress().get()];
+    return reinterpret_cast<const BYTE*>(&m_data.data()[address - baseAddress().get()]);
 }
