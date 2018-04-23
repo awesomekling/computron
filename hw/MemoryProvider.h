@@ -35,7 +35,7 @@ public:
     DWORD size() const { return m_size; }
 
     // pls no use :(
-    virtual BYTE* memoryPointer(DWORD address);
+    virtual const BYTE* memoryPointer(DWORD address);
 
     virtual BYTE readMemory8(DWORD address);
     virtual WORD readMemory16(DWORD address);

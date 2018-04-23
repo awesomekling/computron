@@ -32,7 +32,7 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offs
 {
     char buf[512];
     char* p = buf;
-    BYTE* data = nullptr;
+    const BYTE* data = nullptr;
 
     try {
         data = memoryPointer(descriptor, offset);
@@ -356,7 +356,7 @@ void CPU::dumpRawMemory(BYTE* p)
 void CPU::dumpMemory(SegmentDescriptor& descriptor, DWORD offset, int rows)
 {
     offset &= 0xFFFFFFF0;
-    BYTE* p;
+    const BYTE* p;
 
     try {
         p = memoryPointer(descriptor, offset);

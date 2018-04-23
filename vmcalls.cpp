@@ -261,8 +261,11 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, 
     if (options.disklog)
         vlog(LogDisk, "%s reading %u sectors at %u/%u/%u (LBA %u) to %04x:%04x", qPrintable(drive.name()), count, cylinder, head, sector, lba, segment, offset);
 
-    void* destination = cpu.memoryPointer(LogicalAddress(segment, offset));
-    fread(destination, drive.bytesPerSector(), count, fp);
+    QByteArray data(drive.bytesPerSector() * count, Qt::Uninitialized);
+    fread(data.data(), drive.bytesPerSector(), count, fp);
+    for (unsigned i = 0; i < data.size(); ++i) {
+        cpu.writePhysicalMemory<BYTE>(realModeAddressToPhysicalAddress(segment, offset + i), data[i]);
+    }
 }
 
 static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
@@ -272,7 +275,7 @@ static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder,
     if (options.disklog)
         vlog(LogDisk, "%s writing %u sectors at %u/%u/%u (LBA %u) from %04x:%04x", qPrintable(drive.name()), count, cylinder, head, sector, lba, segment, offset);
 
-    void* source = cpu.memoryPointer(LogicalAddress(segment, offset));
+    const void* source = cpu.memoryPointer(LogicalAddress(segment, offset));
     fwrite(source, drive.bytesPerSector(), count, fp);
 }
 

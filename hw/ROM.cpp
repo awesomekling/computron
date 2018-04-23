@@ -58,8 +58,7 @@ void ROM::writeMemory8(DWORD address, BYTE data)
     vlog(LogAlert, "Write to ROM address %08x, data %02x", address, data);
 }
 
-// FIXME: This mutable pointer is obviously a ROM violation. Don't vend this.
-BYTE* ROM::memoryPointer(DWORD address)
+const BYTE* ROM::memoryPointer(DWORD address)
 {
-    return reinterpret_cast<BYTE*>(&m_data.data()[address - baseAddress().get()]);
+    return &m_data.data()[address - baseAddress().get()];
 }

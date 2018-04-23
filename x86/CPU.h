@@ -564,10 +564,10 @@ public:
     void out16(WORD port, WORD value);
     void out32(WORD port, DWORD value);
 
-    BYTE* memoryPointer(LinearAddress);
-    BYTE* memoryPointer(LogicalAddress);
-    BYTE* memoryPointer(SegmentRegisterIndex, DWORD offset);
-    BYTE* memoryPointer(const SegmentDescriptor&, DWORD offset);
+    const BYTE* memoryPointer(LinearAddress);
+    const BYTE* memoryPointer(LogicalAddress);
+    const BYTE* memoryPointer(SegmentRegisterIndex, DWORD offset);
+    const BYTE* memoryPointer(const SegmentDescriptor&, DWORD offset);
 
     DWORD getEFlags() const;
     WORD getFlags() const;
@@ -614,7 +614,7 @@ public:
     template<typename T> void validateAddress(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
     template<typename T> T readPhysicalMemory(PhysicalAddress);
     template<typename T> void writePhysicalMemory(PhysicalAddress, T);
-    BYTE* pointerToPhysicalMemory(PhysicalAddress);
+    const BYTE* pointerToPhysicalMemory(PhysicalAddress);
     template<typename T> T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read);
     template<typename T> T readMemory(const SegmentDescriptor&, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
     template<typename T> T readMemory(SegmentRegisterIndex, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);

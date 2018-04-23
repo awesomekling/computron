@@ -186,11 +186,10 @@ bool Machine::loadFile(DWORD address, const QString& fileName)
 
     vlog(LogConfig, "Loading %s at 0x%08X", qPrintable(fileName), address);
 
-    BYTE* memoryPointer = cpu().memoryPointer(LinearAddress(address));
-    ASSERT(memoryPointer);
-
-    // FIXME: Don't overrun the CPU's memory buffer.
-    memcpy(memoryPointer, fileContents.constData(), fileContents.size());
+    LinearAddress base(address);
+    for (int i = 0; i < fileContents.size(); ++i) {
+        cpu().writeMemory8(base.offset(i), fileContents[i]);
+    }
     return true;
 }
 

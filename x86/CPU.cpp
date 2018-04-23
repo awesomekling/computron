@@ -53,13 +53,6 @@ static bool shouldLogAllMemoryAccesses(PhysicalAddress address)
     return false;
 }
 
-static bool shouldLogMemoryPointer(PhysicalAddress address)
-{
-    if (shouldLogAllMemoryAccesses(address))
-        return true;
-    return false;
-}
-
 static bool shouldLogMemoryWrite(PhysicalAddress address)
 {
     if (shouldLogAllMemoryAccesses(address))
@@ -1357,6 +1350,8 @@ void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
     didTouchMemory(physicalAddress.get());
 }
 
+template void CPU::writePhysicalMemory<BYTE>(PhysicalAddress, BYTE);
+
 template<typename T>
 ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType)
 {
@@ -1530,7 +1525,7 @@ void CPU::setGS(WORD value)
     writeSegmentRegister(SegmentRegisterIndex::GS, value);
 }
 
-BYTE* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
+const BYTE* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
 {
     if (!validatePhysicalAddress<BYTE>(physicalAddress, MemoryAccessType::InternalPointer))
         return nullptr;
@@ -1540,12 +1535,12 @@ BYTE* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
     return &m_memory[physicalAddress.get()];
 }
 
-BYTE* CPU::memoryPointer(SegmentRegisterIndex segreg, DWORD offset)
+const BYTE* CPU::memoryPointer(SegmentRegisterIndex segreg, DWORD offset)
 {
     return memoryPointer(cachedDescriptor(segreg), offset);
 }
 
-BYTE* CPU::memoryPointer(const SegmentDescriptor& descriptor, DWORD offset)
+const BYTE* CPU::memoryPointer(const SegmentDescriptor& descriptor, DWORD offset)
 {
     auto linearAddress = descriptor.linearAddress(offset);
     if (getPE() && !getVM())
@@ -1553,27 +1548,18 @@ BYTE* CPU::memoryPointer(const SegmentDescriptor& descriptor, DWORD offset)
     return memoryPointer(linearAddress);
 }
 
-BYTE* CPU::memoryPointer(LogicalAddress address)
+const BYTE* CPU::memoryPointer(LogicalAddress address)
 {
     return memoryPointer(getSegmentDescriptor(address.selector()), address.offset());
 }
 
-BYTE* CPU::memoryPointer(LinearAddress linearAddress)
+const BYTE* CPU::memoryPointer(LinearAddress linearAddress)
 {
     auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::InternalPointer);
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
 #endif
     didTouchMemory(physicalAddress.get());
-#ifdef MEMORY_DEBUGGING
-    if (options.memdebug || shouldLogMemoryPointer(physicalAddress)) {
-        vlog(LogCPU, "MemoryPointer PE=%u [A20=%s] linear:%08x, phys:%08x",
-             getPE(),
-             isA20Enabled() ? "on" : "off",
-             linearAddress.get(),
-             physicalAddress.get());
-    }
-#endif
     return pointerToPhysicalMemory(physicalAddress);
 }
 
