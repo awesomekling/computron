@@ -47,7 +47,7 @@ OwnPtr<Machine> Machine::createFromFile(const QString& fileName)
     auto settings = Settings::createFromFile(fileName);
     if (!settings)
         return nullptr;
-    return make<Machine>(fileName, std::move(settings));
+    return make<Machine>(std::move(settings));
 }
 
 OwnPtr<Machine> Machine::createForAutotest(const QString& fileName)
@@ -55,12 +55,11 @@ OwnPtr<Machine> Machine::createForAutotest(const QString& fileName)
     auto settings = Settings::createForAutotest(fileName);
     if (!settings)
         return nullptr;
-    return make<Machine>(fileName, std::move(settings));
+    return make<Machine>(std::move(settings));
 }
 
-Machine::Machine(const QString& name, OwnPtr<Settings>&& settings, QObject* parent)
+Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
     : QObject(parent)
-    , m_name(name)
     , m_settings(std::move(settings))
     , m_cpu(make<CPU>(*this))
 {

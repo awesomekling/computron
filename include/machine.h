@@ -62,10 +62,9 @@ public:
     static OwnPtr<Machine> createFromFile(const QString& fileName);
     static OwnPtr<Machine> createForAutotest(const QString& fileName);
 
-    explicit Machine(const QString& name, OwnPtr<Settings>&&, QObject* parent = nullptr);
+    explicit Machine(OwnPtr<Settings>&&, QObject* parent = nullptr);
     virtual ~Machine();
 
-    QString name() const { return m_name; }
     CPU& cpu() { return *m_cpu; }
     VGA& vga() { return *m_vga; }
     PIT& pit() { return *m_pit; }
@@ -120,7 +119,6 @@ private:
     IODevice* inputDeviceForPortSlowCase(WORD port);
     IODevice* outputDeviceForPortSlowCase(WORD port);
 
-    QString m_name;
     OwnPtr<Settings> m_settings;
     OwnPtr<CPU> m_cpu;
     OwnPtr<Worker> m_worker;
