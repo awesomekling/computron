@@ -209,13 +209,13 @@ CPU::CPU(Machine& m)
     m_debugger = make<Debugger>(*this);
 
     m_controlRegisterMap[0] = &m_CR0;
-    m_controlRegisterMap[1] = &m_CR1;
+    m_controlRegisterMap[1] = nullptr;
     m_controlRegisterMap[2] = &m_CR2;
     m_controlRegisterMap[3] = &m_CR3;
     m_controlRegisterMap[4] = &m_CR4;
-    m_controlRegisterMap[5] = &m_CR5;
-    m_controlRegisterMap[6] = &m_CR6;
-    m_controlRegisterMap[7] = &m_CR7;
+    m_controlRegisterMap[5] = nullptr;
+    m_controlRegisterMap[6] = nullptr;
+    m_controlRegisterMap[7] = nullptr;
 
     m_debugRegisterMap[0] = &m_DR0;
     m_debugRegisterMap[1] = &m_DR1;
@@ -254,13 +254,9 @@ void CPU::reset()
 
     memset(&m_generalPurposeRegister, 0, sizeof(m_generalPurposeRegister));
     m_CR0 = 0;
-    m_CR1 = 0;
     m_CR2 = 0;
     m_CR3 = 0;
     m_CR4 = 0;
-    m_CR5 = 0;
-    m_CR6 = 0;
-    m_CR7 = 0;
     m_DR0 = 0;
     m_DR1 = 0;
     m_DR2 = 0;

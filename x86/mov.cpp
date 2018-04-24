@@ -94,9 +94,17 @@ void CPU::_MOV_reg32_RM32(Instruction& insn)
     insn.reg32() = insn.modrm().read32();
 }
 
+static bool isValidControlRegisterIndex(int index)
+{
+    return index == 0 || index == 2 || index == 3 || index == 4;
+}
+
 void CPU::_MOV_reg32_CR(Instruction& insn)
 {
     int crIndex = insn.registerIndex();
+
+    if (!isValidControlRegisterIndex(crIndex))
+        throw InvalidOpcode("MOV_reg32_CR with invalid control register");
 
     if (getVM()) {
         throw GeneralProtectionFault(0, "MOV reg32, CRx with VM=1");
@@ -121,9 +129,6 @@ void CPU::_MOV_reg32_CR(Instruction& insn)
         // If an attempt is made to write 1 to CR4.PCIDE.
         // If an attempt is made to write invalid bit combinations in CR0
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
-        if (crIndex == 1 || crIndex == 5 || crIndex == 6 || crIndex == 7) {
-            throw InvalidOpcode("Invalid control register");
-        }
     }
 
     writeRegister<DWORD>(insn.rm() & 7, getControlRegister(crIndex));
@@ -132,6 +137,9 @@ void CPU::_MOV_reg32_CR(Instruction& insn)
 void CPU::_MOV_CR_reg32(Instruction& insn)
 {
     int crIndex = insn.registerIndex();
+
+    if (!isValidControlRegisterIndex(crIndex))
+        throw InvalidOpcode("MOV_CR_reg32 with invalid control register");
 
     if (getVM()) {
         throw GeneralProtectionFault(0, "MOV CRx, reg32 with VM=1");
@@ -156,9 +164,6 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
         // If an attempt is made to write 1 to CR4.PCIDE.
         // If an attempt is made to write invalid bit combinations in CR0
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
-        if (crIndex == 1 || crIndex == 5 || crIndex == 6 || crIndex == 7) {
-            throw InvalidOpcode("Invalid control register");
-        }
     }
 
     if (crIndex == 4) {

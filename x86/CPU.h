@@ -446,13 +446,9 @@ public:
     void setEDI(DWORD value) { writeRegister<DWORD>(RegisterEDI, value); }
 
     DWORD getCR0() const { return m_CR0; }
-    DWORD getCR1() const { return m_CR1; }
     DWORD getCR2() const { return m_CR2; }
     DWORD getCR3() const { return m_CR3; }
     DWORD getCR4() const { return m_CR4; }
-    DWORD getCR5() const { return m_CR5; }
-    DWORD getCR6() const { return m_CR6; }
-    DWORD getCR7() const { return m_CR7; }
 
     DWORD getDR0() const { return m_DR0; }
     DWORD getDR1() const { return m_DR1; }
@@ -1359,7 +1355,11 @@ private:
         WORD limit { 0 };
     } LDTR;
 
-    DWORD m_CR0, m_CR1, m_CR2, m_CR3, m_CR4, m_CR5, m_CR6, m_CR7;
+    DWORD m_CR0 { 0 };
+    DWORD m_CR2 { 0 };
+    DWORD m_CR3 { 0 };
+    DWORD m_CR4 { 0 };
+
     DWORD m_DR0, m_DR1, m_DR2, m_DR3, m_DR4, m_DR5, m_DR6, m_DR7;
 
     struct {
