@@ -95,7 +95,6 @@ private:
     int m_width, m_height;
     int m_characterWidth, m_characterHeight;
 
-    QImage m_screen12;
     QImage m_render12;
     QImage m_render04;
     QImage m_render0D;

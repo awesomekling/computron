@@ -83,15 +83,18 @@ Screen::Screen(Machine& m)
 
     m_render04 = QImage(320, 200, QImage::Format_Indexed8);
     m_render0D = QImage(320, 200, QImage::Format_Indexed8);
-    m_screen12 = QImage(640, 480, QImage::Format_Indexed8);
     m_render12 = QImage(640, 480, QImage::Format_Indexed8);
     m_render13 = QImage(320, 200, QImage::Format_Indexed8);
 
     m_render04.fill(0);
     m_render0D.fill(0);
-    m_screen12.fill(0);
     m_render12.fill(0);
     m_render13.fill(0);
+
+    m_render04.setColor(0, QColor(Qt::black).rgb());
+    m_render04.setColor(1, QColor(Qt::cyan).rgb());
+    m_render04.setColor(2, QColor(Qt::magenta).rgb());
+    m_render04.setColor(3, QColor(Qt::white).rgb());
 
     synchronizeColors();
 
@@ -514,20 +517,12 @@ BYTE Screen::currentColumnCount() const
 
 void Screen::synchronizeColors()
 {
-    for (int i = 0; i < 16; ++i)
-    {
+    for (int i = 0; i < 16; ++i) {
         d->color[i] = machine().vga().paletteColor(i);
         d->brush[i] = QBrush(d->color[i]);
-
-        m_screen12.setColor(i, d->color[i].rgb());
         m_render12.setColor(i, d->color[i].rgb());
         m_render0D.setColor(i, d->color[i].rgb());
     }
-
-    m_render04.setColor(0, QColor(Qt::black).rgb());
-    m_render04.setColor(1, QColor(Qt::cyan).rgb());
-    m_render04.setColor(2, QColor(Qt::magenta).rgb());
-    m_render04.setColor(3, QColor(Qt::white).rgb());
 
     for (int i = 0; i < 256; ++i) {
         QColor color = machine().vga().color(i);
