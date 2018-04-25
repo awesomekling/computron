@@ -179,10 +179,9 @@ void CPU::_POP_GS(Instruction&)
 
 void CPU::_PUSHFD(Instruction&)
 {
-    if (!getPE() || (getPE() && ((!getVM() || (getVM() && getIOPL() == 3)))))
-        push32(getEFlags() & 0x00FCFFFF);
-    else
-        throw GeneralProtectionFault(0, "PUSHFD");
+    if (getPE() && getVM() && getIOPL() < 3)
+        throw GeneralProtectionFault(0, "PUSHFD in VM86 mode with IOPL < 3");
+    push32(getEFlags() & 0x00fcffff);
 }
 
 void CPU::_PUSH_imm32(Instruction& insn)
@@ -192,22 +191,22 @@ void CPU::_PUSH_imm32(Instruction& insn)
 
 void CPU::_PUSHF(Instruction&)
 {
-    if (!getPE() || (getPE() && ((!getVM() || (getVM() && getIOPL() == 3)))))
-        push16(getFlags());
-    else
-        throw GeneralProtectionFault(0, "PUSHF");
+    if (getPE() && getVM() && getIOPL() < 3)
+        throw GeneralProtectionFault(0, "PUSHF in VM86 mode with IOPL < 3");
+    push16(getFlags());
 }
 
 void CPU::_POPF(Instruction&)
 {
+    if (getPE() && getVM() && getIOPL() < 3)
+        throw GeneralProtectionFault(0, "POPF in VM86 mode with IOPL < 3");
     setEFlagsRespectfully(pop16(), getCPL());
 }
 
 void CPU::_POPFD(Instruction&)
 {
-    if (getVM() && getIOPL() < 3) {
-        throw GeneralProtectionFault(0, "POPFD with IOPL < 3");
-    }
+    if (getPE() && getVM() && getIOPL() < 3)
+        throw GeneralProtectionFault(0, "POPFD in VM86 mode with IOPL < 3");
     setEFlagsRespectfully(pop32(), getCPL());
 }
 

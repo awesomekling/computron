@@ -35,6 +35,8 @@
 
 #define CRASH_ON_OPCODE_00_00
 #define CRASH_ON_EXECUTE_0000_00000000
+#define CRASH_ON_VME
+#define CRASH_ON_PVI
 #define A20_ENABLED
 //#define DEBUG_ON_UD0
 #define DEBUG_ON_UD1
@@ -125,6 +127,16 @@ FLATTEN void CPU::decodeNext()
         return;
         //ASSERT_NOT_REACHED();
     }
+#endif
+
+#ifdef CRASH_ON_VME
+    if (UNLIKELY(getVME()))
+        ASSERT_NOT_REACHED();
+#endif
+
+#ifdef CRASH_ON_PVI
+    if (UNLIKELY(getPVI()))
+        ASSERT_NOT_REACHED();
 #endif
 
     auto insn = Instruction::fromStream(*this, m_operandSize32, m_addressSize32);

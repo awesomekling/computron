@@ -184,6 +184,13 @@ public:
     };
     };
 
+    struct CR4 {
+    enum Bits {
+        VME = 1 << 0,
+        PVI = 1 << 1,
+    };
+    };
+
     void registerMemoryProvider(MemoryProvider&);
     MemoryProvider* memoryProviderForAddress(PhysicalAddress);
 
@@ -357,8 +364,8 @@ public:
     bool getVM() const { return this->VM; }
     bool getPE() const { return m_CR0 & CR0::PE; }
     bool getPG() const { return m_CR0 & CR0::PG; }
-    bool getVME() const { return m_CR4 & 0x01; }
-    bool getPVI() const { return m_CR4 & 0x02; }
+    bool getVME() const { return m_CR4 & CR4::VME; }
+    bool getPVI() const { return m_CR4 & CR4::PVI; }
 
     WORD getCS() const { return this->CS; }
     WORD getIP() const { return m_EIP & 0xffff; }
