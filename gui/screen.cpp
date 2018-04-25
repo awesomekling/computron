@@ -295,17 +295,29 @@ void Screen::renderMode13(QImage& target)
     auto* bits = target.bits();
     auto* bit = bits;
 
-    for (unsigned y = 0; y < 200; ++y) {
-        for (unsigned x = 0; x < 320; ++x) {
-            BYTE plane = x % 4;
-            DWORD byteOffset;
-            if (mode == ByteSize)
-                byteOffset = (plane * 65536) + (y * lineOffset) + (x >> 2);
-            else if (mode == WordSize)
-                byteOffset = (plane * 65536) + (y * lineOffset) + ((x >> 1) & ~1);
-            else
-                byteOffset = (plane * 65536) + (y * lineOffset) + (x & ~3);
-            *(bit++) = videoMemory[byteOffset];
+    if (mode == ByteSize) {
+        for (unsigned y = 0; y < 200; ++y) {
+            for (unsigned x = 0; x < 320; ++x) {
+                BYTE plane = x % 4;
+                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + (x >> 2);
+                *(bit++) = videoMemory[byteOffset];
+            }
+        }
+    } else if (mode == WordSize) {
+        for (unsigned y = 0; y < 200; ++y) {
+            for (unsigned x = 0; x < 320; ++x) {
+                BYTE plane = x % 4;
+                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + ((x >> 1) & ~1);
+                *(bit++) = videoMemory[byteOffset];
+            }
+        }
+    } else if (mode == DWordSize) {
+        for (unsigned y = 0; y < 200; ++y) {
+            for (unsigned x = 0; x < 320; ++x) {
+                BYTE plane = x % 4;
+                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + (x & ~3);
+                *(bit++) = videoMemory[byteOffset];
+            }
         }
     }
 }
