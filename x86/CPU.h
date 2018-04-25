@@ -42,7 +42,7 @@ struct WatchedAddress {
     WatchedAddress() { }
     WatchedAddress(QString n, DWORD a, ValueSize s, bool b = false) : name(n), address(a), size(s), breakOnChange(b) { }
     QString name;
-    DWORD address { 0xBEEFBABE };
+    PhysicalAddress address { 0xBEEFBABE };
     ValueSize size { ByteSize };
     bool breakOnChange { false };
     static const QWORD neverSeen = 0xFFFFFFFFFFFFFFFF;
@@ -596,13 +596,6 @@ public:
     void writeRegisterForAddressSize(int registerIndex, DWORD);
     void stepRegisterForAddressSize(int registerIndex, DWORD stepSize);
     bool decrementCXForAddressSize();
-
-    // These are faster than readMemory*() but will not access VGA memory, etc.
-    inline BYTE readUnmappedMemory8(DWORD address) const;
-    inline WORD readUnmappedMemory16(DWORD address) const;
-    inline DWORD readUnmappedMemory32(DWORD address) const;
-    inline void writeUnmappedMemory8(DWORD address, BYTE data);
-    inline void writeUnmappedMemory16(DWORD address, WORD data);
 
     template<typename T> LogicalAddress readLogicalAddress(SegmentRegisterIndex, DWORD offset);
 
@@ -1425,33 +1418,6 @@ private:
 };
 
 extern CPU* g_cpu;
-
-// INLINE IMPLEMENTATIONS
-
-BYTE CPU::readUnmappedMemory8(DWORD address) const
-{
-    return m_memory[address];
-}
-
-WORD CPU::readUnmappedMemory16(DWORD address) const
-{
-    return read16FromPointer(reinterpret_cast<WORD*>(m_memory + address));
-}
-
-DWORD CPU::readUnmappedMemory32(DWORD address) const
-{
-    return read32FromPointer(reinterpret_cast<DWORD*>(m_memory + address));
-}
-
-void CPU::writeUnmappedMemory8(DWORD address, BYTE value)
-{
-    m_memory[address] = value;
-}
-
-void CPU::writeUnmappedMemory16(DWORD address, WORD value)
-{
-    write16ToPointer(reinterpret_cast<WORD*>(m_memory + address), value);
-}
 
 template<typename T>
 inline void CPU::cmpFlags(QWORD result, T dest, T src)

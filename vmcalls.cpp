@@ -116,10 +116,9 @@ void vm_handleE6(CPU& cpu)
 #ifdef CT_DETERMINISTIC
         tick_count = 0x12345678;
 #endif
-        cpu.setCX(tick_count >> 16);
-        cpu.setDX(tick_count & 0xFFFF);
-        cpu.writeUnmappedMemory16(0x046C, tick_count & 0xFFFF);
-        cpu.writeUnmappedMemory16(0x046D, tick_count >> 16);
+        cpu.setCX(mostSignificant<WORD>(tick_count));
+        cpu.setDX(leastSignificant<WORD>(tick_count));
+        cpu.writePhysicalMemory<DWORD>(PhysicalAddress(0x046c), tick_count);
         break;
     case 0x1300:
         drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
@@ -130,7 +129,7 @@ void vm_handleE6(CPU& cpu)
             cpu.setAH(FD_CHANGED_OR_REMOVED);
             cpu.setCF(1);
         }
-        cpu.writeUnmappedMemory8(cpu.getDL() < 2 ? 0x0441 : 0x0474, cpu.getAH());
+        cpu.writePhysicalMemory<BYTE>(PhysicalAddress(cpu.getDL() < 2 ? 0x0441 : 0x0474), cpu.getAH());
         break;
     case 0x1308:
         drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
@@ -263,9 +262,8 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, 
 
     QByteArray data(drive.bytesPerSector() * count, Qt::Uninitialized);
     fread(data.data(), drive.bytesPerSector(), count, fp);
-    for (unsigned i = 0; i < data.size(); ++i) {
+    for (int i = 0; i < data.size(); ++i)
         cpu.writePhysicalMemory<BYTE>(realModeAddressToPhysicalAddress(segment, offset + i), data[i]);
-    }
 }
 
 static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
@@ -377,5 +375,5 @@ epilogue:
     }
 
     cpu.setAH(error);
-    cpu.writeUnmappedMemory8(0x441, error);
+    cpu.writePhysicalMemory<BYTE>(PhysicalAddress(0x441), error);
 }

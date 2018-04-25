@@ -1331,7 +1331,9 @@ T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
     return *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]);
 }
 
+template BYTE CPU::readPhysicalMemory<BYTE>(PhysicalAddress);
 template WORD CPU::readPhysicalMemory<WORD>(PhysicalAddress);
+template DWORD CPU::readPhysicalMemory<DWORD>(PhysicalAddress);
 
 template<typename T>
 void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
@@ -1347,6 +1349,8 @@ void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
 }
 
 template void CPU::writePhysicalMemory<BYTE>(PhysicalAddress, BYTE);
+template void CPU::writePhysicalMemory<WORD>(PhysicalAddress, WORD);
+template void CPU::writePhysicalMemory<DWORD>(PhysicalAddress, DWORD);
 
 template<typename T>
 ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType)

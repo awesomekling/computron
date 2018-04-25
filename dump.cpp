@@ -235,19 +235,19 @@ void CPU::dumpWatches()
 {
     for (WatchedAddress& watch : m_watches) {
         if (watch.size == ByteSize) {
-            BYTE data = readUnmappedMemory8(watch.address);
+            auto data = readPhysicalMemory<BYTE>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %02X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
             }
         } else if (watch.size == WordSize) {
-            WORD data = readUnmappedMemory16(watch.address);
+            auto data = readPhysicalMemory<WORD>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %04X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
             }
         } else if (watch.size == DWordSize) {
-            DWORD data = readUnmappedMemory32(watch.address);
+            auto data = readPhysicalMemory<DWORD>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %08X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;

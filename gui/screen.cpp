@@ -503,13 +503,13 @@ BYTE Screen::currentVideoMode() const
 BYTE Screen::currentRowCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readUnmappedMemory8(0x484) + 1;
+    return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x484)) + 1;
 }
 
 BYTE Screen::currentColumnCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readUnmappedMemory8(0x44A);
+    return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x44a));
 }
 
 void Screen::synchronizeColors()
