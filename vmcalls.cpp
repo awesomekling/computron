@@ -262,8 +262,9 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, 
 
     QByteArray data(drive.bytesPerSector() * count, Qt::Uninitialized);
     fread(data.data(), drive.bytesPerSector(), count, fp);
+    LinearAddress dest((segment << 4) + offset);
     for (int i = 0; i < data.size(); ++i)
-        cpu.writePhysicalMemory<BYTE>(realModeAddressToPhysicalAddress(segment, offset + i), data[i]);
+        cpu.writeMemory<BYTE>(dest.offset(i), data[i]);
 }
 
 static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)

@@ -1406,6 +1406,8 @@ template void CPU::writeMemory<BYTE>(SegmentRegisterIndex, DWORD, BYTE);
 template void CPU::writeMemory<WORD>(SegmentRegisterIndex, DWORD, WORD);
 template void CPU::writeMemory<DWORD>(SegmentRegisterIndex, DWORD, DWORD);
 
+template void CPU::writeMemory<BYTE>(LinearAddress, BYTE);
+
 BYTE CPU::readMemory8(LinearAddress address) { return readMemory<BYTE>(address); }
 WORD CPU::readMemory16(LinearAddress address) { return readMemory<WORD>(address); }
 DWORD CPU::readMemory32(LinearAddress address) { return readMemory<DWORD>(address); }
