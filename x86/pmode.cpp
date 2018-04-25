@@ -93,6 +93,9 @@ void CPU::_LLDT_RM16(Instruction& insn)
         throw InvalidOpcode("LLDT not recognized in real/VM86 mode");
     }
 
+    if (getCPL() != 0)
+        throw GeneralProtectionFault(0, "LLDT with CPL != 0");
+
     setLDT(insn.modrm().read16());
 #ifdef DEBUG_LDT
     dumpLDT();

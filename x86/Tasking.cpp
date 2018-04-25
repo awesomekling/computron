@@ -40,6 +40,9 @@ void CPU::_LTR_RM16(Instruction& insn)
         throw InvalidOpcode("LTR not recognized in real/VM86 mode");
     }
 
+    if (getCPL() != 0)
+        throw GeneralProtectionFault(0, "LTR with CPL != 0");
+
     WORD selector = insn.modrm().read16();
     auto descriptor = getDescriptor(selector);
 
