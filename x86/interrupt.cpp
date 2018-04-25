@@ -164,24 +164,30 @@ void CPU::interruptToTaskGate(BYTE, InterruptSource source, QVariant errorCode, 
     }
 }
 
+LogicalAddress CPU::getRealModeInterruptVector(BYTE index)
+{
+    WORD selector = readPhysicalMemory<WORD>(PhysicalAddress(index * 4 + 2));
+    WORD offset = readPhysicalMemory<WORD>(PhysicalAddress(index * 4));
+    return { selector, offset };
+}
+
 void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
 {
     ASSERT(!getPE());
     WORD originalCS = getCS();
     WORD originalIP = getIP();
     WORD flags = getFlags();
-    WORD selector = readPhysicalMemory<WORD>(PhysicalAddress(isr * 4 + 2));
-    WORD offset = readPhysicalMemory<WORD>(PhysicalAddress(isr * 4));
+    auto vector = getRealModeInterruptVector(isr);
 
     if (options.trapint)
-        vlog(LogCPU, "PE=0 interrupt %02x,%04x%s -> %04x:%04x", isr, getAX(), source == InterruptSource::External ? " (external)" : "", selector, offset);
+        vlog(LogCPU, "PE=0 interrupt %02x,%04x%s -> %04x:%04x", isr, getAX(), source == InterruptSource::External ? " (external)" : "", vector.selector(), vector.offset());
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=0] Interrupt from %04x:%08x to %04x:%08x", getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=0] Interrupt from %04x:%08x to %04x:%08x", getBaseCS(), currentBaseInstructionPointer(), vector.selector(), vector.offset());
 #endif
 
-    setCS(selector);
-    setEIP(offset);
+    setCS(vector.selector());
+    setEIP(vector.offset());
 
     push16(flags);
     push16(originalCS);

@@ -398,14 +398,14 @@ void CPU::dumpMemory(LogicalAddress address, int rows)
     return dumpMemory(descriptor, address.offset(), rows);
 }
 
-static inline WORD isrSegment(const CPU& cpu, BYTE isr)
+static inline WORD isrSegment(CPU& cpu, BYTE isr)
 {
-    return cpu.readUnmappedMemory16(isr * 4 + 2);
+    return cpu.getRealModeInterruptVector(isr).selector();
 }
 
-static inline WORD isrOffset(const CPU& cpu, BYTE isr)
+static inline WORD isrOffset(CPU& cpu, BYTE isr)
 {
-    return cpu.readUnmappedMemory16(isr * 4);
+    return cpu.getRealModeInterruptVector(isr).offset();
 }
 
 void CPU::dumpIVT()

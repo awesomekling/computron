@@ -259,6 +259,7 @@ public:
     void dumpDescriptor(const CodeSegmentDescriptor&, const char* prefix = "");
     void dumpDescriptor(const DataSegmentDescriptor&, const char* prefix = "");
 
+    LogicalAddress getRealModeInterruptVector(BYTE index);
     SegmentDescriptor getRealModeOrVM86Descriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
     Descriptor getDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
     SegmentDescriptor getSegmentDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);

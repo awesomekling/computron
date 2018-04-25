@@ -487,15 +487,12 @@ void Screen::synchronizeFont()
     m_characterHeight = 16;
     const QSize s(8, 16);
 
-    BYTE isr = 0x43;
-    WORD seg = machine().cpu().readUnmappedMemory16(isr * 4 + 2);
-    WORD offset = machine().cpu().readUnmappedMemory16(isr * 4);
-    auto physicalAddress = realModeAddressToPhysicalAddress(seg, offset);
-    const fontcharbitmap_t *fbmp = (fontcharbitmap_t *)(machine().cpu().pointerToPhysicalMemory(physicalAddress));
+    auto vector = machine().cpu().getRealModeInterruptVector(0x43);
+    auto physicalAddress = PhysicalAddress::fromRealMode(vector);
+    auto* fbmp = (const fontcharbitmap_t *)(machine().cpu().pointerToPhysicalMemory(physicalAddress));
 
-    for (int i = 0; i < 256; ++i) {
-        d->character[i] = QBitmap::fromData(s, (const BYTE *)fbmp[i].data, QImage::Format_Mono);
-    }
+    for (int i = 0; i < 256; ++i)
+        d->character[i] = QBitmap::fromData(s, fbmp[i].data, QImage::Format_Mono);
 }
 
 BYTE Screen::currentVideoMode() const

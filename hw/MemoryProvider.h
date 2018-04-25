@@ -44,7 +44,7 @@ public:
     virtual void writeMemory16(DWORD address, WORD);
     virtual void writeMemory32(DWORD address, DWORD);
 
-    const BYTE* pointerForDirectReadAccess() { return m_pointerForDirectReadAccess; }
+    const BYTE* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
 
     template<typename T> T read(DWORD address);
     template<typename T> void write(DWORD address, T);

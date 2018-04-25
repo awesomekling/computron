@@ -53,6 +53,8 @@ enum ValueSize {
     DWordSize = 32,
 };
 
+class LogicalAddress;
+
 class PhysicalAddress {
 public:
     PhysicalAddress() { }
@@ -61,6 +63,8 @@ public:
     DWORD get() const { return m_address; }
     void set(DWORD address) { m_address = address; }
     void mask(DWORD m) { m_address &= m; }
+
+    static PhysicalAddress fromRealMode(LogicalAddress);
 
 private:
     DWORD m_address { 0 };
@@ -148,3 +152,8 @@ private:
     WORD m_selector { 0 };
     DWORD m_offset { 0 };
 };
+
+inline PhysicalAddress PhysicalAddress::fromRealMode(LogicalAddress logical)
+{
+    return PhysicalAddress((logical.selector() << 4) + logical.offset());
+}
