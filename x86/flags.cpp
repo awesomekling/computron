@@ -89,62 +89,33 @@ void CPU::_STD(Instruction&)
 
 void CPU::_STI(Instruction&)
 {
-    if (!getPE()) {
-        makeNextInstructionUninterruptible();
+    if (!getPE() || getIOPL() >= getCPL()) {
+        if (getIF())
+            makeNextInstructionUninterruptible();
         setIF(1);
         return;
     }
 
-    if (!getVM()) {
-        if (getIOPL() >= getCPL()) {
-            makeNextInstructionUninterruptible();
-            setIF(1);
-        } else {
-            if ((getIOPL() < getCPL()) && getCPL() == 3 && !getVIP())
-                setVIF(1);
-            else
-                throw GeneralProtectionFault(0, "STI with VM=0");
-        }
-    } else {
-        if (getIOPL() == 3) {
-            setIF(0);
-        } else {
-            if (getIOPL() < 3 && !getVIP() && getVME()) {
-                setVIF(1);
-            } else {
-                throw GeneralProtectionFault(0, "STI with VM=1");
-            }
-        }
-    }
+    if (!getVME() && !getPVI())
+        throw GeneralProtectionFault(0, "STI with VME=0 && PVI=0");
+
+    if (getVIP())
+        throw GeneralProtectionFault(0, "STI with VIP=1");
+
+    setVIF(1);
 }
 
 void CPU::_CLI(Instruction&)
 {
-    if (!getPE()) {
+    if (!getPE() || getIOPL() >= getCPL()) {
         setIF(0);
         return;
     }
 
-    if (!getVM()) {
-        if (getIOPL() >= getCPL()) {
-            setIF(0);
-        } else {
-            if ((getIOPL() < getCPL()) && getCPL() == 3 && getPVI())
-                setVIF(0);
-            else
-                throw GeneralProtectionFault(0, "CLI with VM=0");
-        }
-    } else {
-        if (getIOPL() == 3) {
-            setIF(0);
-        } else {
-            if (getIOPL() < 3 && getVME()) {
-                setVIF(0);
-            } else {
-                throw GeneralProtectionFault(0, "CLI with VM=1");
-            }
-        }
-    }
+    if (!getVME() && !getPVI())
+        throw GeneralProtectionFault(0, "CLI with VME=0 && PVI=0");
+
+    setVIF(0);
 }
 
 void CPU::_CLC(Instruction&)
