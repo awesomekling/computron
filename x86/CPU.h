@@ -1054,6 +1054,9 @@ protected:
     void _LMSW_RM16(Instruction&);
     void _SMSW_RM16(Instruction&);
 
+    template<typename T> void doLGDTorLIDT(Instruction&, T&);
+    template<typename T> void doSGDTorSIDT(Instruction&, T&);
+
     void _SGDT(Instruction&);
     void _LGDT(Instruction&);
     void _SIDT(Instruction&);

@@ -1347,6 +1347,14 @@ QString Instruction::toStringInternal(DWORD origin, bool x32) const
     return QString();
 }
 
+QString Instruction::mnemonic() const
+{
+    if (!m_descriptor) {
+        ASSERT_NOT_REACHED();
+    }
+    return m_descriptor->mnemonic;
+}
+
 WORD SimpleInstructionStream::readInstruction16()
 {
     BYTE lsb = *(m_data++);

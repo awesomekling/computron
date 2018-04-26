@@ -166,6 +166,8 @@ public:
 
     unsigned length() const;
 
+    QString mnemonic() const;
+
     BYTE op() const { return m_op; }
     BYTE subOp() const { return m_subOp; }
     BYTE rm() const { return m_modrm.m_rm; }

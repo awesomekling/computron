@@ -25,32 +25,30 @@
 #include "CPU.h"
 #include "debugger.h"
 
-//#define DEBUG_GDT
-//#define DEBUG_LDT
-//#define DEBUG_IDT
+//#define DEBUG_DESCRIPTOR_TABLES
+
+template<typename T>
+void CPU::doSGDTorSIDT(Instruction& insn, T& table)
+{
+    if (insn.modrm().isRegister())
+        throw InvalidOpcode(QString("%1 with register destination").arg(insn.mnemonic()));
+
+    snoop(insn.modrm().segment(), insn.modrm().offset(), MemoryAccessType::Write);
+    snoop(insn.modrm().segment(), insn.modrm().offset() + 6, MemoryAccessType::Write);
+    DWORD maskedBase = o16() ? (table.base.get() & 0x00ffffff) : table.base.get();
+    writeMemory16(insn.modrm().segment(), insn.modrm().offset(), table.limit);
+    writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
+}
+
 
 void CPU::_SGDT(Instruction& insn)
 {
-    if (insn.modrm().isRegister()) {
-        throw InvalidOpcode("SGDT with register destination");
-    }
-    snoop(insn.modrm().segment(), insn.modrm().offset(), MemoryAccessType::Write);
-    snoop(insn.modrm().segment(), insn.modrm().offset() + 6, MemoryAccessType::Write);
-    DWORD maskedBase = o16() ? (GDTR.base.get() & 0x00ffffff) : GDTR.base.get();
-    writeMemory16(insn.modrm().segment(), insn.modrm().offset(), GDTR.limit);
-    writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
+    doSGDTorSIDT(insn, GDTR);
 }
 
 void CPU::_SIDT(Instruction& insn)
 {
-    if (insn.modrm().isRegister()) {
-        throw InvalidOpcode("SIDT with register destination");
-    }
-    snoop(insn.modrm().segment(), insn.modrm().offset(), MemoryAccessType::Write);
-    snoop(insn.modrm().segment(), insn.modrm().offset() + 6, MemoryAccessType::Write);
-    DWORD maskedBase = o16() ? (IDTR.base.get() & 0x00ffffff) : IDTR.base.get();
-    writeMemory16(insn.modrm().segment(), insn.modrm().offset(), IDTR.limit);
-    writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
+    doSGDTorSIDT(insn, IDTR);
 }
 
 void CPU::_SLDT_RM16(Instruction& insn)
@@ -82,7 +80,7 @@ void CPU::setLDT(WORD selector)
     LDTR.base = base;
     LDTR.limit = limit;
 
-#ifdef DEBUG_LDT
+#ifdef DEBUG_DESCRIPTOR_TABLES
     vlog(LogAlert, "setLDT { segment: %04X => base:%08X, limit:%08X }", LDTR.selector, LDTR.base(), LDTR.limit);
 #endif
 }
@@ -97,7 +95,7 @@ void CPU::_LLDT_RM16(Instruction& insn)
         throw GeneralProtectionFault(0, "LLDT with CPL != 0");
 
     setLDT(insn.modrm().read16());
-#ifdef DEBUG_LDT
+#ifdef DEBUG_DESCRIPTOR_TABLES
     dumpLDT();
 #endif
 }
@@ -109,23 +107,36 @@ void CPU::dumpLDT()
     }
 }
 
-void CPU::_LGDT(Instruction& insn)
+template<typename T>
+void CPU::doLGDTorLIDT(Instruction& insn, T& table)
 {
-    if (getCPL() != 0) {
-        throw GeneralProtectionFault(0, "LGDT with CPL != 0");
-    }
-    if (insn.modrm().isRegister()) {
-        throw InvalidOpcode("LGDT with register source");
-    }
+    if (insn.modrm().isRegister())
+        throw InvalidOpcode(QString("%1 with register source").arg(insn.mnemonic()));
+
+    if (getCPL() != 0)
+        throw GeneralProtectionFault(0, QString("%1 with CPL != 0").arg(insn.mnemonic()));
 
     DWORD base = readMemory32(insn.modrm().segment(), insn.modrm().offset() + 2);
     WORD limit = readMemory16(insn.modrm().segment(), insn.modrm().offset());
     DWORD baseMask = o32() ? 0xffffffff : 0x00ffffff;
-    GDTR.base = LinearAddress(base & baseMask);
-    GDTR.limit = limit;
-#ifdef DEBUG_GDT
+    table.base = LinearAddress(base & baseMask);
+    table.limit = limit;
+}
+
+void CPU::_LGDT(Instruction& insn)
+{
+    doLGDTorLIDT(insn, GDTR);
+#ifdef DEBUG_DESCRIPTOR_TABLES
     vlog(LogAlert, "LGDT { base:%08X, limit:%08X }", GDTR.base.get(), GDTR.limit);
     dumpGDT();
+#endif
+}
+
+void CPU::_LIDT(Instruction& insn)
+{
+    doLGDTorLIDT(insn, IDTR);
+#if DEBUG_DESCRIPTOR_TABLES
+    dumpIDT();
 #endif
 }
 
@@ -144,25 +155,6 @@ void CPU::dumpIDT()
             dumpDescriptor(getInterruptDescriptor(isr));
         }
     }
-}
-
-void CPU::_LIDT(Instruction& insn)
-{
-    if (getCPL() != 0) {
-        throw GeneralProtectionFault(0, "LIDT with CPL != 0");
-    }
-    if (insn.modrm().isRegister()) {
-        throw InvalidOpcode("LIDT with register source");
-    }
-
-    DWORD base = readMemory32(insn.modrm().segment(), insn.modrm().offset() + 2);
-    WORD limit = readMemory16(insn.modrm().segment(), insn.modrm().offset());
-    DWORD baseMask = o32() ? 0xffffffff : 0x00ffffff;
-    IDTR.base = LinearAddress(base & baseMask);
-    IDTR.limit = limit;
-#if DEBUG_IDT
-    dumpIDT();
-#endif
 }
 
 void CPU::_CLTS(Instruction&)
