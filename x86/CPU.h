@@ -585,9 +585,7 @@ public:
     void updateFlags32(DWORD value);
     void updateFlags16(WORD value);
     void updateFlags8(BYTE value);
-    void mathFlags8(WORD result, BYTE dest, BYTE src);
-    void mathFlags16(DWORD result, WORD dest, WORD src);
-    void mathFlags32(QWORD result, DWORD dest, DWORD src);
+    template<typename T> void mathFlags(typename TypeDoubler<T>::type result, T dest, T src);
     void cmpFlags8(DWORD result, BYTE dest, BYTE src);
     void cmpFlags16(DWORD result, WORD dest, WORD src);
     void cmpFlags32(QWORD result, DWORD dest, DWORD src);

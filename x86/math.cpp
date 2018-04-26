@@ -26,21 +26,10 @@
 #include "templates.h"
 
 template<typename T>
-inline void updateCpuMathFlags(CPU& cpu, QWORD result, T dest, T src)
-{
-    if (TypeTrivia<T>::bits == 8)
-        cpu.mathFlags8(result, dest, src);
-    else if (TypeTrivia<T>::bits == 16)
-        cpu.mathFlags16(result, dest, src);
-    else if (TypeTrivia<T>::bits == 32)
-        cpu.mathFlags32(result, dest, src);
-}
-
-template<typename T>
 QWORD CPU::doADD(T dest, T src)
 {
     QWORD result = (QWORD)dest + (QWORD)src;
-    updateCpuMathFlags(*this, result, dest, src);
+    mathFlags(result, dest, src);
     setOF(((
           ((result)^(dest)) &
           ((result)^(src))
@@ -53,7 +42,7 @@ QWORD CPU::doADC(T dest, T src)
 {
     QWORD result = (QWORD)dest + (QWORD)src + (QWORD)getCF();
 
-    updateCpuMathFlags(*this, result, dest, src);
+    mathFlags(result, dest, src);
     setOF(((
           ((result)^(dest)) &
           ((result)^(src))

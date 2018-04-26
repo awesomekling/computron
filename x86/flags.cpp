@@ -147,40 +147,25 @@ void CPU::_SAHF(Instruction&)
     setSF(getAH() & Flag::SF);
 }
 
-void CPU::mathFlags8(WORD result, BYTE dest, BYTE src)
+template<typename T>
+void CPU::mathFlags(typename TypeDoubler<T>::type result, T dest, T src)
 {
+    typedef typename TypeDoubler<T>::type DT;
     m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
     m_lastResult = result;
-    m_lastOpSize = ByteSize;
+    m_lastOpSize = TypeTrivia<T>::bits;
 
-    setCF(result & 0xFF00);
+    setCF(result & ((DT)TypeTrivia<T>::mask << TypeTrivia<T>::bits));
     adjustFlag32(result, dest, src);
 }
 
-void CPU::mathFlags16(DWORD result, WORD dest, WORD src)
-{
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = result;
-    m_lastOpSize = WordSize;
-
-    setCF(result & 0xFFFF0000);
-    setSF(result & 0x8000);
-    adjustFlag32(result, dest, src);
-}
-
-void CPU::mathFlags32(QWORD result, DWORD dest, DWORD src)
-{
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = result;
-    m_lastOpSize = DWordSize;
-
-    setCF(result & 0xFFFFFFFF00000000ULL);
-    adjustFlag32(result, dest, src);
-}
+template void CPU::mathFlags<BYTE>(WORD, BYTE, BYTE);
+template void CPU::mathFlags<WORD>(DWORD, WORD, WORD);
+template void CPU::mathFlags<DWORD>(QWORD, DWORD, DWORD);
 
 void CPU::cmpFlags8(DWORD result, BYTE dest, BYTE src)
 {
-    mathFlags8(result, dest, src);
+    mathFlags<BYTE>(result, dest, src);
     setOF(((
         ((result)^(dest)) &
         ((src)^(dest))
@@ -189,7 +174,7 @@ void CPU::cmpFlags8(DWORD result, BYTE dest, BYTE src)
 
 void CPU::cmpFlags16(DWORD result, WORD dest, WORD src)
 {
-    mathFlags16(result, dest, src);
+    mathFlags<WORD>(result, dest, src);
     setOF(((
         ((result)^(dest)) &
         ((src)^(dest))
@@ -198,7 +183,7 @@ void CPU::cmpFlags16(DWORD result, WORD dest, WORD src)
 
 void CPU::cmpFlags32(QWORD result, DWORD dest, DWORD src)
 {
-    mathFlags32(result, dest, src);
+    mathFlags<DWORD>(result, dest, src);
     setOF(((
         ((result)^(dest)) &
         ((src)^(dest))
