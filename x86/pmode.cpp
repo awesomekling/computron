@@ -142,6 +142,7 @@ void CPU::_LIDT(Instruction& insn)
 
 void CPU::dumpGDT()
 {
+    vlog(LogDump, "GDT { base:%08X, limit:%08X }", GDTR.base.get(), GDTR.limit);
     for (unsigned i = 0; i < GDTR.limit; i += 8) {
         dumpDescriptor(getDescriptor(i));
     }
