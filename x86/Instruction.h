@@ -91,7 +91,7 @@ public:
     void write8(BYTE);
     void write16(WORD);
     void write32(DWORD);
-    void writeClearing16(WORD, bool o32);
+    void writeSpecial(DWORD, bool o32);
 
     template<typename T> class Accessor;
     Accessor<BYTE> accessor8();

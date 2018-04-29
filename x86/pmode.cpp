@@ -56,7 +56,7 @@ void CPU::_SLDT_RM16(Instruction& insn)
     if (!getPE() || getVM()) {
         throw InvalidOpcode("SLDT not recognized in real/VM86 mode");
     }
-    insn.modrm().writeClearing16(LDTR.selector, o32());
+    insn.modrm().writeSpecial(LDTR.selector, o32());
 }
 
 void CPU::setLDT(WORD selector)
@@ -188,7 +188,7 @@ void CPU::_SMSW_RM16(Instruction& insn)
 #ifdef PMODE_DEBUG
     vlog(LogCPU, "SMSW get LSW(CR0)=%04X, PE=%u", getCR0() & 0xFFFF, getPE());
 #endif
-    insn.modrm().writeClearing16(getCR0(), o32());
+    insn.modrm().writeSpecial(getCR0(), o32());
 }
 
 void CPU::_LAR_reg16_RM16(Instruction& insn)

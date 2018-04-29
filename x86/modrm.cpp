@@ -29,13 +29,13 @@
 
 #define DEFAULT_TO_SS if (!m_cpu->hasSegmentPrefix()) { m_segment = SegmentRegisterIndex::SS; }
 
-void MemoryOrRegisterReference::writeClearing16(WORD data, bool o32)
+void MemoryOrRegisterReference::writeSpecial(DWORD data, bool o32)
 {
     if (o32 && isRegister()) {
         m_cpu->writeRegister<DWORD>(m_registerIndex, data);
         return;
     }
-    return write(data);
+    return write<WORD>(data & 0xffff);
 }
 
 FLATTEN void MemoryOrRegisterReference::resolve(CPU& cpu)

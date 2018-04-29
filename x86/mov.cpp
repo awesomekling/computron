@@ -45,7 +45,7 @@ void CPU::_MOV_RM16_seg(Instruction& insn)
     if (insn.registerIndex() >= 6) {
         throw InvalidOpcode("MOV_RM16_seg with invalid segment register index");
     }
-    insn.modrm().writeClearing16(insn.segreg(), o32());
+    insn.modrm().writeSpecial(insn.segreg(), o32());
 }
 
 void CPU::_MOV_seg_RM16(Instruction& insn)

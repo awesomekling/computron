@@ -31,7 +31,7 @@ void CPU::_STR_RM16(Instruction& insn)
     if (!getPE() || getVM()) {
         throw InvalidOpcode("STR not recognized in real/VM86 mode");
     }
-    insn.modrm().writeClearing16(TR.selector, o32());
+    insn.modrm().writeSpecial(TR.selector, o32());
 }
 
 void CPU::_LTR_RM16(Instruction& insn)
