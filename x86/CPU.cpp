@@ -966,7 +966,7 @@ void CPU::doDEC(Accessor accessor)
     T value = accessor.get();
     setOF(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::min());
     accessor.set(--value);
-    adjustFlag32(value, value + 1, 1);
+    adjustFlag(value, value + 1, 1);
     updateFlags<T>(value);
 }
 
@@ -976,7 +976,7 @@ void CPU::doINC(Accessor accessor)
     T value = accessor.get();
     setOF(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::max());
     accessor.set(++value);
-    adjustFlag32(value, value - 1, 1);
+    adjustFlag(value, value - 1, 1);
     updateFlags<T>(value);
 }
 

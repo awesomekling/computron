@@ -51,11 +51,6 @@ bool CPU::getSF() const
     return SF;
 }
 
-void CPU::adjustFlag32(QWORD result, DWORD src, DWORD dest)
-{
-    setAF((((result ^ (src ^ dest)) & 0x10) >> 4) & 1);
-}
-
 void CPU::updateFlags32(DWORD data)
 {
     m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
@@ -145,49 +140,6 @@ void CPU::_SAHF(Instruction&)
     setAF(getAH() & Flag::AF);
     setZF(getAH() & Flag::ZF);
     setSF(getAH() & Flag::SF);
-}
-
-template<typename T>
-void CPU::mathFlags(typename TypeDoubler<T>::type result, T dest, T src)
-{
-    typedef typename TypeDoubler<T>::type DT;
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = result;
-    m_lastOpSize = TypeTrivia<T>::bits;
-
-    setCF(result & ((DT)TypeTrivia<T>::mask << TypeTrivia<T>::bits));
-    adjustFlag32(result, dest, src);
-}
-
-template void CPU::mathFlags<BYTE>(WORD, BYTE, BYTE);
-template void CPU::mathFlags<WORD>(DWORD, WORD, WORD);
-template void CPU::mathFlags<DWORD>(QWORD, DWORD, DWORD);
-
-void CPU::cmpFlags8(DWORD result, BYTE dest, BYTE src)
-{
-    mathFlags<BYTE>(result, dest, src);
-    setOF(((
-        ((result)^(dest)) &
-        ((src)^(dest))
-        )>>(7))&1);
-}
-
-void CPU::cmpFlags16(DWORD result, WORD dest, WORD src)
-{
-    mathFlags<WORD>(result, dest, src);
-    setOF(((
-        ((result)^(dest)) &
-        ((src)^(dest))
-        )>>(15))&1);
-}
-
-void CPU::cmpFlags32(QWORD result, DWORD dest, DWORD src)
-{
-    mathFlags<DWORD>(result, dest, src);
-    setOF(((
-        ((result)^(dest)) &
-        ((src)^(dest))
-        )>>(31))&1);
 }
 
 void CPU::setFlags(WORD flags)

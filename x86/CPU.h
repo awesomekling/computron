@@ -586,13 +586,12 @@ public:
     void updateFlags16(WORD value);
     void updateFlags8(BYTE value);
     template<typename T> void mathFlags(typename TypeDoubler<T>::type result, T dest, T src);
-    void cmpFlags8(DWORD result, BYTE dest, BYTE src);
-    void cmpFlags16(DWORD result, WORD dest, WORD src);
-    void cmpFlags32(QWORD result, DWORD dest, DWORD src);
+    template<typename T> void cmpFlags(typename TypeDoubler<T>::type result, T dest, T src);
 
-    void adjustFlag32(QWORD result, DWORD dest, DWORD src);
-
-    template<typename T> void cmpFlags(QWORD result, T, T);
+    void adjustFlag(QWORD result, DWORD src, DWORD dest)
+    {
+        setAF((((result ^ (src ^ dest)) & 0x10) >> 4) & 1);
+    }
 
     template<typename T> T readRegister(int registerIndex) const;
     template<typename T> void writeRegister(int registerIndex, T value);
@@ -1427,17 +1426,6 @@ private:
 
 extern CPU* g_cpu;
 
-template<typename T>
-inline void CPU::cmpFlags(QWORD result, T dest, T src)
-{
-    if (TypeTrivia<T>::bits == 8)
-        cmpFlags8(result, dest, src);
-    else if (TypeTrivia<T>::bits == 16)
-        cmpFlags16(result, dest, src);
-    else if (TypeTrivia<T>::bits == 32)
-        cmpFlags32(result, dest, src);
-}
-
 #include "debug.h"
 
 ALWAYS_INLINE bool CPU::evaluate(BYTE conditionCode) const
@@ -1596,6 +1584,25 @@ inline DWORD MemoryOrRegisterReference::read32() { ASSERT(m_cpu->o32()); return 
 inline void MemoryOrRegisterReference::write8(BYTE data) { return write(data); }
 inline void MemoryOrRegisterReference::write16(WORD data) { return write(data); }
 inline void MemoryOrRegisterReference::write32(DWORD data) { ASSERT(m_cpu->o32()); return write(data); }
+
+template<typename T>
+void CPU::mathFlags(typename TypeDoubler<T>::type result, T dest, T src)
+{
+    typedef typename TypeDoubler<T>::type DT;
+    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
+    m_lastResult = result;
+    m_lastOpSize = TypeTrivia<T>::bits;
+
+    setCF(result & ((DT)TypeTrivia<T>::mask << TypeTrivia<T>::bits));
+    adjustFlag(result, dest, src);
+}
+
+template<typename T>
+inline void CPU::cmpFlags(typename TypeDoubler<T>::type result, T dest, T src)
+{
+    mathFlags<T>(result, dest, src);
+    setOF((((result ^ dest) & (src ^ dest)) >> (TypeTrivia<T>::bits - 1)) & 1);
+}
 
 ALWAYS_INLINE void Instruction::execute(CPU& cpu)
 {
