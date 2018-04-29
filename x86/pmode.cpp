@@ -177,6 +177,12 @@ void CPU::_LMSW_RM16(Instruction& insn)
     }
 
     WORD msw = insn.modrm().read16();
+
+    if (getPE()) {
+        // LMSW cannot exit protected mode.
+        msw |= CR0::PE;
+    }
+
     m_CR0 = (m_CR0 & 0xFFFFFFF0) | (msw & 0x0F);
 #ifdef PMODE_DEBUG
     vlog(LogCPU, "LMSW set CR0=%08X, PE=%u", getCR0(), getPE());
