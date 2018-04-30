@@ -36,9 +36,8 @@ void CPU::_STR_RM16(Instruction& insn)
 
 void CPU::_LTR_RM16(Instruction& insn)
 {
-    if (!getPE() || getVM()) {
+    if (!getPE() || getVM())
         throw InvalidOpcode("LTR not recognized in real/VM86 mode");
-    }
 
     if (getCPL() != 0)
         throw GeneralProtectionFault(0, "LTR with CPL != 0");
@@ -46,22 +45,18 @@ void CPU::_LTR_RM16(Instruction& insn)
     WORD selector = insn.modrm().read16();
     auto descriptor = getDescriptor(selector);
 
-    if (getCPL() != 0) {
-        throw GeneralProtectionFault(0, QString("LTR with CPL(%u)!=0").arg(getCPL()));
-    }
-    if (!descriptor.isGlobal()) {
-        throw GeneralProtectionFault(selector, "LTR selector must reference GDT");
-    }
-    if (!descriptor.isTSS()) {
-        throw GeneralProtectionFault(selector, "LTR with non-TSS descriptor");
-    }
+    if (descriptor.isNull())
+        throw GeneralProtectionFault(0, "LTR with null selector");
+    if (!descriptor.isGlobal())
+        throw GeneralProtectionFault(selector & 0xfffc, "LTR selector must reference GDT");
+    if (!descriptor.isTSS())
+        throw GeneralProtectionFault(selector & 0xfffc, "LTR with non-TSS descriptor");
+
     auto& tssDescriptor = descriptor.asTSSDescriptor();
-    if (tssDescriptor.isBusy()) {
-        throw GeneralProtectionFault(selector, "LTR with busy TSS");
-    }
-    if (!tssDescriptor.present()) {
-        throw NotPresent(selector, "LTR with non-present TSS");
-    }
+    if (tssDescriptor.isBusy())
+        throw GeneralProtectionFault(selector & 0xfffc, "LTR with busy TSS");
+    if (!tssDescriptor.present())
+        throw NotPresent(selector & 0xfffc, "LTR with non-present TSS");
 
     tssDescriptor.setBusy();
     writeToGDT(tssDescriptor);
@@ -266,13 +261,13 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
         if (descriptor.isNull())
             return;
         if (descriptor.isOutsideTableLimits())
-            throw InvalidTSS(selector, "DS/ES/FS/GS outside table limits");
+            throw InvalidTSS(selector & 0xfffc, "DS/ES/FS/GS outside table limits");
         if (!descriptor.isSegmentDescriptor())
-            throw InvalidTSS(selector, "DS/ES/FS/GS is a system segment");
+            throw InvalidTSS(selector & 0xfffc, "DS/ES/FS/GS is a system segment");
         if (!descriptor.present())
-            throw NotPresent(selector, "DS/ES/FS/GS is not present");
+            throw NotPresent(selector & 0xfffc, "DS/ES/FS/GS is not present");
         if (!descriptor.isConformingCode() && descriptor.DPL() < incomingCPL)
-            throw InvalidTSS(selector, "DS/ES/FS/GS has DPL < CPL and is not a conforming code segment");
+            throw InvalidTSS(selector & 0xfffc, "DS/ES/FS/GS has DPL < CPL and is not a conforming code segment");
     };
 
     validateDataSegment(SegmentRegisterIndex::DS);

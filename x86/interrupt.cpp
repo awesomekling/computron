@@ -479,26 +479,26 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         throw GeneralProtectionFault(0, "IRET to null selector");
 
     if (descriptor.isOutsideTableLimits())
-        throw GeneralProtectionFault(selector, "IRET to selector outside table limit");
+        throw GeneralProtectionFault(selector & 0xfffc, "IRET to selector outside table limit");
 
     if (!descriptor.isCode()) {
         dumpDescriptor(descriptor);
-        throw GeneralProtectionFault(selector, "Not a code segment");
+        throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
 
     if (selectorRPL < getCPL())
-        throw GeneralProtectionFault(selector, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
 
     auto& codeSegment = descriptor.asCodeSegmentDescriptor();
 
     if (codeSegment.conforming() && codeSegment.DPL() > selectorRPL)
-        throw GeneralProtectionFault(selector, "IRET to conforming code segment with DPL > RPL");
+        throw GeneralProtectionFault(selector & 0xfffc, "IRET to conforming code segment with DPL > RPL");
 
     if (!codeSegment.conforming() && codeSegment.DPL() != selectorRPL)
-        throw GeneralProtectionFault(selector, "IRET to non-conforming code segment with DPL != RPL");
+        throw GeneralProtectionFault(selector & 0xfffc, "IRET to non-conforming code segment with DPL != RPL");
 
     if (!codeSegment.present())
-        throw NotPresent(selector, "Code segment not present");
+        throw NotPresent(selector & 0xfffc, "Code segment not present");
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.

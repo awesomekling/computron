@@ -603,15 +603,15 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     }
 
     if (descriptor.isOutsideTableLimits())
-        throw GeneralProtectionFault(selector, QString("%1 to selector outside table limit").arg(toString(type)));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to selector outside table limit").arg(toString(type)));
 
     if (!descriptor.isCode() && !descriptor.isCallGate() && !descriptor.isTaskGate() && !descriptor.isTSS())
-        throw GeneralProtectionFault(selector, QString("%1 to invalid descriptor type").arg(toString(type)));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to invalid descriptor type").arg(toString(type)));
 
     if (descriptor.isGate() && gate) {
         dumpDescriptor(*gate);
         dumpDescriptor(descriptor);
-        throw GeneralProtectionFault(selector, "Gate-to-gate jumps are not allowed");
+        throw GeneralProtectionFault(selector & 0xfffc, "Gate-to-gate jumps are not allowed");
     }
 
     if (descriptor.isTaskGate()) {
@@ -630,13 +630,13 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         }
 
         if (gate.DPL() < getCPL())
-            throw GeneralProtectionFault(selector, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.DPL()).arg(getCPL()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.DPL()).arg(getCPL()));
 
         if (selectorRPL > gate.DPL())
-            throw GeneralProtectionFault(selector, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.DPL()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.DPL()));
 
         if (!gate.present()) {
-            throw NotPresent(selector, QString("Gate not present"));
+            throw NotPresent(selector & 0xfffc, QString("Gate not present"));
         }
 
         // NOTE: We recurse here, jumping to the gate entry point.
@@ -652,11 +652,11 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         vlog(LogCPU, "%s to TSS descriptor (%s) -> %08x", toString(type), tssDescriptor.typeName(), tssDescriptor.base());
 #endif
         if (tssDescriptor.DPL() < getCPL())
-            throw GeneralProtectionFault(selector, QString("%1 to TSS descriptor with DPL < CPL").arg(toString(type)));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < CPL").arg(toString(type)));
         if (tssDescriptor.DPL() < selectorRPL)
-            throw GeneralProtectionFault(selector, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
         if (!tssDescriptor.present())
-            throw NotPresent(selector, "TSS not present");
+            throw NotPresent(selector & 0xfffc, "TSS not present");
         taskSwitch(tssDescriptor, type);
         return;
     }
@@ -667,14 +667,14 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     if ((type == JumpType::CALL || type == JumpType::JMP) && !gate) {
         if (codeSegment.conforming()) {
             if (codeSegment.DPL() > getCPL()) {
-                throw GeneralProtectionFault(selector, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
             }
         } else {
             if (selectorRPL > codeSegment.DPL()) {
-                throw GeneralProtectionFault(selector, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.DPL()));
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.DPL()));
             }
             if (codeSegment.DPL() != getCPL()) {
-                throw GeneralProtectionFault(selector, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
             }
         }
     }
@@ -690,7 +690,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     }
 
     if (!codeSegment.present()) {
-        throw NotPresent(selector, QString("Code segment not present"));
+        throw NotPresent(selector & 0xfffc, QString("Code segment not present"));
     }
 
     if (offset > codeSegment.effectiveLimit()) {
@@ -716,23 +716,23 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
         if (newSSDescriptor.isNull()) {
-            throw InvalidTSS(newSS, "New ss is null");
+            throw InvalidTSS(newSS & 0xfffc, "New ss is null");
         }
 
         if (newSSDescriptor.isOutsideTableLimits()) {
-            throw InvalidTSS(newSS, "New ss outside table limits");
+            throw InvalidTSS(newSS & 0xfffc, "New ss outside table limits");
         }
 
         if (newSSDescriptor.DPL() != descriptor.DPL()) {
-            throw InvalidTSS(newSS, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
+            throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
         }
 
         if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
-            throw InvalidTSS(newSS, "New ss not a writable data segment");
+            throw InvalidTSS(newSS & 0xfffc, "New ss not a writable data segment");
         }
 
         if (!newSSDescriptor.present()) {
-            throw StackFault(newSS, "New ss not present");
+            throw StackFault(newSS & 0xfffc, "New ss not present");
         }
 
         BEGIN_ASSERT_NO_EXCEPTIONS
@@ -809,26 +809,26 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
         throw GeneralProtectionFault(0, "RETF to null selector");
 
     if (descriptor.isOutsideTableLimits())
-        throw GeneralProtectionFault(selector, "RETF to selector outside table limit");
+        throw GeneralProtectionFault(selector & 0xfffc, "RETF to selector outside table limit");
 
     if (!descriptor.isCode()) {
         dumpDescriptor(descriptor);
-        throw GeneralProtectionFault(selector, "Not a code segment");
+        throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
 
     if (selectorRPL < getCPL())
-        throw GeneralProtectionFault(selector, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
 
     auto& codeSegment = descriptor.asCodeSegmentDescriptor();
 
     if (codeSegment.conforming() && codeSegment.DPL() > selectorRPL)
-        throw GeneralProtectionFault(selector, "RETF to conforming code segment with DPL > RPL");
+        throw GeneralProtectionFault(selector & 0xfffc, "RETF to conforming code segment with DPL > RPL");
 
     if (!codeSegment.conforming() && codeSegment.DPL() != selectorRPL)
-        throw GeneralProtectionFault(selector, "RETF to non-conforming code segment with DPL != RPL");
+        throw GeneralProtectionFault(selector & 0xfffc, "RETF to non-conforming code segment with DPL != RPL");
 
     if (!codeSegment.present())
-        throw NotPresent(selector, "Code segment not present");
+        throw NotPresent(selector & 0xfffc, "Code segment not present");
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.

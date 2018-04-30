@@ -68,12 +68,12 @@ void CPU::setLDT(WORD selector)
         if (descriptor.isLDT()) {
             auto& ldtDescriptor = descriptor.asLDTDescriptor();
             if (!descriptor.present()) {
-                throw NotPresent(selector, "LDT segment not present");
+                throw NotPresent(selector & 0xfffc, "LDT segment not present");
             }
             base = ldtDescriptor.base();
             limit = ldtDescriptor.limit();
         } else {
-            throw GeneralProtectionFault(selector, "Not an LDT descriptor");
+            throw GeneralProtectionFault(selector & 0xfffc, "Not an LDT descriptor");
         }
     }
     LDTR.selector = selector;
@@ -392,7 +392,7 @@ void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Des
     BYTE selectorRPL = selector & 3;
 
     if (descriptor.isOutsideTableLimits()) {
-        throw GeneralProtectionFault(selector, "Selector outside table limits");
+        throw GeneralProtectionFault(selector & 0xfffc, "Selector outside table limits");
     }
 
     if (reg == SegmentRegisterIndex::SS) {
@@ -400,16 +400,16 @@ void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Des
             throw GeneralProtectionFault(0, "ss loaded with null descriptor");
         }
         if (selectorRPL != getCPL()) {
-            throw GeneralProtectionFault(selector, QString("ss selector RPL(%1) != CPL(%2)").arg(selectorRPL).arg(getCPL()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("ss selector RPL(%1) != CPL(%2)").arg(selectorRPL).arg(getCPL()));
         }
         if (!descriptor.isData() || !descriptor.asDataSegmentDescriptor().writable()) {
-            throw GeneralProtectionFault(selector, "ss loaded with something other than a writable data segment");
+            throw GeneralProtectionFault(selector & 0xfffc, "ss loaded with something other than a writable data segment");
         }
         if (descriptor.DPL() != getCPL()) {
-            throw GeneralProtectionFault(selector, QString("ss selector leads to descriptor with DPL(%1) != CPL(%2)").arg(descriptor.DPL()).arg(getCPL()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("ss selector leads to descriptor with DPL(%1) != CPL(%2)").arg(descriptor.DPL()).arg(getCPL()));
         }
         if (!descriptor.present()) {
-            throw StackFault(selector, "ss loaded with non-present segment");
+            throw StackFault(selector & 0xfffc, "ss loaded with non-present segment");
         }
         return;
     }
@@ -422,18 +422,18 @@ void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Des
         || reg == SegmentRegisterIndex::FS
         || reg == SegmentRegisterIndex::GS) {
         if (!descriptor.isData() && (descriptor.isCode() && !descriptor.asCodeSegmentDescriptor().readable())) {
-            throw GeneralProtectionFault(selector, QString("%1 loaded with non-data or non-readable code segment").arg(registerName(reg)));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with non-data or non-readable code segment").arg(registerName(reg)));
         }
         if (descriptor.isData() || descriptor.isNonconformingCode()) {
             if (selectorRPL > descriptor.DPL()) {
-                throw GeneralProtectionFault(selector, QString("%1 loaded with data or non-conforming code segment and RPL > DPL").arg(registerName(reg)));
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with data or non-conforming code segment and RPL > DPL").arg(registerName(reg)));
             }
             if (getCPL() > descriptor.DPL()) {
-                throw GeneralProtectionFault(selector, QString("%1 loaded with data or non-conforming code segment and CPL > DPL").arg(registerName(reg)));
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with data or non-conforming code segment and CPL > DPL").arg(registerName(reg)));
             }
         }
         if (!descriptor.present()) {
-            throw NotPresent(selector, QString("%1 loaded with non-present segment").arg(registerName(reg)));
+            throw NotPresent(selector & 0xfffc, QString("%1 loaded with non-present segment").arg(registerName(reg)));
         }
     }
 
