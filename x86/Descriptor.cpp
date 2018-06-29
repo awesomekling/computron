@@ -49,11 +49,10 @@ SegmentDescriptor CPU::getRealModeOrVM86Descriptor(WORD selector, SegmentRegiste
     return descriptor;
 }
 
-Descriptor CPU::getDescriptor(WORD selector, SegmentRegisterIndex)
+Descriptor CPU::getDescriptor(WORD selector)
 {
-    if (selector == 0) {
+    if ((selector & 0xfffc) == 0)
         return Descriptor();
-    }
 
     bool isGlobal = (selector & 0x04) == 0;
     if (isGlobal)
@@ -67,11 +66,11 @@ Descriptor CPU::getInterruptDescriptor(BYTE number)
     return getDescriptor(m_IDTR, number, false);
 }
 
-SegmentDescriptor CPU::getSegmentDescriptor(WORD selector, SegmentRegisterIndex segreg)
+SegmentDescriptor CPU::getSegmentDescriptor(WORD selector)
 {
     if (!getPE() || getVM())
-        return getRealModeOrVM86Descriptor(selector, segreg);
-    auto descriptor = getDescriptor(selector, segreg);
+        return getRealModeOrVM86Descriptor(selector);
+    auto descriptor = getDescriptor(selector);
     if (descriptor.isNull())
         return SegmentDescriptor();
     return descriptor.asSegmentDescriptor();

@@ -237,7 +237,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
         return;
     }
 
-    auto descriptor = getDescriptor(gate.selector(), SegmentRegisterIndex::CS);
+    auto descriptor = getDescriptor(gate.selector());
 
     if (options.trapint) {
         dumpDescriptor(descriptor);
@@ -299,7 +299,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 
         WORD newSS = tss.getRingSS(descriptor.DPL());
         DWORD newESP = tss.getRingESP(descriptor.DPL());
-        auto newSSDescriptor = getDescriptor(newSS, SegmentRegisterIndex::SS);
+        auto newSSDescriptor = getDescriptor(newSS);
 
         if (newSSDescriptor.isNull()) {
             throw InvalidTSS(source == InterruptSource::External, "New ss is null");
@@ -388,7 +388,7 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
 
     WORD newSS = tss.getSS0();
     DWORD newESP = tss.getESP0();
-    auto newSSDescriptor = getDescriptor(newSS, SegmentRegisterIndex::SS);
+    auto newSSDescriptor = getDescriptor(newSS);
 
     if (newSSDescriptor.isNull()) {
         throw InvalidTSS(source == InterruptSource::External, "New ss is null");
@@ -473,7 +473,7 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
     vlog(LogCPU, "[PE=%u, PG=%u] IRET from %04x:%08x to %04x:%08x", getPE(), getPG(), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector, SegmentRegisterIndex::CS);
+    auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull())
         throw GeneralProtectionFault(0, "IRET to null selector");

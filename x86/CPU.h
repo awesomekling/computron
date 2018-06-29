@@ -298,8 +298,8 @@ public:
 
     LogicalAddress getRealModeInterruptVector(BYTE index);
     SegmentDescriptor getRealModeOrVM86Descriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
-    Descriptor getDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
-    SegmentDescriptor getSegmentDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
+    Descriptor getDescriptor(WORD selector);
+    SegmentDescriptor getSegmentDescriptor(WORD selector);
     Descriptor getInterruptDescriptor(BYTE number);
     Descriptor getDescriptor(DescriptorTableRegister&, WORD index, bool indexIsSelector);
 

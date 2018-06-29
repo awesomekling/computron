@@ -452,7 +452,7 @@ void CPU::writeSegmentRegister(SegmentRegisterIndex segreg, WORD selector)
     if (!getPE() || getVM())
         descriptor = getRealModeOrVM86Descriptor(selector, segreg);
     else
-        descriptor = getDescriptor(selector, segreg);
+        descriptor = getDescriptor(selector);
 
     validateSegmentLoad(segreg, selector, descriptor);
 

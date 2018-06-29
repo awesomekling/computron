@@ -593,7 +593,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector, SegmentRegisterIndex::CS);
+    auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull()) {
         throw GeneralProtectionFault(0, QString("%1 to null selector").arg(toString(type)));
@@ -708,7 +708,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
 
         WORD newSS = tss.getRingSS(descriptor.DPL());
         DWORD newESP = tss.getRingESP(descriptor.DPL());
-        auto newSSDescriptor = getDescriptor(newSS, SegmentRegisterIndex::SS);
+        auto newSSDescriptor = getDescriptor(newSS);
 
         // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
@@ -800,7 +800,7 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
     vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector, SegmentRegisterIndex::CS);
+    auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull())
         throw GeneralProtectionFault(0, "RETF to null selector");
