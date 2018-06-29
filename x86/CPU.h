@@ -799,8 +799,8 @@ protected:
     template<typename T> void doMOVS(Instruction&);
     template<typename T> void doINS(Instruction&);
     template<typename T> void doOUTS(Instruction&);
-    template<typename T, typename U> void doCMPS(Instruction&);
-    template<typename T, typename U> void doSCAS(Instruction&);
+    template<typename T> void doCMPS(Instruction&);
+    template<typename T> void doSCAS(Instruction&);
 
     void _CMPSB(Instruction&);
     void _CMPSW(Instruction&);

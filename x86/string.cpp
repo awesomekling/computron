@@ -57,21 +57,6 @@ void CPU::doLODS(Instruction& insn)
     });
 }
 
-void CPU::_LODSB(Instruction& insn)
-{
-    doLODS<BYTE>(insn);
-}
-
-void CPU::_LODSW(Instruction& insn)
-{
-    doLODS<WORD>(insn);
-}
-
-void CPU::_LODSD(Instruction& insn)
-{
-    doLODS<DWORD>(insn);
-}
-
 template<typename T>
 void CPU::doSTOS(Instruction& insn)
 {
@@ -81,73 +66,28 @@ void CPU::doSTOS(Instruction& insn)
     });
 }
 
-void CPU::_STOSB(Instruction& insn)
-{
-    doSTOS<BYTE>(insn);
-}
-
-void CPU::_STOSW(Instruction& insn)
-{
-    doSTOS<WORD>(insn);
-}
-
-void CPU::_STOSD(Instruction& insn)
-{
-    doSTOS<DWORD>(insn);
-}
-
-template<typename T, typename U>
+template<typename T>
 void CPU::doCMPS(Instruction& insn)
 {
-    static_assert(sizeof(U) == sizeof(T) * 2, "U should be a super-sized T");
+    typedef typename TypeDoubler<T>::type DT;
     doOnceOrRepeatedly(insn, true, [this] () {
-        U src = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
-        U dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
+        DT src = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
+        DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
         stepRegisterForAddressSize(RegisterDI, sizeof(T));
         cmpFlags<T>(src - dest, src, dest);
     });
 }
 
-void CPU::_CMPSB(Instruction& insn)
-{
-    doCMPS<BYTE, WORD>(insn);
-}
-
-void CPU::_CMPSW(Instruction& insn)
-{
-    doCMPS<WORD, DWORD>(insn);
-}
-
-void CPU::_CMPSD(Instruction& insn)
-{
-    doCMPS<DWORD, QWORD>(insn);
-}
-
-template<typename T, typename U>
+template<typename T>
 void CPU::doSCAS(Instruction& insn)
 {
-    static_assert(sizeof(U) == sizeof(T) * 2, "U should be a super-sized T");
+    typedef typename TypeDoubler<T>::type DT;
     doOnceOrRepeatedly(insn, true, [this] () {
-        U dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
+        DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
         stepRegisterForAddressSize(RegisterDI, sizeof(T));
         cmpFlags<T>(readRegister<T>(RegisterAL) - dest, readRegister<T>(RegisterAL), dest);
     });
-}
-
-void CPU::_SCASB(Instruction& insn)
-{
-    doSCAS<BYTE, WORD>(insn);
-}
-
-void CPU::_SCASW(Instruction& insn)
-{
-    doSCAS<WORD, DWORD>(insn);
-}
-
-void CPU::_SCASD(Instruction& insn)
-{
-    doSCAS<DWORD, QWORD>(insn);
 }
 
 template<typename T>
@@ -161,21 +101,6 @@ void CPU::doMOVS(Instruction& insn)
     });
 }
 
-void CPU::_MOVSB(Instruction& insn)
-{
-    doMOVS<BYTE>(insn);
-}
-
-void CPU::_MOVSW(Instruction& insn)
-{
-    doMOVS<WORD>(insn);
-}
-
-void CPU::_MOVSD(Instruction& insn)
-{
-    doMOVS<DWORD>(insn);
-}
-
 template<typename T>
 void CPU::doOUTS(Instruction& insn)
 {
@@ -184,21 +109,6 @@ void CPU::doOUTS(Instruction& insn)
         out<T>(getDX(), data);
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
     });
-}
-
-void CPU::_OUTSB(Instruction& insn)
-{
-    doOUTS<BYTE>(insn);
-}
-
-void CPU::_OUTSW(Instruction& insn)
-{
-    doOUTS<WORD>(insn);
-}
-
-void CPU::_OUTSD(Instruction& insn)
-{
-    doOUTS<DWORD>(insn);
 }
 
 template<typename T>
@@ -212,17 +122,16 @@ void CPU::doINS(Instruction& insn)
     });
 }
 
-void CPU::_INSB(Instruction& insn)
-{
-    doINS<BYTE>(insn);
-}
+#define DEFINE_STRING_OP(basename) \
+    void CPU::_ ## basename ## B(Instruction& insn) { do ## basename <BYTE>(insn); } \
+    void CPU::_ ## basename ## W(Instruction& insn) { do ## basename <WORD>(insn); } \
+    void CPU::_ ## basename ## D(Instruction& insn) { do ## basename <DWORD>(insn); }
 
-void CPU::_INSW(Instruction& insn)
-{
-    doINS<WORD>(insn);
-}
+DEFINE_STRING_OP(LODS)
+DEFINE_STRING_OP(STOS)
+DEFINE_STRING_OP(MOVS)
+DEFINE_STRING_OP(OUTS)
+DEFINE_STRING_OP(INS)
+DEFINE_STRING_OP(CMPS)
+DEFINE_STRING_OP(SCAS)
 
-void CPU::_INSD(Instruction& insn)
-{
-    doINS<DWORD>(insn);
-}
