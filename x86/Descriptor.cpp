@@ -57,14 +57,14 @@ Descriptor CPU::getDescriptor(WORD selector, SegmentRegisterIndex)
 
     bool isGlobal = (selector & 0x04) == 0;
     if (isGlobal)
-        return getDescriptor("GDT", GDTR.base, GDTR.limit, selector, true);
-    return getDescriptor("LDT", LDTR.base, LDTR.limit, selector, true);
+        return getDescriptor(m_GDTR, selector, true);
+    return getDescriptor(m_LDTR, selector, true);
 }
 
 Descriptor CPU::getInterruptDescriptor(BYTE number)
 {
     ASSERT(getPE());
-    return getDescriptor("IDT", IDTR.base, IDTR.limit, number, false);
+    return getDescriptor(m_IDTR, number, false);
 }
 
 SegmentDescriptor CPU::getSegmentDescriptor(WORD selector, SegmentRegisterIndex segreg)
@@ -77,7 +77,7 @@ SegmentDescriptor CPU::getSegmentDescriptor(WORD selector, SegmentRegisterIndex 
     return descriptor.asSegmentDescriptor();
 }
 
-Descriptor CPU::getDescriptor(const char* tableName, LinearAddress tableBase, DWORD tableLimit, WORD index, bool indexIsSelector)
+Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, WORD index, bool indexIsSelector)
 {
     Descriptor descriptor;
     DWORD tableIndex;
@@ -91,13 +91,13 @@ Descriptor CPU::getDescriptor(const char* tableName, LinearAddress tableBase, DW
     }
 
     descriptor.m_index = index;
-    if (tableIndex >= tableLimit) {
-        vlog(LogCPU, "Selector 0x%04x >= %s.limit (0x%04x).", index, tableName, tableLimit);
+    if (tableIndex >= tableRegister.limit()) {
+        vlog(LogCPU, "Selector 0x%04x >= %s.limit (0x%04x).", index, tableRegister.name(), tableRegister.limit());
         return ErrorDescriptor(Descriptor::LimitExceeded);
     }
 
-    DWORD hi = readMemory32(LinearAddress(tableBase.get() + tableIndex + 4));
-    DWORD lo = readMemory32(LinearAddress(tableBase.get() + tableIndex));
+    DWORD hi = readMemory32(tableRegister.base().offset(tableIndex + 4));
+    DWORD lo = readMemory32(tableRegister.base().offset(tableIndex));
 
     descriptor.m_G = (hi >> 23) & 1; // Limit granularity, 0=1b, 1=4kB
     descriptor.m_D = (hi >> 22) & 1;
@@ -162,6 +162,6 @@ void TSSDescriptor::setAvailable()
 void CPU::writeToGDT(Descriptor& descriptor)
 {
     ASSERT(descriptor.isGlobal());
-    writeMemory32(LinearAddress(GDTR.base.get() + descriptor.index() + 4), descriptor.m_high);
-    writeMemory32(LinearAddress(GDTR.base.get() + descriptor.index()), descriptor.m_low);
+    writeMemory32(m_GDTR.base().offset(descriptor.index() + 4), descriptor.m_high);
+    writeMemory32(m_GDTR.base().offset(descriptor.index()), descriptor.m_low);
 }

@@ -145,6 +145,36 @@ union PartAddressableRegister {
 #endif
 };
 
+class DescriptorTableRegister {
+public:
+    explicit DescriptorTableRegister(const char* name)
+        : m_name(name)
+    {
+    }
+
+    const char* name() const { return m_name; }
+    LinearAddress base() const { return m_base; }
+    WORD limit() const { return m_limit; }
+    WORD selector() const { return m_selector; }
+
+    void setBase(LinearAddress address) { m_base = address; }
+    void setLimit(WORD limit) { m_limit = limit; }
+    void setSelector(WORD selector) { m_selector = selector; }
+
+    void clear()
+    {
+        m_base = LinearAddress();
+        m_limit = 0xffff;
+        m_selector = 0;
+    }
+
+private:
+    const char* m_name { nullptr };
+    LinearAddress m_base { 0 };
+    WORD m_limit { 0xffff };
+    WORD m_selector { 0 };
+};
+
 class CPU final : public InstructionStream {
     friend void buildOpcodeTablesIfNeeded();
     friend class Debugger;
@@ -271,7 +301,7 @@ public:
     Descriptor getDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
     SegmentDescriptor getSegmentDescriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
     Descriptor getInterruptDescriptor(BYTE number);
-    Descriptor getDescriptor(const char* tableName, LinearAddress tableBase, DWORD tableLimit, WORD index, bool indexIsSelector);
+    Descriptor getDescriptor(DescriptorTableRegister&, WORD index, bool indexIsSelector);
 
     SegmentRegisterIndex currentSegment() const { return m_segmentPrefix == SegmentRegisterIndex::None ? SegmentRegisterIndex::DS : m_segmentPrefix; }
     bool hasSegmentPrefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
@@ -1051,8 +1081,8 @@ protected:
     void _LMSW_RM16(Instruction&);
     void _SMSW_RM16(Instruction&);
 
-    template<typename T> void doLGDTorLIDT(Instruction&, T&);
-    template<typename T> void doSGDTorSIDT(Instruction&, T&);
+    void doLGDTorLIDT(Instruction&, DescriptorTableRegister&);
+    void doSGDTorSIDT(Instruction&, DescriptorTableRegister&);
 
     void _SGDT(Instruction&);
     void _LGDT(Instruction&);
@@ -1340,21 +1370,9 @@ private:
     bool VIP;
     bool ID;
 
-    struct {
-        LinearAddress base;
-        WORD limit;
-    } GDTR;
-
-    struct {
-        LinearAddress base;
-        WORD limit;
-    } IDTR;
-
-    struct {
-        WORD selector { 0 };
-        LinearAddress base { 0 };
-        WORD limit { 0 };
-    } LDTR;
+    DescriptorTableRegister m_GDTR { "GDT" };
+    DescriptorTableRegister m_IDTR { "IDT" };
+    DescriptorTableRegister m_LDTR { "LDT" };
 
     DWORD m_CR0 { 0 };
     DWORD m_CR2 { 0 };

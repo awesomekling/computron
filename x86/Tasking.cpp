@@ -135,7 +135,7 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
     outgoingTSS.setFS(getFS());
     outgoingTSS.setGS(getGS());
     outgoingTSS.setSS(getSS());
-    outgoingTSS.setLDT(LDTR.selector);
+    outgoingTSS.setLDT(m_LDTR.selector());
     outgoingTSS.setEIP(getEIP());
 
     if (getPG())
@@ -155,9 +155,9 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
         m_CR3 = incomingTSS.getCR3();
     }
 
-    LDTR.selector = incomingTSS.getLDT();
-    LDTR.base = LinearAddress();
-    LDTR.limit = 0;
+    m_LDTR.setSelector(incomingTSS.getLDT());
+    m_LDTR.setBase(LinearAddress());
+    m_LDTR.setLimit(0);
 
     CS = incomingTSS.getCS();
     DS = incomingTSS.getDS();
@@ -208,12 +208,12 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
     m_CR0 |= CR0::TS; // Task Switched
 
     // Now, let's validate!
-    auto ldtDescriptor = getDescriptor(LDTR.selector);
+    auto ldtDescriptor = getDescriptor(m_LDTR.selector());
     if (!ldtDescriptor.isNull()) {
         if (!ldtDescriptor.isGlobal())
-            throw InvalidTSS(LDTR.selector & 0xfffc, "Incoming LDT is not in GDT");
+            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not in GDT");
         if (!ldtDescriptor.isLDT())
-            throw InvalidTSS(LDTR.selector & 0xfffc, "Incoming LDT is not an LDT");
+            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not an LDT");
     }
 
     unsigned incomingCPL = getCS() & 3;
@@ -244,7 +244,7 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
 
     if (!ldtDescriptor.isNull()) {
         if (!ldtDescriptor.present())
-            throw InvalidTSS(LDTR.selector & 0xfffc, "Incoming LDT is not present");
+            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not present");
     }
 
     if (!csDescriptor.isCode())

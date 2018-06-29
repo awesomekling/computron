@@ -27,28 +27,27 @@
 
 //#define DEBUG_DESCRIPTOR_TABLES
 
-template<typename T>
-void CPU::doSGDTorSIDT(Instruction& insn, T& table)
+void CPU::doSGDTorSIDT(Instruction& insn, DescriptorTableRegister& table)
 {
     if (insn.modrm().isRegister())
         throw InvalidOpcode(QString("%1 with register destination").arg(insn.mnemonic()));
 
     snoop(insn.modrm().segment(), insn.modrm().offset(), MemoryAccessType::Write);
     snoop(insn.modrm().segment(), insn.modrm().offset() + 6, MemoryAccessType::Write);
-    DWORD maskedBase = o16() ? (table.base.get() & 0x00ffffff) : table.base.get();
-    writeMemory16(insn.modrm().segment(), insn.modrm().offset(), table.limit);
+    DWORD maskedBase = o16() ? (table.base().get() & 0x00ffffff) : table.base().get();
+    writeMemory16(insn.modrm().segment(), insn.modrm().offset(), table.limit());
     writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
 }
 
 
 void CPU::_SGDT(Instruction& insn)
 {
-    doSGDTorSIDT(insn, GDTR);
+    doSGDTorSIDT(insn, m_GDTR);
 }
 
 void CPU::_SIDT(Instruction& insn)
 {
-    doSGDTorSIDT(insn, IDTR);
+    doSGDTorSIDT(insn, m_IDTR);
 }
 
 void CPU::_SLDT_RM16(Instruction& insn)
@@ -56,7 +55,7 @@ void CPU::_SLDT_RM16(Instruction& insn)
     if (!getPE() || getVM()) {
         throw InvalidOpcode("SLDT not recognized in real/VM86 mode");
     }
-    insn.modrm().writeSpecial(LDTR.selector, o32());
+    insn.modrm().writeSpecial(m_LDTR.selector(), o32());
 }
 
 void CPU::setLDT(WORD selector)
@@ -76,12 +75,13 @@ void CPU::setLDT(WORD selector)
             throw GeneralProtectionFault(selector & 0xfffc, "Not an LDT descriptor");
         }
     }
-    LDTR.selector = selector;
-    LDTR.base = base;
-    LDTR.limit = limit;
+
+    m_LDTR.setSelector(selector);
+    m_LDTR.setBase(base);
+    m_LDTR.setLimit(limit);
 
 #ifdef DEBUG_DESCRIPTOR_TABLES
-    vlog(LogAlert, "setLDT { segment: %04X => base:%08X, limit:%08X }", LDTR.selector, LDTR.base(), LDTR.limit);
+    vlog(LogAlert, "setLDT { segment: %04X => base:%08X, limit:%08X }", m_LDTR.selector(), m_LDTR.base(), m_LDTR.limit());
 #endif
 }
 
@@ -102,13 +102,12 @@ void CPU::_LLDT_RM16(Instruction& insn)
 
 void CPU::dumpLDT()
 {
-    for (unsigned i = 0; i < LDTR.limit; i += 8) {
+    for (unsigned i = 0; i < m_LDTR.limit(); i += 8) {
         dumpDescriptor(getDescriptor(i | 4));
     }
 }
 
-template<typename T>
-void CPU::doLGDTorLIDT(Instruction& insn, T& table)
+void CPU::doLGDTorLIDT(Instruction& insn, DescriptorTableRegister& table)
 {
     if (insn.modrm().isRegister())
         throw InvalidOpcode(QString("%1 with register source").arg(insn.mnemonic()));
@@ -119,22 +118,22 @@ void CPU::doLGDTorLIDT(Instruction& insn, T& table)
     DWORD base = readMemory32(insn.modrm().segment(), insn.modrm().offset() + 2);
     WORD limit = readMemory16(insn.modrm().segment(), insn.modrm().offset());
     DWORD baseMask = o32() ? 0xffffffff : 0x00ffffff;
-    table.base = LinearAddress(base & baseMask);
-    table.limit = limit;
+    table.setBase(LinearAddress(base & baseMask));
+    table.setLimit(limit);
 }
 
 void CPU::_LGDT(Instruction& insn)
 {
-    doLGDTorLIDT(insn, GDTR);
+    doLGDTorLIDT(insn, m_GDTR);
 #ifdef DEBUG_DESCRIPTOR_TABLES
-    vlog(LogAlert, "LGDT { base:%08X, limit:%08X }", GDTR.base.get(), GDTR.limit);
+    vlog(LogAlert, "LGDT { base:%08X, limit:%08X }", m_GDTR.base().get(), m_GDTR.limit());
     dumpGDT();
 #endif
 }
 
 void CPU::_LIDT(Instruction& insn)
 {
-    doLGDTorLIDT(insn, IDTR);
+    doLGDTorLIDT(insn, m_IDTR);
 #if DEBUG_DESCRIPTOR_TABLES
     dumpIDT();
 #endif
@@ -142,17 +141,17 @@ void CPU::_LIDT(Instruction& insn)
 
 void CPU::dumpGDT()
 {
-    vlog(LogDump, "GDT { base:%08X, limit:%08X }", GDTR.base.get(), GDTR.limit);
-    for (unsigned i = 0; i < GDTR.limit; i += 8) {
+    vlog(LogDump, "GDT { base:%08x, limit:%08x }", m_GDTR.base().get(), m_GDTR.limit());
+    for (unsigned i = 0; i < m_GDTR.limit(); i += 8) {
         dumpDescriptor(getDescriptor(i));
     }
 }
 
 void CPU::dumpIDT()
 {
-    vlog(LogDump, "IDT { base:%08X, limit:%08X }", IDTR.base.get(), IDTR.limit);
+    vlog(LogDump, "IDT { base:%08X, limit:%08X }", m_IDTR.base().get(), m_IDTR.limit());
     if (getPE()) {
-        for (DWORD isr = 0; isr < (IDTR.limit / 16); ++isr) {
+        for (DWORD isr = 0; isr < (m_IDTR.limit() / 16); ++isr) {
             dumpDescriptor(getInterruptDescriptor(isr));
         }
     }

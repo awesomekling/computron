@@ -292,9 +292,9 @@ void CPU::dumpAll()
          x16() ? 16 : 32);
 
     vlog(LogDump, "cr0: %08x  cr3: %08x", getCR0(), getCR3());
-    vlog(LogDump, "idtr: {base=%08x, limit=%04x}", IDTR.base.get(), IDTR.limit);
-    vlog(LogDump, "gdtr: {base=%08x, limit=%04x}", GDTR.base.get(), GDTR.limit);
-    vlog(LogDump, "ldtr: {base=%08x, limit=%04x, (selector=%04x)}", LDTR.base.get(), LDTR.limit, LDTR.selector);
+    vlog(LogDump, "idtr: {base=%08x, limit=%04x}", m_IDTR.base().get(), m_IDTR.limit());
+    vlog(LogDump, "gdtr: {base=%08x, limit=%04x}", m_GDTR.base().get(), m_GDTR.limit());
+    vlog(LogDump, "ldtr: {base=%08x, limit=%04x, (selector=%04x)}", m_LDTR.base().get(), m_LDTR.limit(), m_LDTR.selector());
     vlog(LogDump, "  tr: {base=%08x, limit=%04x, (selector=%04x, %u-bit)}", TR.base.get(), TR.limit, TR.selector, TR.is32Bit ? 32 : 16);
 
     vlog(LogDump, "cf=%u pf=%u af=%u zf=%u sf=%u if=%u df=%u of=%u tf=%u nt=%u vm=%u", getCF(), getPF(), getAF(), getZF(), getSF(), getIF(), getDF(), getOF(), getTF(), getNT(), getVM());
