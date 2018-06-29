@@ -112,7 +112,7 @@ void CPU::validateIOAccess(WORD port)
         throw GeneralProtectionFault(0, "TSS I/O map too small");
 
     WORD mask = (1 << (sizeof(T) - 1)) << (port & 7);
-    LinearAddress address(TR.base.get() + iomapBase + (port / 8));
+    LinearAddress address = TR.base.offset(iomapBase + (port / 8));
     WORD perm = mask & 0xff00 ? readMemory16(address) : readMemory8(address);
     if (perm & mask)
         throw GeneralProtectionFault(0, "I/O map disallowed access");
