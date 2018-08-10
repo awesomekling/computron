@@ -22,22 +22,33 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#include "SimpleMemoryProvider.h"
+#include "Common.h"
 
-#include "MemoryProvider.h"
-#include <QString>
+SimpleMemoryProvider::SimpleMemoryProvider(PhysicalAddress baseAddress, DWORD size, bool allowDirectReadAccess)
+    : MemoryProvider(baseAddress)
+{
+    m_data.resize(size);
+    setSize(size);
+    if (allowDirectReadAccess)
+        m_pointerForDirectReadAccess = reinterpret_cast<const BYTE*>(m_data.data());
+}
 
-class ROM final : public MemoryProvider {
-public:
-    ROM(PhysicalAddress baseAddress, const QString& fileName);
-    virtual ~ROM();
+SimpleMemoryProvider::~SimpleMemoryProvider()
+{
+}
 
-    bool isValid() const;
+BYTE SimpleMemoryProvider::readMemory8(DWORD address)
+{
+    return m_data.data()[address - baseAddress().get()];
+}
 
-    virtual const BYTE* memoryPointer(DWORD address) override;
-    virtual BYTE readMemory8(DWORD address) override;
-    virtual void writeMemory8(DWORD address, BYTE) override;
+void SimpleMemoryProvider::writeMemory8(DWORD address, BYTE data)
+{
+    m_data.data()[address - baseAddress().get()] = data;
+}
 
-private:
-    QByteArray m_data;
-};
+const BYTE* SimpleMemoryProvider::memoryPointer(DWORD address)
+{
+    return reinterpret_cast<const BYTE*>(&m_data.data()[address - baseAddress().get()]);
+}

@@ -1104,14 +1104,6 @@ void CPU::_LEA_reg16_mem16(Instruction& insn)
     insn.reg16() = insn.modrm().offset();
 }
 
-inline void CPU::didTouchMemory(PhysicalAddress physicalAddress)
-{
-    // FIXME: Have VGA listen for writes to its memory space somehow?
-    if (physicalAddress.get() >= 0xb8000 && physicalAddress.get() < 0xc0000) {
-        machine().notifyScreen();
-    }
-}
-
 static const char* toString(CPU::MemoryAccessType type)
 {
     switch (type) {
@@ -1352,7 +1344,6 @@ void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
     } else {
         *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]) = data;
     }
-    didTouchMemory(physicalAddress);
 }
 
 template void CPU::writePhysicalMemory<BYTE>(PhysicalAddress, BYTE);

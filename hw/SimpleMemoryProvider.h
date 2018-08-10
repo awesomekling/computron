@@ -27,12 +27,10 @@
 #include "MemoryProvider.h"
 #include <QString>
 
-class ROM final : public MemoryProvider {
+class SimpleMemoryProvider : public MemoryProvider {
 public:
-    ROM(PhysicalAddress baseAddress, const QString& fileName);
-    virtual ~ROM();
-
-    bool isValid() const;
+    SimpleMemoryProvider(PhysicalAddress baseAddress, DWORD size, bool allowDirectReadAccess);
+    virtual ~SimpleMemoryProvider();
 
     virtual const BYTE* memoryPointer(DWORD address) override;
     virtual BYTE readMemory8(DWORD address) override;

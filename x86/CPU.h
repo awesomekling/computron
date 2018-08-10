@@ -1296,8 +1296,6 @@ private:
     void updateCodeSegmentCache();
     void makeNextInstructionUninterruptible();
 
-    void didTouchMemory(PhysicalAddress);
-
     PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType);
 
     template<typename T> T doSAR(T, unsigned steps);

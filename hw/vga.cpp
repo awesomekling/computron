@@ -27,6 +27,7 @@
 #include "debug.h"
 #include "machine.h"
 #include "CPU.h"
+#include "SimpleMemoryProvider.h"
 #include <string.h>
 #include <QtCore/QMutex>
 #include <QtCore/QMutexLocker>
@@ -76,6 +77,8 @@ struct VGA::Private
     BYTE statusRegister { 0 };
 
     BYTE miscellaneousOutputRegister { 0 };
+
+    OwnPtr<SimpleMemoryProvider> textMemory;
 };
 
 static const RGBColor default_vga_color_registers[256] =
@@ -90,12 +93,33 @@ static const RGBColor default_vga_color_registers[256] =
     {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
 };
 
+class VGATextMemoryProvider final : public SimpleMemoryProvider {
+public:
+    VGATextMemoryProvider(VGA& vga)
+        : SimpleMemoryProvider(PhysicalAddress(0xb8000), 32768, true)
+        , m_vga(vga)
+    { }
+    virtual ~VGATextMemoryProvider() { }
+
+    virtual void writeMemory8(DWORD address, BYTE data) override
+    {
+        SimpleMemoryProvider::writeMemory8(address, data);
+        m_vga.machine().notifyScreen();
+    }
+
+private:
+    VGA& m_vga;
+};
+
 VGA::VGA(Machine& m)
     : IODevice("VGA", m)
     , MemoryProvider(PhysicalAddress(0xa0000), 0x10000)
     , d(make<Private>())
 {
     machine().cpu().registerMemoryProvider(*this);
+
+    d->textMemory = make<VGATextMemoryProvider>(*this);
+    machine().cpu().registerMemoryProvider(*d->textMemory);
 
     listen(0x3B4, IODevice::ReadWrite);
     listen(0x3B5, IODevice::ReadWrite);
