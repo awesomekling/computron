@@ -1296,7 +1296,7 @@ private:
     void updateCodeSegmentCache();
     void makeNextInstructionUninterruptible();
 
-    void didTouchMemory(DWORD address);
+    void didTouchMemory(PhysicalAddress);
 
     PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType);
 

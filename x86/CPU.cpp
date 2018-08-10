@@ -1104,14 +1104,12 @@ void CPU::_LEA_reg16_mem16(Instruction& insn)
     insn.reg16() = insn.modrm().offset();
 }
 
-// FIXME: Have VGA listen for writes to 0xB8000 somehow?
-inline void CPU::didTouchMemory(DWORD address)
+inline void CPU::didTouchMemory(PhysicalAddress physicalAddress)
 {
-    bool shouldNotifyScreen = false;
-    if (address >= 0xB8000 && address < 0xC0000)
-        shouldNotifyScreen = true;
-    if (shouldNotifyScreen)
+    // FIXME: Have VGA listen for writes to its memory space somehow?
+    if (physicalAddress.get() >= 0xb8000 && physicalAddress.get() < 0xc0000) {
         machine().notifyScreen();
+    }
 }
 
 static const char* toString(CPU::MemoryAccessType type)
@@ -1354,7 +1352,7 @@ void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
     } else {
         *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]) = data;
     }
-    didTouchMemory(physicalAddress.get());
+    didTouchMemory(physicalAddress);
 }
 
 template void CPU::writePhysicalMemory<BYTE>(PhysicalAddress, BYTE);
@@ -1540,7 +1538,6 @@ const BYTE* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
 {
     if (!validatePhysicalAddress<BYTE>(physicalAddress, MemoryAccessType::InternalPointer))
         return nullptr;
-    didTouchMemory(physicalAddress.get());
     if (auto* provider = memoryProviderForAddress(physicalAddress))
         return provider->memoryPointer(physicalAddress.get());
     return &m_memory[physicalAddress.get()];
@@ -1570,7 +1567,6 @@ const BYTE* CPU::memoryPointer(LinearAddress linearAddress)
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
 #endif
-    didTouchMemory(physicalAddress.get());
     return pointerToPhysicalMemory(physicalAddress);
 }
 
