@@ -74,7 +74,6 @@ Screen::Screen(Machine& m)
     m_columns = 0;
     m_width = 0;
     m_height = 0;
-    m_tinted = false;
 
     init();
     synchronizeFont();
@@ -149,15 +148,6 @@ void Screen::putCharacter(QPainter &p, int row, int column, BYTE color, BYTE c)
     // Text
     p.setPen(d->color[color & 0xF]);
     p.drawPixmap(x, y, d->character[c]);
-
-    if (m_tinted)
-    {
-        p.save();
-        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-        p.setOpacity(0.3);
-        p.fillRect(x, y, m_characterWidth, m_characterHeight, Qt::blue);
-        p.restore();
-    }
 }
 
 class RefreshGuard {
@@ -393,11 +383,6 @@ void Screen::paintEvent(QPaintEvent*)
         setScreenSize(640, 480);
         QPainter p(this);
         p.drawImage(QRect(0, 0, 640, 480), m_render12);
-
-        if (m_tinted) {
-            p.setOpacity(0.3);
-            p.fillRect(rect(), Qt::blue);
-        }
         return;
     }
 
@@ -405,11 +390,6 @@ void Screen::paintEvent(QPaintEvent*)
         setScreenSize(640, 400);
         QPainter p(this);
         p.drawImage(QRect(0, 0, 640, 400), m_render0D);
-
-        if (m_tinted) {
-            p.setOpacity(0.3);
-            p.fillRect(rect(), Qt::blue);
-        }
         return;
     }
 
@@ -417,11 +397,6 @@ void Screen::paintEvent(QPaintEvent*)
         setScreenSize(640, 400);
         QPainter p(this);
         p.drawImage(QRect(0, 0, 640, 400), m_render04);
-
-        if (m_tinted) {
-            p.setOpacity(0.3);
-            p.fillRect(rect(), Qt::blue);
-        }
         return;
     }
 
@@ -429,11 +404,6 @@ void Screen::paintEvent(QPaintEvent*)
         setScreenSize(640, 400);
         QPainter p(this);
         p.drawImage(QRect(0, 0, 640, 400), m_render13);
-
-        if (m_tinted) {
-            p.setOpacity(0.3);
-            p.fillRect(rect(), Qt::blue);
-        }
         return;
     }
 
@@ -573,12 +543,6 @@ void Screen::mouseReleaseEvent(QMouseEvent *e)
     default:
         break;
     }
-}
-
-void Screen::setTinted(bool t)
-{
-    m_tinted = t;
-    repaint();
 }
 
 // This sucks, any suggestions?

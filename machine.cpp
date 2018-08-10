@@ -206,15 +206,11 @@ bool Machine::loadROMImage(DWORD address, const QString& fileName)
 
 void Machine::start()
 {
-    if (widget())
-        widget()->screen().setTinted(false);
     worker().exitDebugger();
 }
 
 void Machine::pause()
 {
-    if (widget())
-        widget()->screen().setTinted(true);
     worker().enterDebugger();
 }
 

@@ -59,8 +59,6 @@ public:
 
     void setScreenSize( int width, int height );
 
-    void setTinted( bool );
-
     struct Cursor
     {
         BYTE row;
@@ -107,11 +105,6 @@ private:
 
     int m_rows;
     int m_columns;
-
-    bool m_tinted;
-
-    friend int get_current_x();
-    friend int get_current_y();
 
     Machine& machine() const { return m_machine; }
 
