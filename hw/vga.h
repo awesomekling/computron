@@ -50,9 +50,9 @@ public:
     void setPaletteDirty(bool);
     bool isPaletteDirty();
 
-    BYTE readRegister(BYTE index);
-    BYTE readRegister2(BYTE index);
-    BYTE readSequencer(BYTE index);
+    BYTE readRegister(BYTE index) const;
+    BYTE readRegister2(BYTE index) const;
+    BYTE readSequencer(BYTE index) const;
 
     void writeRegister(BYTE index, BYTE value);
 

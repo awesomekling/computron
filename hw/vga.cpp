@@ -434,20 +434,20 @@ BYTE VGA::in8(WORD port)
     }
 }
 
-BYTE VGA::readRegister(BYTE index)
+BYTE VGA::readRegister(BYTE index) const
 {
     ASSERT(index <= 0x18);
     return d->ioRegister[index];
 }
 
-BYTE VGA::readRegister2(BYTE index)
+BYTE VGA::readRegister2(BYTE index) const
 {
     // FIXME: Check if 12 is the correct limit here.
     ASSERT(index < 0x12);
     return d->ioRegister2[index];
 }
 
-BYTE VGA::readSequencer(BYTE index)
+BYTE VGA::readSequencer(BYTE index) const
 {
     ASSERT(index < 0x5);
     return d->ioSequencer[index];

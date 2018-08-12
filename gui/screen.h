@@ -31,6 +31,7 @@
 #include <QOpenGLWidget>
 
 class Machine;
+class Renderer;
 
 class Screen final : public QOpenGLWidget
 {
@@ -41,15 +42,13 @@ public:
 
     void notify();
 
-    bool inTextMode() const;
-    void setTextMode( int w, int h );
+    Machine& machine() const { return m_machine; }
 
     // FIXME: These should be moved into VGA.
     BYTE currentVideoMode() const;
     BYTE currentRowCount() const;
     BYTE currentColumnCount() const;
 
-    void synchronizeFont();
     void synchronizeColors();
 
     WORD nextKey();
@@ -58,15 +57,6 @@ public:
     bool hasRawKey();
 
     void setScreenSize( int width, int height );
-
-    struct Cursor
-    {
-        BYTE row;
-        BYTE column;
-
-        Cursor() : row(0), column(0) {}
-        Cursor(uint8_t r, uint8_t c) : row(r), column(c) {}
-    };
 
 protected:
     void keyPressEvent(QKeyEvent*) override;
@@ -87,11 +77,11 @@ private:
     void paintEvent(QPaintEvent*) override;
     void resizeEvent(QResizeEvent*) override;
     void init();
-    void putCharacter(QPainter& p, int row, int column, BYTE color, BYTE c);
 
-    bool m_inTextMode;
-    int m_width, m_height;
-    int m_characterWidth, m_characterHeight;
+    Renderer& renderer();
+
+    int m_width { 0 };
+    int m_height { 0 };
 
     QImage m_render12;
     QImage m_render04;
@@ -102,11 +92,6 @@ private:
     void renderMode12( QImage &target );
     void renderMode0D( QImage &target );
     void renderMode04(QImage &target);
-
-    int m_rows;
-    int m_columns;
-
-    Machine& machine() const { return m_machine; }
 
     WORD scanCodeFromKeyEvent(const QKeyEvent*) const;
     QString keyNameFromKeyEvent(const QKeyEvent*) const;

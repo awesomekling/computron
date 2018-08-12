@@ -46,12 +46,57 @@ struct fontcharbitmap_t {
 
 static Screen *s_self = 0L;
 
+class Renderer {
+public:
+    const Screen& screen() const { return m_screen; }
+    const VGA& vga() const { return m_screen.machine().vga(); }
+
+    virtual void synchronizeFont() = 0;
+    virtual void synchronizeColors() = 0;
+    virtual void render(QPainter&) = 0;
+    virtual void willBecomeActive() = 0;
+
+protected:
+    explicit Renderer(Screen& screen) : m_screen(screen) { }
+
+private:
+    Screen& m_screen;
+};
+
+class TextRenderer final : public Renderer {
+public:
+    explicit TextRenderer(Screen& screen) : Renderer(screen) { }
+
+    virtual void synchronizeFont() override;
+    virtual void synchronizeColors() override;
+    virtual void render(QPainter&) override;
+    virtual void willBecomeActive() override;
+
+private:
+    void putCharacter(QPainter&, int row, int column, BYTE color, BYTE character);
+
+    int m_rows { 25 };
+    int m_columns { 80 };
+    int m_characterWidth { 8 };
+    int m_characterHeight { 16 };
+
+    QBitmap m_character[256];
+    QBrush m_brush[16];
+    QColor m_color[16];
+};
+
+class DummyRenderer final : public Renderer {
+public:
+    explicit DummyRenderer(Screen& screen) : Renderer(screen) { }
+
+    virtual void synchronizeFont() override { }
+    virtual void synchronizeColors() override { }
+    virtual void render(QPainter&) override { }
+    virtual void willBecomeActive() override { }
+};
+
 struct Screen::Private
 {
-    QBitmap character[256];
-    QBrush brush[16];
-    QColor color[16];
-
     QMutex keyQueueLock;
 
     QQueue<WORD> keyQueue;
@@ -61,6 +106,9 @@ struct Screen::Private
 
     QTimer refreshTimer;
     QTimer periodicRefreshTimer;
+
+    OwnPtr<TextRenderer> textRenderer;
+    OwnPtr<DummyRenderer> dummyRenderer;
 };
 
 Screen::Screen(Machine& m)
@@ -70,14 +118,10 @@ Screen::Screen(Machine& m)
 {
     s_self = this;
 
-    m_rows = 0;
-    m_columns = 0;
-    m_width = 0;
-    m_height = 0;
+    d->textRenderer = make<TextRenderer>(*this);
+    d->dummyRenderer = make<DummyRenderer>(*this);
 
     init();
-    synchronizeFont();
-    setTextMode(80, 25);
     d->videoMemory = machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
 
     m_render04 = QImage(320, 200, QImage::Format_Indexed8);
@@ -136,18 +180,17 @@ void Screen::notify()
     QMetaObject::invokeMethod(this, "scheduleRefresh", Qt::QueuedConnection);
 }
 
-void Screen::putCharacter(QPainter &p, int row, int column, BYTE color, BYTE c)
+void TextRenderer::putCharacter(QPainter& p, int row, int column, BYTE color, BYTE character)
 {
     int x = column * m_characterWidth;
     int y = row * m_characterHeight;
 
-    p.setBackground(d->brush[color >> 4]);
+    p.setBackground(m_brush[color >> 4]);
 
     p.eraseRect(x, y, m_characterWidth, m_characterHeight);
 
-    // Text
-    p.setPen(d->color[color & 0xF]);
-    p.drawPixmap(x, y, d->character[c]);
+    p.setPen(m_color[color & 0xf]);
+    p.drawPixmap(x, y, m_character[character]);
 }
 
 class RefreshGuard {
@@ -169,10 +212,16 @@ void Screen::refresh()
     RefreshGuard guard(machine());
 
     BYTE videoMode = currentVideoMode();
+    bool videoModeChanged = false;
 
     if (m_videoModeInLastRefresh != videoMode) {
         vlog(LogScreen, "Video mode changed to %02X", videoMode);
         m_videoModeInLastRefresh = videoMode;
+        videoModeChanged = true;
+    }
+
+    if (videoModeChanged) {
+        renderer().willBecomeActive();
     }
 
     if (isVideoModeUsingVGAMemory(videoMode)) {
@@ -209,26 +258,18 @@ void Screen::refresh()
         return;
     }
 
-    synchronizeFont();
-
     if (videoMode == 0x03) {
-        int rows = currentRowCount();
-        switch(rows)
-        {
-            case 25:
-            case 50:
-                break;
-            default:
-                rows = 25;
-                break;
-        }
-        setTextMode(80, rows);
-        update();
-        return;
+        renderer().synchronizeFont();
+        renderer().synchronizeColors();
     }
-
-    // FIXME: What video mode are we in at this point anyway? :o)
     update();
+}
+
+Renderer& Screen::renderer()
+{
+    if (currentVideoMode() == 3)
+        return *d->textRenderer;
+    return *d->dummyRenderer;
 }
 
 void Screen::setScreenSize(int width, int height)
@@ -407,30 +448,38 @@ void Screen::paintEvent(QPaintEvent*)
         return;
     }
 
-    QPainter p(this);
-    //synchronizeFont();
+    {
+        QPainter p(this);
+        renderer().render(p);
+    }
+}
 
-    auto* v = d->videoMemory;
-    v += machine().vga().startAddress() * 2;
+void TextRenderer::willBecomeActive()
+{
+    const_cast<Screen&>(screen()).setScreenSize(m_characterWidth * m_columns, m_characterHeight * m_rows);
+}
 
-    int screenColumns = currentColumnCount();
+void TextRenderer::render(QPainter& p)
+{
+    auto* textPtr = screen().machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
+    textPtr += vga().startAddress() * 2;
 
-    WORD rawCursor = machine().vga().readRegister(0x0E) << 8 | machine().vga().readRegister(0x0F);
+    int screenColumns = screen().currentColumnCount();
+
+    WORD rawCursor = vga().readRegister(0x0e) << 8 | vga().readRegister(0x0f);
     BYTE row = screenColumns ? (rawCursor / screenColumns) : 0;
     BYTE column = screenColumns ? (rawCursor % screenColumns) : 0;
-
-    Cursor cursor(row, column);
 
     // Repaint everything
     for (int y = 0; y < m_rows; ++y) {
         for (int x = 0; x < m_columns; ++x) {
-            putCharacter(p, y, x, v[1], v[0]);
-            v += 2;
+            putCharacter(p, y, x, textPtr[1], textPtr[0]);
+            textPtr += 2;
         }
     }
 
-    BYTE cursorStart = machine().vga().readRegister(0x0A);
-    BYTE cursorEnd = machine().vga().readRegister(0x0B);
+    BYTE cursorStart = vga().readRegister(0x0a);
+    BYTE cursorEnd = vga().readRegister(0x0b);
 
     // HACK 2000!
     if (cursorEnd < 14)
@@ -443,38 +492,25 @@ void Screen::paintEvent(QPaintEvent*)
     //vlog(LogScreen, "cursor: %d to %d", cursorStart, cursorEnd);
 
     //p.setCompositionMode(QPainter::CompositionMode_Xor);
-    p.fillRect(cursor.column * m_characterWidth, cursor.row * m_characterHeight + cursorStart, m_characterWidth, cursorEnd - cursorStart, d->brush[14]);
+    p.fillRect(column * m_characterWidth, row * m_characterHeight + cursorStart, m_characterWidth, cursorEnd - cursorStart, m_brush[14]);
 }
 
-void Screen::setTextMode(int w, int h)
+void TextRenderer::synchronizeColors()
 {
-    int wi = w * m_characterWidth;
-    int he = h * m_characterHeight;
-
-    m_rows = h;
-    m_columns = w;
-
-    setScreenSize(wi, he);
-    m_inTextMode = true;
+    for (int i = 0; i < 16; ++i) {
+        m_color[i] = vga().paletteColor(i);
+        m_brush[i] = QBrush(m_color[i]);
+    }
 }
 
-bool Screen::inTextMode() const
+void TextRenderer::synchronizeFont()
 {
-    return m_inTextMode;
-}
-
-void Screen::synchronizeFont()
-{
-    m_characterWidth = 8;
-    m_characterHeight = 16;
-    const QSize s(8, 16);
-
-    auto vector = machine().cpu().getRealModeInterruptVector(0x43);
+    auto vector = screen().machine().cpu().getRealModeInterruptVector(0x43);
     auto physicalAddress = PhysicalAddress::fromRealMode(vector);
-    auto* fbmp = (const fontcharbitmap_t *)(machine().cpu().pointerToPhysicalMemory(physicalAddress));
+    auto* fbmp = (const fontcharbitmap_t *)(screen().machine().cpu().pointerToPhysicalMemory(physicalAddress));
 
     for (int i = 0; i < 256; ++i)
-        d->character[i] = QBitmap::fromData(s, fbmp[i].data, QImage::Format_Mono);
+        m_character[i] = QBitmap::fromData(QSize(m_characterWidth, m_characterHeight), fbmp[i].data, QImage::Format_Mono);
 }
 
 BYTE Screen::currentVideoMode() const
@@ -496,11 +532,12 @@ BYTE Screen::currentColumnCount() const
 
 void Screen::synchronizeColors()
 {
+    renderer().synchronizeColors();
+
     for (int i = 0; i < 16; ++i) {
-        d->color[i] = machine().vga().paletteColor(i);
-        d->brush[i] = QBrush(d->color[i]);
-        m_render12.setColor(i, d->color[i].rgb());
-        m_render0D.setColor(i, d->color[i].rgb());
+        QColor color = machine().vga().paletteColor(i);
+        m_render12.setColor(i, color.rgb());
+        m_render0D.setColor(i, color.rgb());
     }
 
     for (int i = 0; i < 256; ++i) {
