@@ -86,9 +86,7 @@ private:
     QImage m_render12;
     QImage m_render04;
     QImage m_render0D;
-    QImage m_render13;
 
-    void renderMode13( QImage &target );
     void renderMode12( QImage &target );
     void renderMode0D( QImage &target );
     void renderMode04(QImage &target);
