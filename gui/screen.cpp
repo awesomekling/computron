@@ -98,66 +98,53 @@ public:
     virtual void willPaintSoon() override { }
 };
 
-class Mode0DRenderer final : public Renderer {
+class BufferedRenderer : public Renderer {
 public:
-    explicit Mode0DRenderer(Screen&);
+    explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
+
+    virtual void render(QPainter&) override;
+    virtual void willBecomeActive() override;
+
+protected:
+    QImage m_buffer;
+    BYTE* bufferBits() { return m_buffer.bits(); }
+
+private:
+    int m_scale { 1 };
+};
+
+class Mode0DRenderer final : public BufferedRenderer {
+public:
+    explicit Mode0DRenderer(Screen& screen) : BufferedRenderer(screen, 600, 400) { }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void render(QPainter&) override;
-    virtual void willBecomeActive() override;
     virtual void willPaintSoon() override;
-
-private:
-    QImage m_buffer;
 };
 
-class Mode12Renderer final : public Renderer {
+class Mode12Renderer final : public BufferedRenderer {
 public:
-    explicit Mode12Renderer(Screen&);
+    explicit Mode12Renderer(Screen& screen) : BufferedRenderer(screen, 640, 480) { }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void render(QPainter&) override;
-    virtual void willBecomeActive() override;
     virtual void willPaintSoon() override;
-
-private:
-    QImage m_buffer;
 };
 
-class Mode13Renderer final : public Renderer {
+class Mode13Renderer final : public BufferedRenderer {
 public:
-    explicit Mode13Renderer(Screen&);
+    explicit Mode13Renderer(Screen& screen) : BufferedRenderer(screen, 320, 200, 2) { }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void render(QPainter&) override;
-    virtual void willBecomeActive() override;
     virtual void willPaintSoon() override;
-
-private:
-    QImage m_buffer;
 };
 
-Mode0DRenderer::Mode0DRenderer(Screen& screen)
+BufferedRenderer::BufferedRenderer(Screen& screen, int width, int height, int scale)
     : Renderer(screen)
+    , m_buffer(width, height, QImage::Format_Indexed8)
+    , m_scale(scale)
 {
-    m_buffer = QImage(600, 400, QImage::Format_Indexed8);
-    m_buffer.fill(0);
-}
-
-Mode12Renderer::Mode12Renderer(Screen& screen)
-    : Renderer(screen)
-{
-    m_buffer = QImage(640, 480, QImage::Format_Indexed8);
-    m_buffer.fill(0);
-}
-
-Mode13Renderer::Mode13Renderer(Screen& screen)
-    : Renderer(screen)
-{
-    m_buffer = QImage(320, 200, QImage::Format_Indexed8);
     m_buffer.fill(0);
 }
 
@@ -363,9 +350,9 @@ void Mode12Renderer::willPaintSoon()
 
     int offset = 0;
 
-    BYTE* bufferBits = m_buffer.bits();
+    BYTE* bits = bufferBits();
     for (int y = 0; y < 480; ++y) {
-        BYTE* px = &bufferBits[y*640];
+        BYTE* px = &bits[y*640];
 
         for (int x = 0; x < 640; x += 8, ++offset) {
 #define D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
@@ -394,11 +381,11 @@ void Mode0DRenderer::willPaintSoon()
     p2 += startAddress;
     p3 += startAddress;
 
-    BYTE* bufferBits = m_buffer.bits();
+    BYTE* bits = bufferBits();
     int offset = 0;
 
     for (int y = 0; y < 200; ++y) {
-        BYTE* px = &bufferBits[y*320];
+        BYTE* px = &bits[y*320];
 #define A0D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
         for (int x = 0; x < 320; x += 8, ++offset) {
             *(px++) = D(7);
@@ -436,14 +423,14 @@ void Screen::paintEvent(QPaintEvent*)
     }
 }
 
-void Mode0DRenderer::willBecomeActive()
+void BufferedRenderer::willBecomeActive()
 {
-    const_cast<Screen&>(screen()).setScreenSize(600, 400);
+    const_cast<Screen&>(screen()).setScreenSize(m_buffer.width() * m_scale, m_buffer.height() * m_scale);
 }
 
-void Mode0DRenderer::render(QPainter& p)
+void BufferedRenderer::render(QPainter& p)
 {
-    p.drawImage(QRect(0, 0, 640, 400), m_buffer);
+    p.drawImage(QRect(0, 0, m_buffer.width() * m_scale, m_buffer.height() * m_scale), m_buffer);
 }
 
 void Mode0DRenderer::synchronizeColors()
@@ -452,30 +439,10 @@ void Mode0DRenderer::synchronizeColors()
         m_buffer.setColor(i, vga().paletteColor(i).rgb());
 }
 
-void Mode12Renderer::willBecomeActive()
-{
-    const_cast<Screen&>(screen()).setScreenSize(640, 480);
-}
-
-void Mode12Renderer::render(QPainter& p)
-{
-    p.drawImage(QRect(0, 0, 640, 480), m_buffer);
-}
-
 void Mode12Renderer::synchronizeColors()
 {
     for (unsigned i = 0; i < 16; ++i)
         m_buffer.setColor(i, vga().paletteColor(i).rgb());
-}
-
-void Mode13Renderer::willBecomeActive()
-{
-    const_cast<Screen&>(screen()).setScreenSize(640, 400);
-}
-
-void Mode13Renderer::render(QPainter& p)
-{
-    p.drawImage(QRect(0, 0, 640, 400), m_buffer);
 }
 
 void Mode13Renderer::synchronizeColors()
@@ -502,7 +469,7 @@ void Mode13Renderer::willPaintSoon()
         lineOffset <<= 2;
     }
 
-    auto* bits = m_buffer.bits();
+    auto* bits = bufferBits();
     auto* bit = bits;
 
     if (mode == ByteSize) {
