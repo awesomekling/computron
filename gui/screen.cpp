@@ -285,8 +285,6 @@ void Screen::refresh()
         return;
     }
 
-    update();
-
     if (videoMode == 0x03) {
         renderer().synchronizeFont();
         renderer().synchronizeColors();
