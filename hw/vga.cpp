@@ -66,7 +66,7 @@ struct VGA::Private
     BYTE dac_data_write_subindex;
 
     bool next3C0IsIndex;
-    bool paletteDirty;
+    bool paletteDirty { true };
 
     QMutex paletteMutex;
 

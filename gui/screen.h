@@ -49,8 +49,6 @@ public:
     BYTE currentRowCount() const;
     BYTE currentColumnCount() const;
 
-    void synchronizeColors();
-
     WORD nextKey();
     WORD peekKey();
     BYTE popKeyData();
@@ -83,12 +81,7 @@ private:
     int m_width { 0 };
     int m_height { 0 };
 
-    QImage m_render12;
     QImage m_render04;
-    QImage m_render0D;
-
-    void renderMode12( QImage &target );
-    void renderMode0D( QImage &target );
     void renderMode04(QImage &target);
 
     WORD scanCodeFromKeyEvent(const QKeyEvent*) const;

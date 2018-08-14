@@ -98,6 +98,34 @@ public:
     virtual void willPaintSoon() override { }
 };
 
+class Mode0DRenderer final : public Renderer {
+public:
+    explicit Mode0DRenderer(Screen&);
+
+    virtual void synchronizeFont() override { }
+    virtual void synchronizeColors() override;
+    virtual void render(QPainter&) override;
+    virtual void willBecomeActive() override;
+    virtual void willPaintSoon() override;
+
+private:
+    QImage m_buffer;
+};
+
+class Mode12Renderer final : public Renderer {
+public:
+    explicit Mode12Renderer(Screen&);
+
+    virtual void synchronizeFont() override { }
+    virtual void synchronizeColors() override;
+    virtual void render(QPainter&) override;
+    virtual void willBecomeActive() override;
+    virtual void willPaintSoon() override;
+
+private:
+    QImage m_buffer;
+};
+
 class Mode13Renderer final : public Renderer {
 public:
     explicit Mode13Renderer(Screen&);
@@ -111,6 +139,20 @@ public:
 private:
     QImage m_buffer;
 };
+
+Mode0DRenderer::Mode0DRenderer(Screen& screen)
+    : Renderer(screen)
+{
+    m_buffer = QImage(600, 400, QImage::Format_Indexed8);
+    m_buffer.fill(0);
+}
+
+Mode12Renderer::Mode12Renderer(Screen& screen)
+    : Renderer(screen)
+{
+    m_buffer = QImage(640, 480, QImage::Format_Indexed8);
+    m_buffer.fill(0);
+}
 
 Mode13Renderer::Mode13Renderer(Screen& screen)
     : Renderer(screen)
@@ -132,6 +174,8 @@ struct Screen::Private
     QTimer periodicRefreshTimer;
 
     OwnPtr<TextRenderer> textRenderer;
+    OwnPtr<Mode0DRenderer> mode0DRenderer;
+    OwnPtr<Mode12Renderer> mode12Renderer;
     OwnPtr<Mode13Renderer> mode13Renderer;
     OwnPtr<DummyRenderer> dummyRenderer;
 };
@@ -144,6 +188,7 @@ Screen::Screen(Machine& m)
     s_self = this;
 
     d->textRenderer = make<TextRenderer>(*this);
+    d->mode12Renderer = make<Mode12Renderer>(*this);
     d->mode13Renderer = make<Mode13Renderer>(*this);
     d->dummyRenderer = make<DummyRenderer>(*this);
 
@@ -151,19 +196,11 @@ Screen::Screen(Machine& m)
     d->videoMemory = machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
 
     m_render04 = QImage(320, 200, QImage::Format_Indexed8);
-    m_render0D = QImage(320, 200, QImage::Format_Indexed8);
-    m_render12 = QImage(640, 480, QImage::Format_Indexed8);
-
     m_render04.fill(0);
-    m_render0D.fill(0);
-    m_render12.fill(0);
-
     m_render04.setColor(0, QColor(Qt::black).rgb());
     m_render04.setColor(1, QColor(Qt::cyan).rgb());
     m_render04.setColor(2, QColor(Qt::magenta).rgb());
     m_render04.setColor(3, QColor(Qt::white).rgb());
-
-    synchronizeColors();
 
     setFocusPolicy(Qt::ClickFocus);
 
@@ -250,36 +287,18 @@ void Screen::refresh()
 
     if (isVideoModeUsingVGAMemory(videoMode)) {
         if (machine().vga().isPaletteDirty()) {
-            synchronizeColors();
+            renderer().synchronizeColors();
             // FIXME: This will probably race with VGAMemory's internal palette.
             machine().vga().setPaletteDirty(false);
         }
     }
 
-    // FIXME: Unify these ridiculous drawing models somehow.
-
-    if (videoMode == 0x12) {
-        renderMode12(m_render12);
-        update();
-        return;
-    }
-
     if (videoMode == 0x04) {
         renderMode04(m_render04);
-        update();
         return;
     }
 
-    if (videoMode == 0x0D) {
-        renderMode0D(m_render0D);
-        update();
-        return;
-    }
-
-    if (videoMode == 0x13) {
-        update();
-        return;
-    }
+    update();
 
     if (videoMode == 0x03) {
         renderer().synchronizeFont();
@@ -293,6 +312,10 @@ Renderer& Screen::renderer()
     switch (currentVideoMode()) {
     case 0x03:
         return *d->textRenderer;
+    case 0x0D:
+        return *d->mode0DRenderer;
+    case 0x12:
+        return *d->mode12Renderer;
     case 0x13:
         return *d->mode13Renderer;
     default:
@@ -331,17 +354,18 @@ void Screen::renderMode04(QImage& target)
     }
 }
 
-void Screen::renderMode12(QImage &target)
+void Mode12Renderer::willPaintSoon()
 {
-    const BYTE *p0 = machine().vga().plane(0);
-    const BYTE *p1 = machine().vga().plane(1);
-    const BYTE *p2 = machine().vga().plane(2);
-    const BYTE *p3 = machine().vga().plane(3);
+    const BYTE *p0 = vga().plane(0);
+    const BYTE *p1 = vga().plane(1);
+    const BYTE *p2 = vga().plane(2);
+    const BYTE *p3 = vga().plane(3);
 
     int offset = 0;
 
+    BYTE* bufferBits = m_buffer.bits();
     for (int y = 0; y < 480; ++y) {
-        uchar *px = &target.bits()[y*640];
+        BYTE* px = &bufferBits[y*640];
 
         for (int x = 0; x < 640; x += 8, ++offset) {
 #define D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
@@ -357,23 +381,24 @@ void Screen::renderMode12(QImage &target)
     }
 }
 
-void Screen::renderMode0D(QImage &target)
+void Mode0DRenderer::willPaintSoon()
 {
-    const BYTE *p0 = machine().vga().plane(0);
-    const BYTE *p1 = machine().vga().plane(1);
-    const BYTE *p2 = machine().vga().plane(2);
-    const BYTE *p3 = machine().vga().plane(3);
+    const BYTE *p0 = vga().plane(0);
+    const BYTE *p1 = vga().plane(1);
+    const BYTE *p2 = vga().plane(2);
+    const BYTE *p3 = vga().plane(3);
 
-    WORD startAddress = machine().vga().startAddress();
+    WORD startAddress = vga().startAddress();
     p0 += startAddress;
     p1 += startAddress;
     p2 += startAddress;
     p3 += startAddress;
 
+    BYTE* bufferBits = m_buffer.bits();
     int offset = 0;
 
     for (int y = 0; y < 200; ++y) {
-        uchar *px = &target.bits()[y*320];
+        BYTE* px = &bufferBits[y*320];
 #define A0D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
         for (int x = 0; x < 320; x += 8, ++offset) {
             *(px++) = D(7);
@@ -398,20 +423,6 @@ void Screen::resizeEvent(QResizeEvent* e)
 
 void Screen::paintEvent(QPaintEvent*)
 {
-    if (currentVideoMode() == 0x12) {
-        setScreenSize(640, 480);
-        QPainter p(this);
-        p.drawImage(QRect(0, 0, 640, 480), m_render12);
-        return;
-    }
-
-    if (currentVideoMode() == 0x0D) {
-        setScreenSize(640, 400);
-        QPainter p(this);
-        p.drawImage(QRect(0, 0, 640, 400), m_render0D);
-        return;
-    }
-
     if (currentVideoMode() == 0x04) {
         setScreenSize(640, 400);
         QPainter p(this);
@@ -423,6 +434,38 @@ void Screen::paintEvent(QPaintEvent*)
         QPainter p(this);
         renderer().render(p);
     }
+}
+
+void Mode0DRenderer::willBecomeActive()
+{
+    const_cast<Screen&>(screen()).setScreenSize(600, 400);
+}
+
+void Mode0DRenderer::render(QPainter& p)
+{
+    p.drawImage(QRect(0, 0, 640, 400), m_buffer);
+}
+
+void Mode0DRenderer::synchronizeColors()
+{
+    for (unsigned i = 0; i < 16; ++i)
+        m_buffer.setColor(i, vga().paletteColor(i).rgb());
+}
+
+void Mode12Renderer::willBecomeActive()
+{
+    const_cast<Screen&>(screen()).setScreenSize(640, 480);
+}
+
+void Mode12Renderer::render(QPainter& p)
+{
+    p.drawImage(QRect(0, 0, 640, 480), m_buffer);
+}
+
+void Mode12Renderer::synchronizeColors()
+{
+    for (unsigned i = 0; i < 16; ++i)
+        m_buffer.setColor(i, vga().paletteColor(i).rgb());
 }
 
 void Mode13Renderer::willBecomeActive()
@@ -563,17 +606,6 @@ BYTE Screen::currentColumnCount() const
 {
     // FIXME: Don't get through BDA.
     return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x44a));
-}
-
-void Screen::synchronizeColors()
-{
-    renderer().synchronizeColors();
-
-    for (int i = 0; i < 16; ++i) {
-        QColor color = machine().vga().paletteColor(i);
-        m_render12.setColor(i, color.rgb());
-        m_render0D.setColor(i, color.rgb());
-    }
 }
 
 void Screen::mouseMoveEvent(QMouseEvent* e)
