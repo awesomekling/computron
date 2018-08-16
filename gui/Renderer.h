@@ -39,9 +39,9 @@ public:
 
     virtual void synchronizeFont() = 0;
     virtual void synchronizeColors() = 0;
-    virtual void render(QPainter&) = 0;
     virtual void willBecomeActive() = 0;
-    virtual void willPaintSoon() = 0;
+    virtual void render() = 0;
+    virtual void paint(QPainter&) = 0;
 
 protected:
     explicit Renderer(Screen& screen) : m_screen(screen) { }
@@ -56,9 +56,9 @@ public:
 
     virtual void synchronizeFont() override;
     virtual void synchronizeColors() override;
-    virtual void render(QPainter&) override;
     virtual void willBecomeActive() override;
-    virtual void willPaintSoon() override { }
+    virtual void render() override { }
+    virtual void paint(QPainter&) override;
 
 private:
     void putCharacter(QPainter&, int row, int column, BYTE color, BYTE character);
@@ -79,23 +79,21 @@ public:
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override { }
-    virtual void render(QPainter&) override { }
     virtual void willBecomeActive() override { }
-    virtual void willPaintSoon() override { }
+    virtual void render() override { }
+    virtual void paint(QPainter&) override { }
 };
 
 class BufferedRenderer : public Renderer {
 public:
-    explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
-
-    virtual void render(QPainter&) override;
+    virtual void paint(QPainter&) override;
     virtual void willBecomeActive() override;
 
 protected:
-    QImage m_buffer;
+    explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
     BYTE* bufferBits() { return m_buffer.bits(); }
 
-private:
+    QImage m_buffer;
     int m_scale { 1 };
 };
 
@@ -105,7 +103,7 @@ public:
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override { }
-    virtual void willPaintSoon() override;
+    virtual void render() override;
 };
 
 class Mode0DRenderer final : public BufferedRenderer {
@@ -114,7 +112,7 @@ public:
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void willPaintSoon() override;
+    virtual void render() override;
 };
 
 class Mode12Renderer final : public BufferedRenderer {
@@ -123,7 +121,7 @@ public:
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void willPaintSoon() override;
+    virtual void render() override;
 };
 
 class Mode13Renderer final : public BufferedRenderer {
@@ -132,5 +130,5 @@ public:
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
-    virtual void willPaintSoon() override;
+    virtual void render() override;
 };

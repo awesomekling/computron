@@ -72,7 +72,7 @@ void TextRenderer::putCharacter(QPainter& p, int row, int column, BYTE color, BY
     p.drawPixmap(x, y, m_character[character]);
 }
 
-void Mode04Renderer::willPaintSoon()
+void Mode04Renderer::render()
 {
     const BYTE* videoMemory = screen().machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
     WORD startAddress = vga().startAddress();
@@ -92,7 +92,7 @@ void Mode04Renderer::willPaintSoon()
     }
 }
 
-void Mode12Renderer::willPaintSoon()
+void Mode12Renderer::render()
 {
     const BYTE *p0 = vga().plane(0);
     const BYTE *p1 = vga().plane(1);
@@ -119,7 +119,7 @@ void Mode12Renderer::willPaintSoon()
     }
 }
 
-void Mode0DRenderer::willPaintSoon()
+void Mode0DRenderer::render()
 {
     const BYTE *p0 = vga().plane(0);
     const BYTE *p1 = vga().plane(1);
@@ -156,7 +156,7 @@ void BufferedRenderer::willBecomeActive()
     const_cast<Screen&>(screen()).setScreenSize(m_buffer.width() * m_scale, m_buffer.height() * m_scale);
 }
 
-void BufferedRenderer::render(QPainter& p)
+void BufferedRenderer::paint(QPainter& p)
 {
     p.drawImage(QRect(0, 0, m_buffer.width() * m_scale, m_buffer.height() * m_scale), m_buffer);
 }
@@ -179,7 +179,7 @@ void Mode13Renderer::synchronizeColors()
         m_buffer.setColor(i, vga().color(i).rgb());
 }
 
-void Mode13Renderer::willPaintSoon()
+void Mode13Renderer::render()
 {
     const BYTE* videoMemory = vga().plane(0) + vga().startAddress();
 
@@ -232,7 +232,7 @@ void TextRenderer::willBecomeActive()
     const_cast<Screen&>(screen()).setScreenSize(m_characterWidth * m_columns, m_characterHeight * m_rows);
 }
 
-void TextRenderer::render(QPainter& p)
+void TextRenderer::paint(QPainter& p)
 {
     auto* textPtr = screen().machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
     textPtr += vga().startAddress() * 2;

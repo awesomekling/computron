@@ -163,7 +163,7 @@ void Screen::refresh()
 
     renderer().synchronizeFont();
     renderer().synchronizeColors();
-    renderer().willPaintSoon();
+    renderer().render();
 
     update();
 }
@@ -208,7 +208,7 @@ void Screen::resizeEvent(QResizeEvent* e)
 void Screen::paintEvent(QPaintEvent*)
 {
     QPainter p(this);
-    renderer().render(p);
+    renderer().paint(p);
 }
 
 BYTE Screen::currentVideoMode() const
