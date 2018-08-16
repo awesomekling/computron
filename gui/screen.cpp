@@ -325,6 +325,11 @@ bool Screen::loadKeymap(const QString& filename)
         m_keyMappings[nativeKey] = pieces[0];
     }
 
+    return true;
+}
+
+void Screen::init()
+{
     makeCode["LShift"] = 0x2A;
     makeCode["LCtrl"] = 0x1D;
     makeCode["LAlt"] = 0x38;
@@ -420,11 +425,6 @@ bool Screen::loadKeymap(const QString& filename)
 
     addKey("Backtick", 0x2960, 0x297E, 0, 0);
 
-    return true;
-}
-
-void Screen::init()
-{
     QString keymap = machine().settings().keymap();
     if (keymap.isEmpty())
         vlog(LogScreen, "No keymap to load!");
