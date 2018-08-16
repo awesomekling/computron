@@ -81,9 +81,6 @@ private:
     int m_width { 0 };
     int m_height { 0 };
 
-    QImage m_render04;
-    void renderMode04(QImage &target);
-
     WORD scanCodeFromKeyEvent(const QKeyEvent*) const;
     QString keyNameFromKeyEvent(const QKeyEvent*) const;
 
