@@ -183,7 +183,7 @@ public:
     ~CPU();
 
     struct Flag {
-    enum Flags {
+    enum Flags : DWORD {
         CF = 0x0001,
         PF = 0x0004,
         AF = 0x0010,
@@ -205,19 +205,19 @@ public:
     };
 
     struct CR0 {
-    enum Bits {
-        PE = 1 << 0,
-        EM = 1 << 2,
-        TS = 1 << 3,
-        WP = 1 << 16,
-        PG = 1 << 31,
+    enum Bits : DWORD {
+        PE = 1u << 0,
+        EM = 1u << 2,
+        TS = 1u << 3,
+        WP = 1u << 16,
+        PG = 1u << 31,
     };
     };
 
     struct CR4 {
-    enum Bits {
-        VME = 1 << 0,
-        PVI = 1 << 1,
+    enum Bits : DWORD {
+        VME = 1u << 0,
+        PVI = 1u << 1,
     };
     };
 
