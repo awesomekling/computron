@@ -308,14 +308,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
     FILE* fp;
     DWORD lba;
 
-    DiskDrive* drive { nullptr };
-    switch (driveIndex) {
-    case 0x00: drive = &cpu.machine().floppy0(); break;
-    case 0x01: drive = &cpu.machine().floppy1(); break;
-    case 0x80: drive = &cpu.machine().fixed0(); break;
-    case 0x81: drive = &cpu.machine().fixed1(); break;
-    }
-
+    auto* drive = diskDriveForBIOSIndex(cpu.machine(), driveIndex);
     BYTE error = FD_NO_ERROR;
 
     if (!drive || !drive->present()) {
