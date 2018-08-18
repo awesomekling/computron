@@ -24,36 +24,15 @@
 
 #pragma once
 
-#include "iodevice.h"
-#include "MouseObserver.h"
-#include <QtCore/QMutex>
+#include "types.h"
 
-class BusMouse final : public IODevice, public MouseObserver {
+enum class MouseButton { Left, Right };
+
+class MouseObserver {
 public:
-    explicit BusMouse(Machine&);
-    virtual ~BusMouse() override;
-
-    virtual void reset() override;
-    virtual void out8(WORD port, BYTE data) override;
-    virtual BYTE in8(WORD port) override;
-
-    virtual void moveEvent(WORD x, WORD y) override;
-    virtual void buttonPressEvent(WORD x, WORD y, MouseButton) override;
-    virtual void buttonReleaseEvent(WORD x, WORD y, MouseButton) override;
-
-    static BusMouse* the();
-
-private:
-    bool m_interrupts { true };
-    BYTE m_command { 0 };
-    BYTE m_buttons { 0 };
-
-    WORD m_currentX { 0 };
-    WORD m_currentY { 0 };
-    WORD m_lastX { 0 };
-    WORD m_lastY { 0 };
-    WORD m_deltaX { 0 };
-    WORD m_deltaY { 0 };
-
-    QMutex m_mutex;
+    virtual ~MouseObserver();
+    virtual void moveEvent(WORD x, WORD y) = 0;
+    virtual void buttonPressEvent(WORD x, WORD y, MouseButton) = 0;
+    virtual void buttonReleaseEvent(WORD x, WORD y, MouseButton) = 0;
 };
+

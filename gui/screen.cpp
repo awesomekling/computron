@@ -109,6 +109,11 @@ Screen::~Screen()
 {
 }
 
+MouseObserver& Screen::mouseObserver()
+{
+    return machine().busMouse();
+}
+
 void Screen::scheduleRefresh()
 {
     if (!d->refreshTimer.isActive())
@@ -231,7 +236,7 @@ BYTE Screen::currentColumnCount() const
 void Screen::mouseMoveEvent(QMouseEvent* e)
 {
     QOpenGLWidget::mouseMoveEvent(e);
-    machine().busMouse().moveEvent(e->x(), e->y());
+    mouseObserver().moveEvent(e->x(), e->y());
 }
 
 void Screen::mousePressEvent(QMouseEvent* e)
@@ -239,10 +244,10 @@ void Screen::mousePressEvent(QMouseEvent* e)
     QOpenGLWidget::mousePressEvent(e);
     switch (e->button()) {
     case Qt::LeftButton:
-        machine().busMouse().buttonPressEvent(e->x(), e->y(), BusMouse::LeftButton);
+        mouseObserver().buttonPressEvent(e->x(), e->y(), MouseButton::Left);
         break;
     case Qt::RightButton:
-        machine().busMouse().buttonPressEvent(e->x(), e->y(), BusMouse::RightButton);
+        mouseObserver().buttonPressEvent(e->x(), e->y(), MouseButton::Right);
         break;
     default:
         break;
@@ -254,10 +259,10 @@ void Screen::mouseReleaseEvent(QMouseEvent *e)
     QOpenGLWidget::mouseReleaseEvent(e);
     switch (e->button()) {
     case Qt::LeftButton:
-        machine().busMouse().buttonReleaseEvent(e->x(), e->y(), BusMouse::LeftButton);
+        mouseObserver().buttonReleaseEvent(e->x(), e->y(), MouseButton::Left);
         break;
     case Qt::RightButton:
-        machine().busMouse().buttonReleaseEvent(e->x(), e->y(), BusMouse::RightButton);
+        mouseObserver().buttonReleaseEvent(e->x(), e->y(), MouseButton::Right);
         break;
     default:
         break;

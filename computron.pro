@@ -58,6 +58,7 @@ HEADERS += gui/machinewidget.h \
            hw/vga.h \
            hw/PS2.h \
            hw/busmouse.h \
+           hw/MouseObserver.h \
            include/debugger.h \
            include/types.h \
            include/debug.h \
@@ -116,4 +117,5 @@ SOURCES += debug.cpp \
            hw/MemoryProvider.cpp \
            hw/ROM.cpp \
            hw/SimpleMemoryProvider.cpp \
-           hw/DiskDrive.cpp
+           hw/DiskDrive.cpp \
+           hw/MouseObserver.cpp

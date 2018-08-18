@@ -104,11 +104,11 @@ void BusMouse::moveEvent(WORD x, WORD y)
         raiseIRQ();
 }
 
-void BusMouse::buttonPressEvent(WORD x, WORD y, Button button)
+void BusMouse::buttonPressEvent(WORD x, WORD y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);
-        if (button == LeftButton)
+        if (button == MouseButton::Left)
             m_buttons &= ~(1 << 7);
         else
             m_buttons &= ~(1 << 5);
@@ -126,11 +126,11 @@ void BusMouse::buttonPressEvent(WORD x, WORD y, Button button)
         raiseIRQ();
 }
 
-void BusMouse::buttonReleaseEvent(WORD x, WORD y, Button button)
+void BusMouse::buttonReleaseEvent(WORD x, WORD y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);
-        if (button == LeftButton)
+        if (button == MouseButton::Left)
             m_buttons |= (1 << 7);
         else
             m_buttons |= (1 << 5);

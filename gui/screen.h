@@ -31,10 +31,10 @@
 #include <QOpenGLWidget>
 
 class Machine;
+class MouseObserver;
 class Renderer;
 
-class Screen final : public QOpenGLWidget
-{
+class Screen final : public QOpenGLWidget {
     Q_OBJECT
 public:
     explicit Screen(Machine&);
@@ -75,6 +75,8 @@ private:
     void paintEvent(QPaintEvent*) override;
     void resizeEvent(QResizeEvent*) override;
     void init();
+
+    MouseObserver& mouseObserver();
 
     Renderer& renderer();
 
