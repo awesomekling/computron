@@ -38,8 +38,9 @@ Worker::~Worker()
 
 void Worker::run()
 {
+    m_machine.makeCPU(Badge<Worker>());
     m_machine.makeDevices(Badge<Worker>());
-    m_machine.m_workerWaiter.wakeAll();
+    m_machine.didInitializeWorker(Badge<Worker>());
     while (true) {
         m_machine.cpu().mainLoop();
         msleep(50);

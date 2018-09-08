@@ -95,6 +95,10 @@ public:
     void registerDevice(Badge<IODevice>, IODevice&);
     void unregisterDevice(Badge<IODevice>, IODevice&);
 
+    void makeCPU(Badge<Worker>);
+    void makeDevices(Badge<Worker>);
+    void didInitializeWorker(Badge<Worker>);
+
 public slots:
     void start();
     void stop();
@@ -105,9 +109,6 @@ private slots:
     void onWorkerFinished();
 
 private:
-    friend class Worker;
-    void makeDevices(Badge<Worker>);
-
     bool loadFile(DWORD address, const QString& fileName);
     bool loadROMImage(DWORD address, const QString& fileName);
 

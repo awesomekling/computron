@@ -61,21 +61,15 @@ OwnPtr<Machine> Machine::createForAutotest(const QString& fileName)
 Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
     : QObject(parent)
     , m_settings(std::move(settings))
-    , m_cpu(make<CPU>(*this))
 {
+    m_workerMutex.lock();
     m_worker = make<Worker>(*this);
+    QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(onWorkerFinished()));
 
-    memset(m_fastInputDevices, 0, sizeof(m_fastInputDevices));
-    memset(m_fastOutputDevices, 0, sizeof(m_fastOutputDevices));
+    worker().start();
 
-    m_floppy0 = make<DiskDrive>("floppy0");
-    m_floppy1 = make<DiskDrive>("floppy1");
-    m_fixed0 = make<DiskDrive>("fixed0");
-    m_fixed1 = make<DiskDrive>("fixed1");
-
-    applySettings();
-
-    cpu().setBaseMemorySize(640 * 1024);
+    m_workerWaiter.wait(&m_workerMutex);
+    m_workerMutex.unlock();
 
     if (!m_settings->isForAutotest()) {
         // FIXME: Move this somewhere else.
@@ -112,19 +106,6 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
         IODevice::ignorePort(0xEC8F);
         IODevice::ignorePort(0xFC8F);
     }
-
-    if (m_settings->isForAutotest())
-        return;
-
-    m_worker = make<Worker>(*this);
-    QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(onWorkerFinished()));
-
-    worker().exitDebugger();
-    worker().start();
-
-    m_workerMutex.lock();
-    m_workerWaiter.wait(&m_workerMutex);
-    m_workerMutex.unlock();
 }
 
 Machine::~Machine()
@@ -132,9 +113,32 @@ Machine::~Machine()
     qDeleteAll(m_roms);
 }
 
+void Machine::didInitializeWorker(Badge<Worker>)
+{
+    m_workerWaiter.wakeAll();
+}
+
+void Machine::makeCPU(Badge<Worker>)
+{
+    RELEASE_ASSERT(QThread::currentThread() == m_worker.ptr());
+    m_cpu = make<CPU>(*this);
+}
+
 void Machine::makeDevices(Badge<Worker>)
 {
     RELEASE_ASSERT(QThread::currentThread() == m_worker.ptr());
+    m_floppy0 = make<DiskDrive>("floppy0");
+    m_floppy1 = make<DiskDrive>("floppy1");
+    m_fixed0 = make<DiskDrive>("fixed0");
+    m_fixed1 = make<DiskDrive>("fixed1");
+
+    applySettings();
+
+    memset(m_fastInputDevices, 0, sizeof(m_fastInputDevices));
+    memset(m_fastOutputDevices, 0, sizeof(m_fastOutputDevices));
+
+    cpu().setBaseMemorySize(640 * 1024);
+
     m_masterPIC = make<PIC>(true, *this);
     m_slavePIC = make<PIC>(false, *this);
     m_busMouse = make<BusMouse>(*this);
