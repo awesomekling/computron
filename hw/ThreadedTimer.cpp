@@ -25,24 +25,6 @@
 #include "ThreadedTimer.h"
 #include <QEventLoop>
 
-class ThreadedTimerHelper : public QObject {
-    Q_OBJECT
-public:
-    explicit ThreadedTimerHelper(ThreadedTimer& threadedTimer, int ms)
-        : m_threadedTimer(threadedTimer)
-    {
-        startTimer(ms);
-    }
-
-    virtual void timerEvent(QTimerEvent*) override
-    {
-        m_threadedTimer.helperTimerFired();
-    }
-
-private:
-    ThreadedTimer& m_threadedTimer;
-};
-
 ThreadedTimer::ThreadedTimer(ThreadedTimer::Listener& listener, int ms)
     : QThread(nullptr)
     , m_listener(listener)
@@ -59,9 +41,7 @@ void ThreadedTimer::run()
 {
     QEventLoop eventLoop;
     ThreadedTimerHelper helper(*this, m_ms);
-    forever {
-        eventLoop.processEvents();
-    }
+    eventLoop.exec();
 }
 
 void ThreadedTimer::helperTimerFired()

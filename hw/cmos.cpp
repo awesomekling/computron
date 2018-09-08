@@ -35,7 +35,7 @@
 CMOS::CMOS(Machine& machine)
     : IODevice("CMOS", machine)
 {
-    m_rtcTimer = make<ThreadedTimer>(*this, 25);
+    m_rtcTimer = make<ThreadedTimer>(*this, 250);
     listen(0x70, IODevice::WriteOnly);
     listen(0x71, IODevice::ReadWrite);
     reset();
