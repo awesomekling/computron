@@ -63,6 +63,8 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
     , m_settings(std::move(settings))
     , m_cpu(make<CPU>(*this))
 {
+    m_worker = make<Worker>(*this);
+
     memset(m_fastInputDevices, 0, sizeof(m_fastInputDevices));
     memset(m_fastOutputDevices, 0, sizeof(m_fastOutputDevices));
 
@@ -111,6 +113,28 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
         IODevice::ignorePort(0xFC8F);
     }
 
+    if (m_settings->isForAutotest())
+        return;
+
+    m_worker = make<Worker>(*this);
+    QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(onWorkerFinished()));
+
+    worker().exitDebugger();
+    worker().start();
+
+    m_workerMutex.lock();
+    m_workerWaiter.wait(&m_workerMutex);
+    m_workerMutex.unlock();
+}
+
+Machine::~Machine()
+{
+    qDeleteAll(m_roms);
+}
+
+void Machine::makeDevices(Badge<Worker>)
+{
+    RELEASE_ASSERT(QThread::currentThread() == m_worker.ptr());
     m_masterPIC = make<PIC>(true, *this);
     m_slavePIC = make<PIC>(false, *this);
     m_busMouse = make<BusMouse>(*this);
@@ -123,22 +147,7 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
     m_pit = make<PIT>(*this);
     m_vga = make<VGA>(*this);
 
-    if (!m_settings->isForAutotest()) {
-        m_worker = make<Worker>(cpu());
-
-        QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(onWorkerFinished()));
-
-        // Why are we booting the PIT slightly later anyway? I smell a race.
-        pit().boot();
-
-        worker().exitDebugger();
-        worker().start();
-    }
-}
-
-Machine::~Machine()
-{
-    qDeleteAll(m_roms);
+    pit().boot();
 }
 
 void Machine::applySettings()
@@ -264,26 +273,26 @@ IODevice* Machine::outputDeviceForPortSlowCase(WORD port)
     return m_allOutputDevices.value(port, nullptr);
 }
 
-void Machine::registerInputDevice(IODevicePass, WORD port, IODevice& device)
+void Machine::registerInputDevice(Badge<IODevice>, WORD port, IODevice& device)
 {
     if (port < 1024)
         m_fastInputDevices[port] = &device;
     m_allInputDevices.insert(port, &device);
 }
 
-void Machine::registerOutputDevice(IODevicePass, WORD port, IODevice& device)
+void Machine::registerOutputDevice(Badge<IODevice>, WORD port, IODevice& device)
 {
     if (port < 1024)
         m_fastOutputDevices[port] = &device;
     m_allOutputDevices.insert(port, &device);
 }
 
-void Machine::registerDevice(IODevicePass, IODevice& device)
+void Machine::registerDevice(Badge<IODevice>, IODevice& device)
 {
     m_allDevices.insert(&device);
 }
 
-void Machine::unregisterDevice(IODevicePass, IODevice& device)
+void Machine::unregisterDevice(Badge<IODevice>, IODevice& device)
 {
     m_allDevices.remove(&device);
 }

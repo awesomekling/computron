@@ -24,17 +24,15 @@
 
 #pragma once
 
-#include <QtCore/QThread>
-#include <QtCore/QMutex>
+#include <QThread>
 
-class CPU;
+class Machine;
 
-class Worker final : public QThread
-{
+class Worker final : public QThread {
     Q_OBJECT
 public:
-    explicit Worker(CPU&);
-    virtual ~Worker();
+    explicit Worker(Machine&);
+    virtual ~Worker() override;
 
     void enterDebugger();
     void exitDebugger();
@@ -45,6 +43,6 @@ public slots:
     void shutdown();
 
 private:
-    CPU& m_cpu;
-    bool m_active;
+    Machine& m_machine;
+    bool m_active { false };
 };

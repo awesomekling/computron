@@ -32,6 +32,7 @@
 #include "ROM.h"
 #include <QHash>
 #include <QSet>
+#include <QWaitCondition>
 
 class IODevice;
 class BusMouse;
@@ -49,11 +50,6 @@ class VGA;
 class VomCtl;
 class Worker;
 class MachineWidget;
-
-class IODevicePass {
-    friend IODevice;
-    IODevicePass() { }
-};
 
 class Machine : public QObject
 {
@@ -94,10 +90,10 @@ public:
     IODevice* inputDeviceForPort(WORD port);
     IODevice* outputDeviceForPort(WORD port);
 
-    void registerInputDevice(IODevicePass, WORD port, IODevice&);
-    void registerOutputDevice(IODevicePass, WORD port, IODevice&);
-    void registerDevice(IODevicePass, IODevice&);
-    void unregisterDevice(IODevicePass, IODevice&);
+    void registerInputDevice(Badge<IODevice>, WORD port, IODevice&);
+    void registerOutputDevice(Badge<IODevice>, WORD port, IODevice&);
+    void registerDevice(Badge<IODevice>, IODevice&);
+    void unregisterDevice(Badge<IODevice>, IODevice&);
 
 public slots:
     void start();
@@ -109,6 +105,9 @@ private slots:
     void onWorkerFinished();
 
 private:
+    friend class Worker;
+    void makeDevices(Badge<Worker>);
+
     bool loadFile(DWORD address, const QString& fileName);
     bool loadROMImage(DWORD address, const QString& fileName);
 
@@ -121,7 +120,10 @@ private:
 
     OwnPtr<Settings> m_settings;
     OwnPtr<CPU> m_cpu;
+
     OwnPtr<Worker> m_worker;
+    QMutex m_workerMutex;
+    QWaitCondition m_workerWaiter;
 
     // IODevices
     OwnPtr<VGA> m_vga;

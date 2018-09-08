@@ -22,34 +22,53 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
-
-#include "iodevice.h"
-#include "OwnPtr.h"
 #include "ThreadedTimer.h"
+#include <QEventLoop>
 
-class PIT final : public IODevice, public ThreadedTimer::Listener {
+class ThreadedTimerHelper : public QObject {
+    Q_OBJECT
 public:
-    explicit PIT(Machine&);
-    virtual ~PIT();
+    explicit ThreadedTimerHelper(ThreadedTimer& threadedTimer, int ms)
+        : m_threadedTimer(threadedTimer)
+    {
+        startTimer(ms);
+    }
 
-    virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
-
-    void boot();
-
-    virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
+    virtual void timerEvent(QTimerEvent*) override
+    {
+        m_threadedTimer.helperTimerFired();
+    }
 
 private:
-    friend class CPU;
-
-    BYTE readCounter(BYTE index);
-    void writeCounter(BYTE index, BYTE data);
-
-    void modeControl(int timerIndex, BYTE data);
-    void reconfigureTimer(BYTE index);
-
-    struct Private;
-    OwnPtr<Private> d;
+    ThreadedTimer& m_threadedTimer;
 };
+
+ThreadedTimer::ThreadedTimer(ThreadedTimer::Listener& listener, int ms)
+    : QThread(nullptr)
+    , m_listener(listener)
+    , m_ms(ms)
+{
+    start();
+}
+
+ThreadedTimer::~ThreadedTimer()
+{
+}
+
+void ThreadedTimer::run()
+{
+    QEventLoop eventLoop;
+    ThreadedTimerHelper helper(*this, m_ms);
+    forever {
+        eventLoop.processEvents();
+    }
+}
+
+void ThreadedTimer::helperTimerFired()
+{
+    m_listener.threadedTimerFired(Badge<ThreadedTimer>());
+}
+
+ThreadedTimer::Listener::~Listener()
+{
+}

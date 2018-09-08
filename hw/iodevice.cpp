@@ -38,21 +38,21 @@ IODevice::IODevice(const char* name, Machine& machine, int irq)
     , m_name(name)
     , m_irq(irq)
 {
-    m_machine.registerDevice(IODevicePass(), *this);
+    m_machine.registerDevice(Badge<IODevice>(), *this);
 }
 
 IODevice::~IODevice()
 {
-    m_machine.unregisterDevice(IODevicePass(), *this);
+    m_machine.unregisterDevice(Badge<IODevice>(), *this);
 }
 
 void IODevice::listen(WORD port, ListenMask mask)
 {
     if (mask & ReadOnly)
-        machine().registerInputDevice(IODevicePass(), port, *this);
+        machine().registerInputDevice(Badge<IODevice>(), port, *this);
 
     if (mask & WriteOnly)
-        machine().registerOutputDevice(IODevicePass(), port, *this);
+        machine().registerOutputDevice(Badge<IODevice>(), port, *this);
 
     m_ports.append(port);
 }

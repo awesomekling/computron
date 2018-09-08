@@ -157,3 +157,9 @@ inline PhysicalAddress PhysicalAddress::fromRealMode(LogicalAddress logical)
 {
     return PhysicalAddress((logical.selector() << 4) + logical.offset());
 }
+
+template<typename T>
+class Badge {
+    friend T;
+    Badge() { }
+};

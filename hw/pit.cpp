@@ -28,7 +28,6 @@
 #include "pit.h"
 #include <math.h>
 #include <QElapsedTimer>
-#include <QThread>
 
 //#define PIT_DEBUG
 
@@ -56,12 +55,11 @@ struct PIT::Private
 {
     CounterInfo counter[3];
     int frequency { 0 };
-    int timerId { -1 };
+    OwnPtr<ThreadedTimer> threadedTimer;
 };
 
 PIT::PIT(Machine& machine)
-    : QObject(nullptr)
-    , IODevice("PIT", machine, 0)
+    : IODevice("PIT", machine, 0)
     , d(make<Private>())
 {
     listen(0x40, IODevice::ReadWrite);
@@ -74,7 +72,6 @@ PIT::PIT(Machine& machine)
 
 PIT::~PIT()
 {
-    killTimer(d->timerId);
 }
 
 void PIT::reset()
@@ -130,7 +127,7 @@ void PIT::reconfigureTimer(BYTE index)
 
 void PIT::boot()
 {
-    d->timerId = startTimer(5);
+    d->threadedTimer = make<ThreadedTimer>(*this, 5);
 
     // FIXME: This should be done by the BIOS instead.
     reconfigureTimer(0);
@@ -138,7 +135,7 @@ void PIT::boot()
     reconfigureTimer(2);
 }
 
-void PIT::timerEvent(QTimerEvent*)
+void PIT::threadedTimerFired(Badge<ThreadedTimer>)
 {
 #ifndef CT_DETERMINISTIC
     d->counter[0].check(*this);

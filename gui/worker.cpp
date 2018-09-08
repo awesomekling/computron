@@ -23,11 +23,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "worker.h"
+#include "machine.h"
 #include "CPU.h"
 
-Worker::Worker(CPU& cpu)
-    : QThread(0)
-    , m_cpu(cpu)
+Worker::Worker(Machine& machine)
+    : QThread(nullptr)
+    , m_machine(machine)
 {
 }
 
@@ -37,8 +38,10 @@ Worker::~Worker()
 
 void Worker::run()
 {
+    m_machine.makeDevices(Badge<Worker>());
+    m_machine.m_workerWaiter.wakeAll();
     while (true) {
-        m_cpu.mainLoop();
+        m_machine.cpu().mainLoop();
         msleep(50);
     }
 }
@@ -51,15 +54,15 @@ void Worker::shutdown()
 
 void Worker::exitDebugger()
 {
-    m_cpu.queueCommand(CPU::ExitDebugger);
+    m_machine.cpu().queueCommand(CPU::ExitDebugger);
 }
 
 void Worker::enterDebugger()
 {
-    m_cpu.queueCommand(CPU::EnterDebugger);
+    m_machine.cpu().queueCommand(CPU::EnterDebugger);
 }
 
 void Worker::rebootMachine()
 {
-    m_cpu.queueCommand(CPU::HardReboot);
+    m_machine.cpu().queueCommand(CPU::HardReboot);
 }

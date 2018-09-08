@@ -24,32 +24,46 @@
 
 #pragma once
 
-#include "iodevice.h"
-#include "OwnPtr.h"
-#include "ThreadedTimer.h"
+#include "types.h"
+#include <QThread>
 
-class PIT final : public IODevice, public ThreadedTimer::Listener {
+class ThreadedTimerHelper;
+
+class ThreadedTimer final : public QThread {
+    Q_OBJECT
 public:
-    explicit PIT(Machine&);
-    virtual ~PIT();
+    class Listener {
+    public:
+        virtual ~Listener();
+        virtual void threadedTimerFired(Badge<ThreadedTimer>) = 0;
+    };
 
-    virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
-
-    void boot();
-
-    virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
+    explicit ThreadedTimer(Listener&, int ms);
+    virtual ~ThreadedTimer();
 
 private:
-    friend class CPU;
-
-    BYTE readCounter(BYTE index);
-    void writeCounter(BYTE index, BYTE data);
-
-    void modeControl(int timerIndex, BYTE data);
-    void reconfigureTimer(BYTE index);
-
-    struct Private;
-    OwnPtr<Private> d;
+    friend class ThreadedTimerHelper;
+    virtual void run() override;
+    void helperTimerFired();
+    Listener& m_listener;
+    int m_ms { 0 };
 };
+
+class ThreadedTimerHelper : public QObject {
+    Q_OBJECT
+public:
+    explicit ThreadedTimerHelper(ThreadedTimer& threadedTimer, int ms)
+        : m_threadedTimer(threadedTimer)
+    {
+        startTimer(ms);
+    }
+
+    virtual void timerEvent(QTimerEvent*) override
+    {
+        m_threadedTimer.helperTimerFired();
+    }
+
+private:
+    ThreadedTimer& m_threadedTimer;
+};
+
