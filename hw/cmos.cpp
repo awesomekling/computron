@@ -35,6 +35,7 @@
 CMOS::CMOS(Machine& machine)
     : IODevice("CMOS", machine)
 {
+    m_rtcTimer = make<ThreadedTimer>(*this, 25);
     listen(0x70, IODevice::WriteOnly);
     listen(0x71, IODevice::ReadWrite);
     reset();
@@ -97,6 +98,7 @@ void CMOS::updateClock()
     // FIXME: Support 12-hour clock mode for RTCHour!
     ASSERT(in24HourMode());
 
+    m_ram[StatusRegisterA] |= 0x80; // RTC update in progress
     auto now = currentDateTimeForCMOS();
     m_ram[RTCSecond] = toCurrentClockFormat(now.time().second());
     m_ram[RTCMinute] = toCurrentClockFormat(now.time().minute());
@@ -107,12 +109,11 @@ void CMOS::updateClock()
     m_ram[RTCYear] = toCurrentClockFormat(now.date().year() % 100);
     m_ram[RTCCentury] = toCurrentClockFormat(now.date().year() / 100);
     m_ram[RTCCenturyPS2] = toCurrentClockFormat(now.date().year() / 100);
+    m_ram[StatusRegisterA] &= ~0x80; // RTC update finished
 }
 
 BYTE CMOS::in8(WORD)
 {
-    updateClock();
-
     BYTE value = m_ram[m_registerIndex];
 #ifdef CMOS_DEBUG
     vlog(LogCMOS, "Read register %02x (%02x)", m_registerIndex, value);
@@ -146,4 +147,9 @@ BYTE CMOS::get(RegisterIndex index) const
 {
     ASSERT((size_t)index < sizeof(m_ram));
     return m_ram[index];
+}
+
+void CMOS::threadedTimerFired(Badge<ThreadedTimer>)
+{
+    updateClock();
 }

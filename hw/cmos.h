@@ -26,8 +26,10 @@
 
 #include "iodevice.h"
 #include "Common.h"
+#include "ThreadedTimer.h"
+#include "OwnPtr.h"
 
-class CMOS final : public IODevice {
+class CMOS final : public IODevice, public ThreadedTimer::Listener {
 public:
     enum RegisterIndex {
         StatusRegisterA = 0x0a,
@@ -63,10 +65,14 @@ public:
     BYTE get(RegisterIndex) const;
 
 private:
+    virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
+
     BYTE m_registerIndex { 0 };
     BYTE m_ram[80];
 
     bool inBinaryClockMode() const;
     bool in24HourMode() const;
     BYTE toCurrentClockFormat(BYTE) const;
+
+    OwnPtr<ThreadedTimer> m_rtcTimer;
 };
