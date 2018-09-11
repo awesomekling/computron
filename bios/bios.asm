@@ -149,13 +149,7 @@ _cpu_timer:
 _cpu_default_softtimer:
     iret
 
-_kbd_interrupt:
-    ;int     0x1B
-    push    ax
-    mov     al, 0x20
-    out     0x20, al
-    pop     ax
-    iret
+%include "keyboard.asm"
 
 _busmouse_interrupt:
     push    ax
@@ -386,7 +380,7 @@ _bios_setup_ints:
     call    .install
 
     mov     al, 0x09
-    mov     dx, _kbd_interrupt
+    mov     dx, keyboard_interrupt_handler
     call    .install
 
     mov     al, 0x0d
