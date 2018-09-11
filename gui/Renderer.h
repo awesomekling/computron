@@ -108,7 +108,7 @@ public:
 
 class Mode0DRenderer final : public BufferedRenderer {
 public:
-    explicit Mode0DRenderer(Screen& screen) : BufferedRenderer(screen, 600, 400) { }
+    explicit Mode0DRenderer(Screen& screen) : BufferedRenderer(screen, 320, 200, 2) { }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
