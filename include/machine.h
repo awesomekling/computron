@@ -33,6 +33,7 @@
 #include <QHash>
 #include <QSet>
 #include <QWaitCondition>
+#include <QMutex>
 
 class IODevice;
 class BusMouse;
