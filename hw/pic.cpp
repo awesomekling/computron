@@ -80,8 +80,15 @@ void PIC::reset()
 
 void PIC::dumpMask()
 {
+    const char* green = "\033[32;1m";
+    const char* red = "\033[31;1m";
     for (int i = 0; i < 8; ++i)
-        vlog(LogPIC, " - IRQ %u: %s", m_irqBase + i, (m_imr & (1 << i)) ? "masked" : "service");
+        vlog(LogPIC, " - IRQ %2u: %smask\033[0m %srequest\033[0m %sservice\033[0m",
+                m_irqBase + i,
+                (m_imr & (1 << i)) ? green : red,
+                (m_irr & (1 << i)) ? green : red,
+                (m_isr & (1 << i)) ? green : red);
+
 }
 
 void PIC::unmaskAll()
