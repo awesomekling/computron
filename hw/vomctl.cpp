@@ -40,6 +40,7 @@ VomCtl::VomCtl(Machine& machine)
 {
     listen(0xD6, IODevice::ReadWrite);
     listen(0xD7, IODevice::ReadWrite);
+    listen(0xE9, IODevice::WriteOnly);
 
     // FIXME: These should all be removed.
     listen(0xE0, IODevice::WriteOnly);
@@ -112,6 +113,7 @@ void VomCtl::out8(WORD port, BYTE data)
     case 0xE8:
         vm_call8(machine().cpu(), port, data);
         break;
+    case 0xE9:
     case 0x666:
         {
             static FILE* fp = fopen("out.txt", "w");
