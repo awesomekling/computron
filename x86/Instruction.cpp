@@ -715,6 +715,7 @@ void buildOpcodeTablesIfNeeded()
     build0FSlash(0x01, 3, "LIDT",  OP_RM16,      &CPU::_LIDT);
     build0FSlash(0x01, 4, "SMSW",  OP_RM16,      &CPU::_SMSW_RM16);
     build0FSlash(0x01, 6, "LMSW",  OP_RM16,      &CPU::_LMSW_RM16);
+    build0FSlash(0x01, 7, "INVLPG",OP_RM32,      &CPU::_INVLPG);
 
     build0FSlash(0xBA, 4, "BT",    OP_RM16_imm8, &CPU::_BT_RM16_imm8,  OP_RM32_imm8, &CPU::_BT_RM32_imm8);
     build0FSlash(0xBA, 5, "BTS",   OP_RM16_imm8, &CPU::_BTS_RM16_imm8, OP_RM32_imm8, &CPU::_BTS_RM32_imm8);
@@ -780,6 +781,7 @@ void buildOpcodeTablesIfNeeded()
     build0F(0xAC, "SHRD",  OP_RM16_reg16_imm8,&CPU::_SHRD_RM16_reg16_imm8, OP_RM32_reg32_imm8,  &CPU::_SHRD_RM32_reg32_imm8);
     build0F(0xAD, "SHRD",  OP_RM16_reg16_CL,&CPU::_SHRD_RM16_reg16_CL, OP_RM32_reg32_CL,  &CPU::_SHRD_RM32_reg32_CL);
     build0F(0xAF, "IMUL",  OP_reg16_RM16,  &CPU::_IMUL_reg16_RM16, OP_reg32_RM32,  &CPU::_IMUL_reg32_RM32);
+    build0F(0xB1, "CMPXCHG", OP_RM16_reg16, &CPU::_CMPXCHG_RM16_reg16, OP_RM32_reg32, &CPU::_CMPXCHG_RM32_reg32);
     build0F(0xB2, "LSS",   OP_reg16_mem16, &CPU::_LSS_reg16_mem16, OP_reg32_mem32, &CPU::_LSS_reg32_mem32);
     build0F(0xB3, "BTR",   OP_RM16_reg16,  &CPU::_BTR_RM16_reg16,  OP_RM32_reg32,  &CPU::_BTR_RM32_reg32);
     build0F(0xB4, "LFS",   OP_reg16_mem16, &CPU::_LFS_reg16_mem16, OP_reg32_mem32, &CPU::_LFS_reg32_mem32);

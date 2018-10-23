@@ -756,6 +756,7 @@ protected:
     void _ARPL(Instruction&);
 
     void _WBINVD(Instruction&);
+    void _INVLPG(Instruction&);
 
     void _CBW(Instruction&);
     void _CWD(Instruction&);
@@ -801,6 +802,9 @@ protected:
     template<typename T> void doOUTS(Instruction&);
     template<typename T> void doCMPS(Instruction&);
     template<typename T> void doSCAS(Instruction&);
+
+    void _CMPXCHG_RM32_reg32(Instruction&);
+    void _CMPXCHG_RM16_reg16(Instruction&);
 
     void _CMPSB(Instruction&);
     void _CMPSW(Instruction&);

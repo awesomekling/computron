@@ -179,6 +179,13 @@ void CPU::_WBINVD(Instruction&)
     }
 }
 
+void CPU::_INVLPG(Instruction&)
+{
+    if (getPE() && getCPL() != 0) {
+        throw GeneralProtectionFault(0, "INVLPG");
+    }
+}
+
 void CPU::_VKILL(Instruction&)
 {
     // FIXME: Maybe (0xf1) is a bad choice of opcode here, since that's also INT1 / ICEBP.

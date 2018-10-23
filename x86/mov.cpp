@@ -304,3 +304,28 @@ void CPU::_MOVSX_reg32_RM16(Instruction& insn)
 {
     insn.reg32() = signExtendedTo<DWORD>(insn.modrm().read16());
 }
+
+void CPU::_CMPXCHG_RM32_reg32(Instruction& insn)
+{
+    auto current = insn.modrm().read32();
+    if (current == getEAX()) {
+        setZF(1);
+        insn.modrm().write32(insn.reg32());
+    } else {
+        setZF(0);
+        setEAX(current);
+    }
+}
+
+void CPU::_CMPXCHG_RM16_reg16(Instruction& insn)
+{
+    auto current = insn.modrm().read16();
+    if (current == getAX()) {
+        setZF(1);
+        insn.modrm().write16(insn.reg16());
+    } else {
+        setZF(0);
+        setAX(current);
+    }
+}
+
