@@ -324,7 +324,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
     lba = drive->toLBA(cylinder, head, sector);
     if (lba > drive->sectors()) {
         if (options.disklog)
-            vlog(LogDisk, "%s bogus sector request (LBA %u)", qPrintable(drive->name()), lba);
+            vlog(LogDisk, "%s bogus sector request (LBA %u from CHS %u/%u/%u)", qPrintable(drive->name()), lba, cylinder, head, sector);
         error = FD_TIMEOUT;
         goto epilogue;
     }
