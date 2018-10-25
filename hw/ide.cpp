@@ -28,7 +28,7 @@
 #include "machine.h"
 #include "DiskDrive.h"
 
-#define IDE_DEBUG
+//#define IDE_DEBUG
 
 struct IDEController
 {
@@ -212,30 +212,42 @@ void IDE::out8(WORD port, BYTE data)
         controller.writeToSectorBuffer<BYTE>(*this, data);
         break;
     case 0x2:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d sector count set: %u", controllerIndex, data);
+#endif
         controller.sectorCount = data;
         break;
     case 0x3:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d sector index set: %u", controllerIndex, data);
+#endif
         controller.sectorIndex = data;
         break;
     case 0x4:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder LSB set: %u", controllerIndex, data);
+#endif
         controller.cylinderIndex = weld<WORD>(mostSignificant<BYTE>(controller.cylinderIndex), data);
         break;
     case 0x5:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder MSB set: %u", controllerIndex, data);
+#endif
         controller.cylinderIndex = weld<WORD>(data, leastSignificant<BYTE>(controller.cylinderIndex));
         break;
     case 0x6:
         controller.headIndex = data & 0xf;
         controller.inLBAMode = data & 0x40;
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d head index set: %u", controllerIndex, controller.headIndex);
         vlog(LogIDE, "Controller %d in %s mode", controllerIndex, controller.inLBAMode ? "LBA" : "CHS");
+#endif
         break;
     case 0x7:
         // FIXME: ...
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d received command %02X", controllerIndex, data);
+#endif
         executeCommand(controller, data);
         break;
     default:
@@ -258,26 +270,40 @@ BYTE IDE::in8(WORD port)
     case 0:
         return controller.readFromSectorBuffer<BYTE>();
     case 0x1:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d error queried: %02X", controllerIndex, controller.error);
+#endif
         return controller.error;
     case 0x2:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d sector count queried: %u", controllerIndex, controller.sectorCount);
+#endif
         return controller.sectorCount;
     case 0x3:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d sector index queried: %u", controllerIndex, controller.sectorIndex);
+#endif
         return controller.sectorIndex;
     case 0x4:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder LSB queried: %02X", controllerIndex, leastSignificant<BYTE>(controller.cylinderIndex));
+#endif
         return leastSignificant<BYTE>(controller.cylinderIndex);
     case 0x5:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder MSB queried: %02X", controllerIndex, mostSignificant<BYTE>(controller.cylinderIndex));
+#endif
         return mostSignificant<BYTE>(controller.cylinderIndex);
     case 0x6:
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d head index queried: %u", controllerIndex, controller.headIndex);
+#endif
         return controller.headIndex;
     case 0x7: {
         BYTE ret = status(controller);
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d status queried: %02X", controllerIndex, ret);
+#endif
         return ret;
     }
     default:

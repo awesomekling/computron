@@ -105,6 +105,8 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
         IODevice::ignorePort(0xDC8F);
         IODevice::ignorePort(0xEC8F);
         IODevice::ignorePort(0xFC8F);
+
+        IODevice::ignorePort(0x3f6);
     }
 }
 
