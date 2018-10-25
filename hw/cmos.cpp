@@ -88,7 +88,7 @@ static QDateTime currentDateTimeForCMOS()
 
 BYTE CMOS::toCurrentClockFormat(BYTE value) const
 {
-    if (!inBinaryClockMode())
+    if (inBinaryClockMode())
         return value;
     return (value / 10 << 4) | (value - (value / 10) * 10);
 }
