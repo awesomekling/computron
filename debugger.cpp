@@ -35,11 +35,15 @@
 #include <QLatin1Literal>
 #ifdef HAVE_READLINE
 #include <readline/readline.h>
+#include <readline/history.h>
 #endif
 
 Debugger::Debugger(CPU& cpu)
     : m_cpu(cpu)
 {
+#ifdef HAVE_READLINE
+    using_history();
+#endif
 }
 
 Debugger::~Debugger()
@@ -91,6 +95,10 @@ void Debugger::handleCommand(const QString& rawCommand)
 
     if (arguments.isEmpty())
         return;
+
+#ifdef HAVE_READLINE
+    add_history(qPrintable(rawCommand));
+#endif
 
     QString command = arguments.takeFirst();
     QString lowerCommand = command.toLower();
