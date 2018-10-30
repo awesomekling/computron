@@ -66,6 +66,8 @@ void CMOS::reset()
 
     // FIXME: This clearly belongs elsewhere.
     m_ram[FloppyDriveTypes] = (machine().floppy0().floppyTypeForCMOS() << 4) | machine().floppy1().floppyTypeForCMOS();
+
+    updateClock();
 }
 
 bool CMOS::inBinaryClockMode() const
