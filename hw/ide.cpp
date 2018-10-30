@@ -82,7 +82,9 @@ void IDEController::identify(IDE& ide)
 
 void IDEController::readSectors(IDE& ide)
 {
+#ifdef IDE_DEBUG
     vlog(LogIDE, "ide%u: Read sectors (LBA: %u, count: %u)", controllerIndex, lba(), sectorCount);
+#endif
     FILE* f = fopen(qPrintable(drive().imagePath()), "rb");
     RELEASE_ASSERT(f);
     m_readBuffer.resize(drive().bytesPerSector() * sectorCount);
@@ -138,11 +140,11 @@ template<typename T>
 T IDEController::readFromSectorBuffer()
 {
     if (m_readBufferIndex >= m_readBuffer.size()) {
-        vlog(LogIDE, "ide%u: No data left in read buffer!");
+        vlog(LogIDE, "ide%u: No data left in read buffer!", controllerIndex);
         return 0;
     }
     if ((m_readBufferIndex + static_cast<int>(sizeof(T))) > m_readBuffer.size()) {
-        vlog(LogIDE, "ide%u: Not enough data left in read buffer!");
+        vlog(LogIDE, "ide%u: Not enough data left in read buffer!", controllerIndex);
         ASSERT_NOT_REACHED();
         return 0;
     }
