@@ -103,6 +103,33 @@ void Debugger::handleCommand(const QString& rawCommand)
     QString command = arguments.takeFirst();
     QString lowerCommand = command.toLower();
 
+    if (lowerCommand == "xl") {
+        if (arguments.size() != 1) {
+            printf("usage: xl <address>\n");
+        } else {
+            DWORD address = arguments.at(0).toUInt(0, 16);
+            DWORD dir = (address >> 22) & 0x3FF;
+            DWORD page = (address >> 12) & 0x3FF;
+            DWORD offset = address & 0xFFF;
+
+            printf("CR3: %08x\n", cpu().getCR3());
+
+            printf("%08x { dir=%03x, page=%03x, offset=%03x }\n", address, dir, page, offset);
+
+            DWORD* PDBR = reinterpret_cast<DWORD*>(&cpu().m_memory[cpu().getCR3()]);
+            ASSERT(!(cpu().getCR3() & 0x03ff));
+            DWORD& pageDirectoryEntry = PDBR[dir];
+
+            printf("PDE: %08x\n", pageDirectoryEntry);
+
+            DWORD* pageTable = reinterpret_cast<DWORD*>(&cpu().m_memory[pageDirectoryEntry & 0xfffff000]);
+            DWORD& pageTableEntry = pageTable[page];
+
+            printf("PTE: %08x\n", pageTableEntry);
+        }
+        return;
+    }
+
     if (lowerCommand == "q" || lowerCommand == "quit" || lowerCommand == "end-of-file")
         return handleQuit();
 
