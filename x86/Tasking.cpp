@@ -310,15 +310,6 @@ void CPU::dumpTSS(const TSS &tss)
     vlog(LogCPU, "stack0 { %04x:%08x }", tss.getSS0(), tss.getESP0());
     vlog(LogCPU, "stack1 { %04x:%08x }", tss.getSS1(), tss.getESP1());
     vlog(LogCPU, "stack2 { %04x:%08x }", tss.getSS2(), tss.getESP2());
-
-#ifdef DEBUG_TASK_SWITCH
-    bool isGlobal = (tss.getCS() & 0x04) == 0;
-    auto newCSDesc = isGlobal
-            ? getDescriptor(tss.getCS(), SegmentRegisterIndex::CS)
-            : getDescriptor("LDT", getDescriptor(tss.getLDT()).asLDTDescriptor().base(), getDescriptor(tss.getLDT()).asLDTDescriptor().limit(), tss.getCS(), true);
-
-    vlog(LogCPU, "cpl=%u {%u} iopl=%u", tss.getCS() & 3, newCSDesc.DPL(), ((tss.getEFlags() >> 12) & 3));
-#endif
 }
 
 void CPU::taskSwitch(WORD task, JumpType source)
@@ -383,39 +374,39 @@ TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
 #define TSS_FIELD_16(name) \
     void TSS::set ## name(WORD value) { \
         if (m_is32Bit) \
-            m_cpu.writeMemory16(m_base.offset(offsetof(TSS32, name)), value); \
+            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS32, name)), value); \
         else \
-            m_cpu.writeMemory16(m_base.offset(offsetof(TSS16, name)), value); \
+            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
     } \
     WORD TSS::get ## name() const { \
         if (m_is32Bit) \
-            return m_cpu.readMemory16(m_base.offset(offsetof(TSS32, name))); \
-        return m_cpu.readMemory16(m_base.offset(offsetof(TSS16, name))); \
+            return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, name))); \
+        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name))); \
     }
 
 #define TSS_FIELD_16OR32(name) \
     DWORD TSS::getE ## name() const { \
         if (m_is32Bit) \
-            return m_cpu.readMemory32(m_base.offset(offsetof(TSS32, E ## name))); \
-        return m_cpu.readMemory16(m_base.offset(offsetof(TSS16, name))); \
+            return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, E ## name))); \
+        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name))); \
     } \
     void TSS::setE ## name(DWORD value) { \
         if (m_is32Bit) \
-            m_cpu.writeMemory32(m_base.offset(offsetof(TSS32, E ## name)), value); \
+            m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, E ## name)), value); \
         else \
-            m_cpu.writeMemory16(m_base.offset(offsetof(TSS16, name)), value); \
+            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
     }
 
 DWORD TSS::getCR3() const
 {
     ASSERT(m_is32Bit);
-    return m_cpu.readMemory32(m_base.offset(offsetof(TSS32, CR3)));
+    return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)));
 }
 
 void TSS::setCR3(DWORD value)
 {
     ASSERT(m_is32Bit);
-    m_cpu.writeMemory32(m_base.offset(offsetof(TSS32, CR3)), value);
+    m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)), value);
 }
 
 TSS_FIELD_16OR32(AX)
@@ -471,5 +462,5 @@ WORD TSS::getRingSS(BYTE ring) const
 WORD TSS::getIOMapBase() const
 {
     ASSERT(m_is32Bit);
-    return m_cpu.readMemory16(m_base.offset(offsetof(TSS32, iomapbase)));
+    return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, iomapbase)));
 }

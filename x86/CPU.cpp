@@ -34,10 +34,12 @@
 #include "Tasking.h"
 
 #define CRASH_ON_OPCODE_00_00
-#define CRASH_ON_EXECUTE_0000_00000000
+//#define CRASH_ON_EXECUTE_00000000
+#define CRASH_ON_PE_JMP_00000000
 #define CRASH_ON_VME
 #define CRASH_ON_PVI
 #define A20_ENABLED
+#define DEBUG_PHYSICAL_OOB
 //#define DEBUG_ON_UD0
 #define DEBUG_ON_UD1
 //#define DEBUG_ON_UD2
@@ -119,13 +121,11 @@ FLATTEN void CPU::decodeNext()
         dumpTrace();
 #endif
 
-#ifdef CRASH_ON_EXECUTE_0000_00000000
-    if (UNLIKELY(getBaseCS() == 0 && currentBaseInstructionPointer() == 0)) {
+#ifdef CRASH_ON_EXECUTE_00000000
+    if (UNLIKELY(currentBaseInstructionPointer() == 0 && (getPE() || !getBaseCS()))) {
         dumpAll();
-        vlog(LogCPU, "It seems like we've jumped to 0000:00000000 :(");
-        debugger().enter();
-        return;
-        //ASSERT_NOT_REACHED();
+        vlog(LogCPU, "It seems like we've jumped to 00000000 :(");
+        ASSERT_NOT_REACHED();
     }
 #endif
 
@@ -524,6 +524,13 @@ void CPU::jumpAbsolute16(WORD address)
 
 void CPU::jumpAbsolute32(DWORD address)
 {
+#ifdef CRASH_ON_PE_JMP_00000000
+    if (getPE() && !address) {
+        vlog(LogCPU, "HMM! Jump to cs:00000000 in PE=1, source: %04x:%08x\n", getBaseCS(), getBaseEIP());
+        dumpAll();
+        ASSERT_NOT_REACHED();
+    }
+#endif
 //    vlog(LogCPU, "[PE=%u] Abs jump to %08X", getPE(), address);
     m_EIP = address;
 }
@@ -804,7 +811,7 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
     popper.adjustStackPointer(stackAdjustment);
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), "RETF", getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
     auto descriptor = getDescriptor(selector);
@@ -856,7 +863,7 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
         WORD newSS = popper.popOperandSizedValue();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
-        vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", toString(type), originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
+        vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
 #endif
 
         setSS(newSS);
@@ -1122,11 +1129,11 @@ static const char* toString(CPU::MemoryAccessType type)
     }
 }
 
-ALWAYS_INLINE PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType)
+ALWAYS_INLINE PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
     if (!getPE() || !getPG())
         return PhysicalAddress(linearAddress.get());
-    return translateAddressSlowCase(linearAddress, accessType);
+    return translateAddressSlowCase(linearAddress, accessType, effectiveCPL);
 }
 
 static WORD makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
@@ -1166,7 +1173,7 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
     return Exception(0xe, error, linearAddress.get(), "Page fault");
 }
 
-PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, MemoryAccessType accessType)
+PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
     ASSERT(getCR3() < m_memorySize);
 
@@ -1181,7 +1188,15 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
     DWORD* pageTable = reinterpret_cast<DWORD*>(&m_memory[pageDirectoryEntry & 0xfffff000]);
     DWORD& pageTableEntry = pageTable[page];
 
-    bool inUserMode = getCPL() == 3;
+#ifdef DEBUG_PAGING
+    DWORD pteAddress = (pageDirectoryEntry & 0xfffff000) + (page * sizeof(DWORD));
+#endif
+
+    bool inUserMode;
+    if (effectiveCPL == 0xff)
+        inUserMode = getCPL() == 3;
+    else
+        inUserMode = effectiveCPL == 3;
 
     if (!(pageDirectoryEntry & PageTableEntryFlags::Present)) {
         throw PageFault(linearAddress, PageFaultFlags::NotPresent, accessType, inUserMode, "PDE", pageDirectoryEntry);
@@ -1217,7 +1232,7 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
 
     PhysicalAddress physicalAddress((pageTableEntry & 0xfffff000) | offset);
 #ifdef DEBUG_PAGING
-    vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x]", linearAddress.get(), dir, page, offset, physicalAddress.get(), pageDirectoryEntry, pageTableEntry);
+    vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x] <PTE @ %08x>", linearAddress.get(), dir, page, offset, physicalAddress.get(), pageDirectoryEntry, pageTableEntry, pteAddress);
 #endif
     return physicalAddress;
 }
@@ -1326,8 +1341,13 @@ bool CPU::validatePhysicalAddress(PhysicalAddress physicalAddress, MemoryAccessT
 template<typename T>
 T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
 {
-    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Read))
+    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Read)) {
+#ifdef DEBUG_PHYSICAL_OOB
+        vlog(LogCPU, "Read outside physical memory: %08x", physicalAddress);
+        debugger().enter();
+#endif
         return 0;
+    }
     if (auto* provider = memoryProviderForAddress(physicalAddress)) {
         if (auto* directReadAccessPointer = provider->pointerForDirectReadAccess()) {
             return *reinterpret_cast<const T*>(&directReadAccessPointer[physicalAddress.get() - provider->baseAddress().get()]);
@@ -1344,8 +1364,13 @@ template DWORD CPU::readPhysicalMemory<DWORD>(PhysicalAddress);
 template<typename T>
 void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
 {
-    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Read))
+    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Write)) {
+#ifdef DEBUG_PHYSICAL_OOB
+        vlog(LogCPU, "Write outside physical memory: %08x", physicalAddress);
+        debugger().enter();
+#endif
         return;
+    }
     if (auto* provider = memoryProviderForAddress(physicalAddress)) {
         provider->write<T>(physicalAddress.get(), data);
     } else {
@@ -1358,9 +1383,9 @@ template void CPU::writePhysicalMemory<WORD>(PhysicalAddress, WORD);
 template void CPU::writePhysicalMemory<DWORD>(PhysicalAddress, DWORD);
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
-    auto physicalAddress = translateAddress(linearAddress, accessType);
+    auto physicalAddress = translateAddress(linearAddress, accessType, effectiveCPL);
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
 #endif
@@ -1391,6 +1416,18 @@ ALWAYS_INLINE T CPU::readMemory(SegmentRegisterIndex segreg, DWORD offset, Memor
     return readMemory<T>(cachedDescriptor(segreg), offset, accessType);
 }
 
+template<typename T>
+ALWAYS_INLINE T CPU::readMemoryMetal(LinearAddress laddr)
+{
+    return readMemory<T>(laddr, MemoryAccessType::Read, 0);
+}
+
+template<typename T>
+ALWAYS_INLINE void CPU::writeMemoryMetal(LinearAddress laddr, T value)
+{
+    return writeMemory<T>(laddr, value, 0);
+}
+
 template BYTE CPU::readMemory<BYTE>(SegmentRegisterIndex, DWORD, MemoryAccessType);
 template WORD CPU::readMemory<WORD>(SegmentRegisterIndex, DWORD, MemoryAccessType);
 template DWORD CPU::readMemory<DWORD>(SegmentRegisterIndex, DWORD, MemoryAccessType);
@@ -1399,11 +1436,16 @@ template void CPU::writeMemory<BYTE>(SegmentRegisterIndex, DWORD, BYTE);
 template void CPU::writeMemory<WORD>(SegmentRegisterIndex, DWORD, WORD);
 template void CPU::writeMemory<DWORD>(SegmentRegisterIndex, DWORD, DWORD);
 
-template void CPU::writeMemory<BYTE>(LinearAddress, BYTE);
+template void CPU::writeMemory<BYTE>(LinearAddress, BYTE, BYTE);
+
+template WORD CPU::readMemoryMetal<WORD>(LinearAddress);
+template DWORD CPU::readMemoryMetal<DWORD>(LinearAddress);
 
 BYTE CPU::readMemory8(LinearAddress address) { return readMemory<BYTE>(address); }
 WORD CPU::readMemory16(LinearAddress address) { return readMemory<WORD>(address); }
 DWORD CPU::readMemory32(LinearAddress address) { return readMemory<DWORD>(address); }
+WORD CPU::readMemoryMetal16(LinearAddress address) { return readMemoryMetal<WORD>(address); }
+DWORD CPU::readMemoryMetal32(LinearAddress address) { return readMemoryMetal<DWORD>(address); }
 BYTE CPU::readMemory8(SegmentRegisterIndex segment, DWORD offset) { return readMemory<BYTE>(segment, offset); }
 WORD CPU::readMemory16(SegmentRegisterIndex segment, DWORD offset) { return readMemory<WORD>(segment, offset); }
 DWORD CPU::readMemory32(SegmentRegisterIndex segment, DWORD offset) { return readMemory<DWORD>(segment, offset); }
@@ -1422,9 +1464,9 @@ template LogicalAddress CPU::readLogicalAddress<DWORD>(SegmentRegisterIndex, DWO
 
 
 template<typename T>
-void CPU::writeMemory(LinearAddress linearAddress, T value)
+void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
 {
-    auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::Write);
+    auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::Write, effectiveCPL);
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
 #endif
@@ -1457,6 +1499,8 @@ void CPU::writeMemory(SegmentRegisterIndex segreg, DWORD offset, T value)
 void CPU::writeMemory8(LinearAddress address, BYTE value) { writeMemory(address, value); }
 void CPU::writeMemory16(LinearAddress address, WORD value) { writeMemory(address, value); }
 void CPU::writeMemory32(LinearAddress address, DWORD value) { writeMemory(address, value); }
+void CPU::writeMemoryMetal16(LinearAddress address, WORD value) { writeMemoryMetal(address, value); }
+void CPU::writeMemoryMetal32(LinearAddress address, DWORD value) { writeMemoryMetal(address, value); }
 void CPU::writeMemory8(SegmentRegisterIndex segment, DWORD offset, BYTE value) { writeMemory(segment, offset, value); }
 void CPU::writeMemory16(SegmentRegisterIndex segment, DWORD offset, WORD value) { writeMemory(segment, offset, value); }
 void CPU::writeMemory32(SegmentRegisterIndex segment, DWORD offset, DWORD value) { writeMemory(segment, offset, value); }

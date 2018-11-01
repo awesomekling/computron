@@ -511,19 +511,24 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
+    WORD newSS;
+    DWORD newESP;
+    if (selectorRPL > originalCPL) {
+        BEGIN_ASSERT_NO_EXCEPTIONS
+        newESP = popper.popOperandSizedValue();
+        newSS = popper.popOperandSizedValue();
+#ifdef DEBUG_JUMPS
+        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
+        vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
+#endif
+        END_ASSERT_NO_EXCEPTIONS
+    }
+
     // FIXME: Validate SS before clobbering CS:EIP.
     setCS(selector);
     setEIP(offset);
 
     if (selectorRPL > originalCPL) {
-        BEGIN_ASSERT_NO_EXCEPTIONS
-        DWORD newESP = popper.popOperandSizedValue();
-        WORD newSS = popper.popOperandSizedValue();
-#ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
-        vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
-#endif
-
         setSS(newSS);
         setESP(newESP);
 
@@ -531,7 +536,6 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::FS, JumpType::IRET);
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::GS, JumpType::IRET);
         clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::DS, JumpType::IRET);
-        END_ASSERT_NO_EXCEPTIONS
     } else {
         popper.commit();
     }

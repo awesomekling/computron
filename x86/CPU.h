@@ -639,14 +639,16 @@ public:
     template<typename T> T readPhysicalMemory(PhysicalAddress);
     template<typename T> void writePhysicalMemory(PhysicalAddress, T);
     const BYTE* pointerToPhysicalMemory(PhysicalAddress);
-    template<typename T> T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read);
+    template<typename T> T readMemoryMetal(LinearAddress address);
+    template<typename T> T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, BYTE effectiveCPL = 0xff);
     template<typename T> T readMemory(const SegmentDescriptor&, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
     template<typename T> T readMemory(SegmentRegisterIndex, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
-    template<typename T> void writeMemory(LinearAddress, T);
+    template<typename T> void writeMemoryMetal(LinearAddress, T);
+    template<typename T> void writeMemory(LinearAddress, T, BYTE effectiveCPL = 0xff);
     template<typename T> void writeMemory(const SegmentDescriptor&, DWORD offset, T);
     template<typename T> void writeMemory(SegmentRegisterIndex, DWORD offset, T);
 
-    PhysicalAddress translateAddress(LinearAddress, MemoryAccessType);
+    PhysicalAddress translateAddress(LinearAddress, MemoryAccessType, BYTE effectiveCPL = 0xff);
     void snoop(LinearAddress, MemoryAccessType);
     void snoop(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
 
@@ -658,12 +660,16 @@ public:
     WORD readMemory16(SegmentRegisterIndex, DWORD offset);
     DWORD readMemory32(LinearAddress);
     DWORD readMemory32(SegmentRegisterIndex, DWORD offset);
+    WORD readMemoryMetal16(LinearAddress);
+    DWORD readMemoryMetal32(LinearAddress);
     void writeMemory8(LinearAddress, BYTE);
     void writeMemory8(SegmentRegisterIndex, DWORD offset, BYTE data);
     void writeMemory16(LinearAddress, WORD);
     void writeMemory16(SegmentRegisterIndex, DWORD offset, WORD data);
     void writeMemory32(LinearAddress, DWORD);
     void writeMemory32(SegmentRegisterIndex, DWORD offset, DWORD data);
+    void writeMemoryMetal16(LinearAddress, WORD);
+    void writeMemoryMetal32(LinearAddress, DWORD);
 
     enum State { Dead, Alive, Halted };
     State state() const { return m_state; }
@@ -1300,7 +1306,7 @@ private:
     void updateCodeSegmentCache();
     void makeNextInstructionUninterruptible();
 
-    PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType);
+    PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType, BYTE effectiveCPL);
 
     template<typename T> T doSAR(T, unsigned steps);
     template<typename T> T doRCL(T, unsigned steps);
