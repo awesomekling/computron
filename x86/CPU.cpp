@@ -1638,9 +1638,48 @@ DWORD CPU::readInstruction32()
 void CPU::_CPUID(Instruction&)
 {
     if (getEAX() == 0) {
+        setEAX(1);
         setEBX(0x706d6f43);
         setEDX(0x6f727475);
         setECX(0x3638586e);
+        return;
+    }
+
+    if (getEAX() == 1) {
+        DWORD stepping = 0;
+        DWORD model = 1;
+        DWORD family = 3;
+        DWORD type = 0;
+        setEAX(stepping | (model << 4) | (family << 8) | (type << 12));
+        return;
+    }
+
+    if (getEAX() == 0x80000000) {
+        setEAX(0x80000004);
+        return;
+    }
+
+    if (getEAX() == 0x80000002) {
+        setEAX(0x61632049);
+        setEBX(0x2074276e);
+        setECX(0x696c6562);
+        setEDX(0x20657665);
+        return;
+    }
+
+    if (getEAX() == 0x80000003) {
+        setEAX(0x73277469);
+        setEBX(0x746f6e20);
+        setECX(0x746e4920);
+        setEDX(0x00216c65);
+        return;
+    }
+
+    if (getEAX() == 0x80000004) {
+        setEAX(0);
+        setEBX(0);
+        setECX(0);
+        setEDX(0);
         return;
     }
 }
