@@ -1148,7 +1148,7 @@ QString Instruction::toString(DWORD origin, bool x32) const
     return QString("%1%2%3%4%5").arg(segmentPrefix).arg(asizePrefix).arg(osizePrefix).arg(repPrefix).arg(toStringInternal(origin, x32));
 }
 
-#define RELADDRARGS relativeAddress(origin + (m_a32 ? 5 : 3), x32, SIGNED_DWORD(m_a32 ? imm32() : imm16()))
+#define RELADDRARGS relativeAddress(origin + (m_a32 ? 6 : 4), x32, SIGNED_DWORD(m_a32 ? imm32() : imm16()))
 #define RELIMM8ARGS relativeAddress(origin + 2, x32, SIGNED_BYTE(imm8()))
 #define RELIMM16ARGS relativeAddress(origin + 3, x32, SIGNED_DWORD(imm16()))
 #define RELIMM32ARGS relativeAddress(origin + 5, x32, SIGNED_DWORD(imm32()))
