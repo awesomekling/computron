@@ -1385,6 +1385,17 @@ template void CPU::writePhysicalMemory<DWORD>(PhysicalAddress, DWORD);
 template<typename T>
 ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
+    // FIXME: This needs to be optimized.
+    if constexpr (sizeof(T) != 1) {
+        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            BYTE b1 = readMemory<BYTE>(linearAddress.offset(0), accessType, effectiveCPL);
+            BYTE b2 = readMemory<BYTE>(linearAddress.offset(1), accessType, effectiveCPL);
+            BYTE b3 = readMemory<BYTE>(linearAddress.offset(2), accessType, effectiveCPL);
+            BYTE b4 = readMemory<BYTE>(linearAddress.offset(3), accessType, effectiveCPL);
+            return weld<DWORD>(weld<WORD>(b4, b3), weld<WORD>(b2, b1));
+        }
+    }
+
     auto physicalAddress = translateAddress(linearAddress, accessType, effectiveCPL);
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
@@ -1466,6 +1477,17 @@ template LogicalAddress CPU::readLogicalAddress<DWORD>(SegmentRegisterIndex, DWO
 template<typename T>
 void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
 {
+    // FIXME: This needs to be optimized.
+    if constexpr (sizeof(T) != 1) {
+        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff , effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
+            return;
+        }
+    }
+
     auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::Write, effectiveCPL);
 #ifdef A20_ENABLED
     physicalAddress.mask(a20Mask());
