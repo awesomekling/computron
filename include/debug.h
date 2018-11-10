@@ -60,6 +60,9 @@ enum VLogChannel {
     LogDump,
     LogScreen,
     LogTimer,
+#ifdef DEBUG_SERENITY
+    LogSerenity,
+#endif
 };
 
 void vlog(VLogChannel channel, const char *format, ...);

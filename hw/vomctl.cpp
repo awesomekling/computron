@@ -115,6 +115,12 @@ void VomCtl::out8(WORD port, BYTE data)
         break;
     case 0xE9:
     case 0x666:
+#ifdef DEBUG_SERENITY
+        if (options.serenity) {
+            printf("%c", data);
+            fflush(stdout);
+        }
+#endif
         {
             static FILE* fp = fopen("out.txt", "w");
             fputc(data, fp);

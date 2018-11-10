@@ -25,6 +25,8 @@
 #include "ROM.h"
 #include "Common.h"
 #include <QFile>
+#include "CPU.h"
+#include "debugger.h"
 
 ROM::ROM(PhysicalAddress baseAddress, const QString& fileName)
     : MemoryProvider(baseAddress)
@@ -56,6 +58,7 @@ BYTE ROM::readMemory8(DWORD address)
 void ROM::writeMemory8(DWORD address, BYTE data)
 {
     vlog(LogAlert, "Write to ROM address %08x, data %02x", address, data);
+    g_cpu->debugger().enter();
 }
 
 const BYTE* ROM::memoryPointer(DWORD address)

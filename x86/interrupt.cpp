@@ -197,9 +197,30 @@ void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
     setTF(0);
 }
 
+#ifdef DEBUG_SERENITY
+#include "../Serenity/Kernel/Syscall.h"
+
+static void logSerenitySyscall(CPU& cpu)
+{
+    auto func = (Syscall::Function)cpu.getEAX();
+    vlog(LogSerenity, "Syscall %02u %s (%08x, %08x, %08x)", cpu.getEAX(), Syscall::toString(func), cpu.getEDX(), cpu.getECX(), cpu.getEBX());
+}
+#endif
+
+static const int ignoredInterrupt = -1;
+
 void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant errorCode)
 {
     ASSERT(getPE());
+
+#if DEBUG_SERENITY
+    bool logAsSyscall = options.serenity && isr == 0x80;
+
+    if (logAsSyscall)
+        logSerenitySyscall(*this);
+#else
+    bool logAsSyscall = false;
+#endif
 
     if (source == InterruptSource::Internal && getVM() && getIOPL() != 3) {
         throw GeneralProtectionFault(0, "Software INT in VM86 mode with IOPL != 3");
@@ -227,7 +248,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 
     auto entry = gate.entry();
 
-    if (options.trapint) {
+    if (options.trapint && !logAsSyscall && isr != ignoredInterrupt) {
         vlog(LogCPU, "PE=1 interrupt %02x,%04x%s, type: %s (%1x), %04x:%08x", isr, getAX(), source == InterruptSource::External ? " (external)" : "", gate.typeName(), gate.type(), entry.selector(), entry.offset());
         dumpDescriptor(gate);
     }
@@ -239,7 +260,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 
     auto descriptor = getDescriptor(gate.selector());
 
-    if (options.trapint) {
+    if (options.trapint && !logAsSyscall && isr != ignoredInterrupt) {
         dumpDescriptor(descriptor);
     }
 

@@ -96,70 +96,83 @@ void PIC::unmaskAll()
     m_imr = 0;
 }
 
-void PIC::out8(WORD port, BYTE data)
+void PIC::writePort0(BYTE data)
 {
-    if ((port & 0x01) == 0x00) {
-        if (data == 0x20) {
-            //vlog(LogPIC, "Nonspecific EOI");
-            m_isr &= m_isr - 1;
-            return;
-        }
-        if ((data & 0x18) == 0x08) {
+    if (data & 0x10) {
 #ifdef PIC_DEBUG
-            vlog(LogPIC, "Got OCW3 %02X on port %02X", data, port);
+        vlog(LogPIC, "Got ICW1 %02X on port %02X", data, port);
+        vlog(LogPIC, "[ICW1] ICW4 needed = %s", (data & 1) ? "yes" : "no");
+        vlog(LogPIC, "[ICW1] Cascade = %s", (data & 2) ? "yes" : "no");
+        vlog(LogPIC, "[ICW1] Vector size = %u", (data & 4) ? 4 : 8);
+        vlog(LogPIC, "[ICW1] Level triggered = %s", (data & 8) ? "yes" : "no");
 #endif
-            if (data & 0x02)
-                m_readISR = data & 0x01;
-            return;
-        }
-        if ((data & 0x18) == 0x00) {
-#ifdef PIC_DEBUG
-            vlog(LogPIC, "Got OCW2 %02X on port %02X", data, port);
-#endif
-            return;
-        }
-        if (data & 0x10) {
-#ifdef PIC_DEBUG
-            vlog(LogPIC, "Got ICW1 %02X on port %02X", data, port);
-            vlog(LogPIC, "[ICW1] ICW4 needed = %s", (data & 1) ? "yes" : "no");
-            vlog(LogPIC, "[ICW1] Cascade = %s", (data & 2) ? "yes" : "no");
-            vlog(LogPIC, "[ICW1] Vector size = %u", (data & 4) ? 4 : 8);
-            vlog(LogPIC, "[ICW1] Level triggered = %s", (data & 8) ? "yes" : "no");
-#endif
-            m_imr = 0;
-            m_isr = 0;
-            m_irr = 0;
-            m_readISR = false;
-            m_icw2Expected = true;
-            m_icw4Expected = data & 0x01;
-            updatePendingRequests(machine());
-            return;
-        }
-
-    } else {
-        if (((data & 0x07) == 0x00) && m_icw2Expected) {
-#ifdef PIC_DEBUG
-            vlog(LogPIC, "Got ICW2 %02X on port %02X", data, port);
-#endif
-            m_isrBase = data & 0xF8;
-            m_icw2Expected = false;
-            return;
-        }
-
-        // OCW1 - IMR write
-#ifdef PIC_DEBUG
-        vlog(LogPIC, "New IRQ mask set: %02X", data);
-        for (int i = 0; i < 8; ++i)
-            vlog(LogPIC, " - IRQ %u: %s", m_irqBase + i, (data & (1 << i)) ? "masked" : "service");
-#endif
-        m_imr = data;
+        m_imr = 0;
+        m_isr = 0;
+        m_irr = 0;
+        m_readISR = false;
+        m_icw2Expected = true;
+        m_icw4Expected = data & 0x01;
         updatePendingRequests(machine());
         return;
     }
 
-    vlog(LogPIC, "Write PIC ICW on port %04X (data: %02X)", port, data);
-    vlog(LogPIC, "I can't handle that request, better quit!");
-    hard_exit(1);
+    if ((data & 0x18) == 0x08) {
+#ifdef PIC_DEBUG
+        vlog(LogPIC, "Got OCW3 %02X on port %02X", data, port);
+#endif
+        if (data & 0x02)
+            m_readISR = data & 0x01;
+        return;
+    }
+
+    switch (data) {
+    case 0x20: // non-specific EOI
+        m_isr &= m_isr - 1;
+        return;
+    case 0x60:
+    case 0x61:
+    case 0x62:
+    case 0x63:
+    case 0x64:
+    case 0x65:
+    case 0x66:
+    case 0x67: // specific EOI
+        m_isr &= ~(1 << (data - 0x60));
+        return;
+    }
+
+    vlog(LogPIC, "Unhandled OCW2 %02X on port %02X", data, m_baseAddress + 0);
+    ASSERT_NOT_REACHED();
+}
+void PIC::writePort1(BYTE data)
+{
+    if (((data & 0x07) == 0x00) && m_icw2Expected) {
+#ifdef PIC_DEBUG
+        vlog(LogPIC, "Got ICW2 %02X on port %02X", data, port);
+#endif
+        m_isrBase = data & 0xF8;
+        m_icw2Expected = false;
+        return;
+    }
+
+    // OCW1 - IMR write
+#ifdef PIC_DEBUG
+    vlog(LogPIC, "New IRQ mask set: %02X", data);
+    for (int i = 0; i < 8; ++i)
+        vlog(LogPIC, " - IRQ %u: %s", m_irqBase + i, (data & (1 << i)) ? "masked" : "service");
+#endif
+    m_imr = data;
+    updatePendingRequests(machine());
+    return;
+}
+
+void PIC::out8(WORD port, BYTE data)
+{
+    if ((port & 0x01) == 0x00) {
+        writePort0(data);
+        return;
+    }
+    return writePort1(data);
 }
 
 BYTE PIC::in8(WORD port)
@@ -234,7 +247,7 @@ void PIC::serviceIRQ(CPU& cpu)
 
     BYTE irqToService = 0xFF;
 
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 16; i >= 0; --i) {
         if (pendingRequestsCopy & (1 << i)) {
             irqToService = i;
             break;

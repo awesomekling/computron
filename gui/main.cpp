@@ -110,6 +110,10 @@ void parseArguments(const QStringList& arguments)
         const auto& argument = *it;
         if (argument == "--disklog")
             options.disklog = true;
+#ifdef DEBUG_SERENITY
+        else if (argument == "--serenity")
+            options.serenity = true;
+#endif
         else if (argument == "--trapint")
             options.trapint = true;
         else if (argument == "--memdebug")

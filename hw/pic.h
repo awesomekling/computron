@@ -59,6 +59,9 @@ public:
 private:
     static void updatePendingRequests(Machine&);
 
+    void writePort0(BYTE);
+    void writePort1(BYTE);
+
     WORD m_baseAddress { 0 };
     BYTE m_isrBase { 0 };
     BYTE m_irqBase { 0 };

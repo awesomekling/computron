@@ -3,13 +3,15 @@ CONFIG += debug_and_release
 TEMPLATE = app
 TARGET = computron
 DEPENDPATH += . x86 bios gui hw include
-INCLUDEPATH += . include gui hw x86
+INCLUDEPATH += . include gui hw x86 ../Serenity
 QMAKE_CXXFLAGS += -std=c++17 -g -W -Wall -Wimplicit-fallthrough -fno-rtti
 
 QMAKE_CXXFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -O0
 
 CONFIG += c++14
+
+DEFINES += DEBUG_SERENITY
 
 DEFINES += CT_TRACE
 //DEFINES += CT_DETERMINISTIC

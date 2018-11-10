@@ -64,6 +64,9 @@ void vlog(VLogChannel channel, const char* format, ...)
     case LogScreen: prefix = "screen"; break;
     case LogFPU: prefix = "fpu"; break;
     case LogTimer: prefix = "timer"; break;
+#ifdef DEBUG_SERENITY
+    case LogSerenity: prefix = "serenity"; break;
+#endif
     default:
         ASSERT_NOT_REACHED();
     }
@@ -91,8 +94,13 @@ void vlog(VLogChannel channel, const char* format, ...)
         printf("\033[30;1m%20zu\033[0m ", g_cpu->cycle());
     if (prefix)
         printf("[\033[31;1m%8s\033[0m] ", prefix);
-    if (g_cpu)
+    if (g_cpu) {
+#ifdef DEBUG_SERENITY
+        if (options.serenity)
+            printf("<%08x> ", g_cpu->readPhysicalMemory<DWORD>(PhysicalAddress(0x1000)));
+#endif
         printf("(\033[37;1m%u\033[0m)\033[32;1m%04x:%08x\033[0m ", g_cpu->x32() ? 32 : 16, g_cpu->getBaseCS(), g_cpu->currentBaseInstructionPointer());
+    }
     va_start(ap, format);
     vprintf(format, ap);
     va_end(ap);

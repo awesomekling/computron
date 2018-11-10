@@ -65,6 +65,9 @@ struct RuntimeOptions {
 #ifdef DISASSEMBLE_EVERYTHING
     bool disassembleEverything { false };
 #endif
+#ifdef DEBUG_SERENITY
+    bool serenity { false };
+#endif
 };
 
 extern RuntimeOptions options;
