@@ -1386,13 +1386,19 @@ template<typename T>
 ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
     // FIXME: This needs to be optimized.
-    if constexpr (sizeof(T) != 1) {
+    if constexpr (sizeof(T) == 4) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
             BYTE b1 = readMemory<BYTE>(linearAddress.offset(0), accessType, effectiveCPL);
             BYTE b2 = readMemory<BYTE>(linearAddress.offset(1), accessType, effectiveCPL);
             BYTE b3 = readMemory<BYTE>(linearAddress.offset(2), accessType, effectiveCPL);
             BYTE b4 = readMemory<BYTE>(linearAddress.offset(3), accessType, effectiveCPL);
             return weld<DWORD>(weld<WORD>(b4, b3), weld<WORD>(b2, b1));
+        }
+    } else if constexpr (sizeof(T) == 2) {
+        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            BYTE b1 = readMemory<BYTE>(linearAddress.offset(0), accessType, effectiveCPL);
+            BYTE b2 = readMemory<BYTE>(linearAddress.offset(1), accessType, effectiveCPL);
+            return weld<WORD>(b2, b1);
         }
     }
 
@@ -1478,12 +1484,18 @@ template<typename T>
 void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
 {
     // FIXME: This needs to be optimized.
-    if constexpr (sizeof(T) != 1) {
+    if constexpr (sizeof(T) == 4) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
             writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
             writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff , effectiveCPL);
             writeMemory<BYTE>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
             writeMemory<BYTE>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
+            return;
+        }
+    } else if constexpr (sizeof(T) == 2) {
+        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff , effectiveCPL);
             return;
         }
     }

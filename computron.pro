@@ -9,7 +9,7 @@ QMAKE_CXXFLAGS += -std=c++17 -g -W -Wall -Wimplicit-fallthrough -fno-rtti
 QMAKE_CXXFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -O0
 
-CONFIG += c++14
+CONFIG += c++1z
 
 DEFINES += DEBUG_SERENITY
 
