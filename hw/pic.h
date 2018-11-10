@@ -56,6 +56,9 @@ public:
     static void setIgnoreAllIRQs(bool);
     static bool hasPendingIRQ() { return s_pendingRequests; }
 
+    PIC& master() const;
+    PIC& slave() const;
+
 private:
     static void updatePendingRequests(Machine&);
 
@@ -73,6 +76,8 @@ private:
     bool m_icw2Expected { false };
     bool m_icw4Expected { false };
     bool m_readISR { false };
+    bool m_specialMaskMode { false };
+    bool m_isMaster { false };
 
     static std::atomic<WORD> s_pendingRequests;
 };

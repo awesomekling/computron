@@ -49,6 +49,10 @@ void PIC::updatePendingRequests(Machine& machine)
     WORD masterRequests = (machine.masterPIC().getIRR() & ~machine.masterPIC().getIMR());
     WORD slaveRequests = (machine.slavePIC().getIRR() & ~machine.slavePIC().getIMR());
     s_pendingRequests = masterRequests | (slaveRequests << 8);
+#ifdef PIC_DEBUG
+    if (machine.cpu().state() != CPU::Halted)
+        vlog(LogPIC, "Pending requests: %04x", (WORD)s_pendingRequests);
+#endif
 }
 
 PIC::PIC(bool isMaster, Machine& machine)
@@ -56,6 +60,7 @@ PIC::PIC(bool isMaster, Machine& machine)
     , m_baseAddress(isMaster ? 0x20 : 0xA0)
     , m_isrBase(isMaster ? 0x08 : 0x70)
     , m_irqBase(isMaster ? 0 : 8)
+    , m_isMaster(isMaster)
 {    
     listen(m_baseAddress, IODevice::ReadWrite);
     listen(m_baseAddress + 1, IODevice::ReadWrite);
@@ -75,6 +80,7 @@ void PIC::reset()
     m_icw2Expected = false;
     m_icw4Expected = false;
     m_readISR = false;
+    m_specialMaskMode = false;
     s_pendingRequests = 0;
 }
 
@@ -110,6 +116,7 @@ void PIC::writePort0(BYTE data)
         m_isr = 0;
         m_irr = 0;
         m_readISR = false;
+        m_specialMaskMode = false;
         m_icw2Expected = true;
         m_icw4Expected = data & 0x01;
         updatePendingRequests(machine());
@@ -122,6 +129,12 @@ void PIC::writePort0(BYTE data)
 #endif
         if (data & 0x02)
             m_readISR = data & 0x01;
+        if (data & 0x04) {
+            vlog(LogPIC, "PIC polling mode is not supported");
+            ASSERT_NOT_REACHED();
+        }
+        if (data & 0x40)
+            m_specialMaskMode = data & 0x20;
         return;
     }
 
@@ -163,16 +176,13 @@ void PIC::writePort1(BYTE data)
 #endif
     m_imr = data;
     updatePendingRequests(machine());
-    return;
 }
 
 void PIC::out8(WORD port, BYTE data)
 {
-    if ((port & 0x01) == 0x00) {
-        writePort0(data);
-        return;
-    }
-    return writePort1(data);
+    if (port & 1)
+        return writePort1(data);
+    writePort0(data);
 }
 
 BYTE PIC::in8(WORD port)
@@ -207,10 +217,12 @@ void PIC::lower(BYTE num)
 
 void PIC::raiseIRQ(Machine& machine, BYTE num)
 {
-    if (num < 8)
+    if (num < 8) {
         machine.masterPIC().raise(num);
-    else
+    } else {
         machine.slavePIC().raise(num - 8);
+        machine.masterPIC().raise(2);
+    }
 
     updatePendingRequests(machine);
 }
@@ -247,7 +259,9 @@ void PIC::serviceIRQ(CPU& cpu)
 
     BYTE irqToService = 0xFF;
 
-    for (int i = 16; i >= 0; --i) {
+    for (BYTE i = 0; i < 16; ++i) {
+        if (i == 2)
+            continue;
         if (pendingRequestsCopy & (1 << i)) {
             irqToService = i;
             break;
@@ -268,6 +282,9 @@ void PIC::serviceIRQ(CPU& cpu)
         machine.slavePIC().m_irr &= ~(1 << (irqToService - 8));
         machine.slavePIC().m_isr |= (1 << (irqToService - 8));
 
+        machine.masterPIC().m_irr &= ~(1 << 2);
+        machine.masterPIC().m_isr |= (1 << 2);
+
         cpu.interrupt(machine.slavePIC().m_isrBase | (irqToService - 8), CPU::InterruptSource::External);
     }
 
@@ -275,3 +292,16 @@ void PIC::serviceIRQ(CPU& cpu)
 
     cpu.setState(CPU::Alive);
 }
+
+PIC& PIC::master() const
+{
+    ASSERT(!m_isMaster);
+    return machine().masterPIC();
+}
+
+PIC& PIC::slave() const
+{
+    ASSERT(m_isMaster);
+    return machine().slavePIC();
+}
+

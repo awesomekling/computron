@@ -58,7 +58,10 @@ BYTE ROM::readMemory8(DWORD address)
 void ROM::writeMemory8(DWORD address, BYTE data)
 {
     vlog(LogAlert, "Write to ROM address %08x, data %02x", address, data);
-    g_cpu->debugger().enter();
+#ifdef DEBUG_SERENITY
+    if (options.serenity)
+        g_cpu->debugger().enter();
+#endif
 }
 
 const BYTE* ROM::memoryPointer(DWORD address)
