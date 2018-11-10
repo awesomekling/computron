@@ -239,7 +239,7 @@ void TextRenderer::paint(QPainter& p)
 
     int screenColumns = screen().currentColumnCount();
 
-    WORD rawCursor = vga().readRegister(0x0e) << 8 | vga().readRegister(0x0f);
+    WORD rawCursor = (vga().readRegister(0x0e) << 8 | vga().readRegister(0x0f)) - vga().startAddress();
     BYTE row = screenColumns ? (rawCursor / screenColumns) : 0;
     BYTE column = screenColumns ? (rawCursor % screenColumns) : 0;
 
