@@ -1181,16 +1181,12 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
     DWORD page = (linearAddress.get() >> 12) & 0x3FF;
     DWORD offset = linearAddress.get() & 0xFFF;
 
-    DWORD* PDBR = reinterpret_cast<DWORD*>(&m_memory[getCR3()]);
     ASSERT(!(getCR3() & 0x03ff));
-    DWORD& pageDirectoryEntry = PDBR[dir];
 
-    DWORD* pageTable = reinterpret_cast<DWORD*>(&m_memory[pageDirectoryEntry & 0xfffff000]);
-    DWORD& pageTableEntry = pageTable[page];
-
-#ifdef DEBUG_PAGING
-    DWORD pteAddress = (pageDirectoryEntry & 0xfffff000) + (page * sizeof(DWORD));
-#endif
+    PhysicalAddress pdeAddress(getCR3() + dir * sizeof(DWORD));
+    DWORD pageDirectoryEntry = readPhysicalMemory<DWORD>(pdeAddress);
+    PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(DWORD));
+    DWORD pageTableEntry = readPhysicalMemory<DWORD>(pteAddress);
 
     bool inUserMode;
     if (effectiveCPL == 0xff)
