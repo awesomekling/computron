@@ -194,6 +194,11 @@ void Debugger::handleCommand(const QString& rawCommand)
         return;
     }
 
+    if (lowerCommand == "unhlt") {
+        cpu().setState(CPU::Alive);
+        return;
+    }
+
     if (lowerCommand == "irq")
         return handleIRQ(arguments);
 
