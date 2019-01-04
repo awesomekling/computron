@@ -27,7 +27,6 @@
 #include "debug.h"
 #include "machine.h"
 #include "CPU.h"
-#include "SimpleMemoryProvider.h"
 #include <QtGui/QColor>
 #include <QtGui/QBrush>
 
@@ -71,6 +70,7 @@ struct VGA::Private
     struct {
         BYTE reg_index;
         BYTE reg[9];
+        BYTE memory_map_select;
     } graphics_ctrl;
 
     struct {
@@ -102,8 +102,6 @@ struct VGA::Private
 
     bool screenInRefresh { false };
     BYTE statusRegister { 0 };
-
-    OwnPtr<SimpleMemoryProvider> textMemory;
 };
 
 static const RGBColor default_vga_color_registers[256] =
@@ -118,38 +116,17 @@ static const RGBColor default_vga_color_registers[256] =
     {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
 };
 
-class VGATextMemoryProvider final : public SimpleMemoryProvider {
-public:
-    VGATextMemoryProvider(VGA& vga)
-        : SimpleMemoryProvider(PhysicalAddress(0xb8000), 32768, true)
-        , m_vga(vga)
-    { }
-    virtual ~VGATextMemoryProvider() { }
-
-    virtual void writeMemory8(DWORD address, BYTE data) override
-    {
-        SimpleMemoryProvider::writeMemory8(address, data);
-        m_vga.machine().notifyScreen();
-    }
-
-private:
-    VGA& m_vga;
-};
-
 const BYTE* VGA::text_memory() const
 {
-    return d->textMemory->memoryPointer(0xb8000);
+    return d->memory;
 }
 
 VGA::VGA(Machine& m)
     : IODevice("VGA", m)
-    , MemoryProvider(PhysicalAddress(0xa0000), 0x10000)
+    , MemoryProvider(PhysicalAddress(0xa0000), 131072)
     , d(make<Private>())
 {
     machine().cpu().registerMemoryProvider(*this);
-
-    d->textMemory = make<VGATextMemoryProvider>(*this);
-    machine().cpu().registerMemoryProvider(*d->textMemory);
 
     listen(0x3B4, IODevice::ReadWrite);
     listen(0x3B5, IODevice::ReadWrite);
@@ -183,6 +160,8 @@ void VGA::reset()
     memset(d->crtc.reg, 0, sizeof(d->crtc.reg));
     memset(d->graphics_ctrl.reg, 0, sizeof(d->graphics_ctrl.reg));
     memset(d->sequencer.reg, 0, sizeof(d->sequencer.reg));
+
+    d->graphics_ctrl.memory_map_select = 2;
 
     d->sequencer.reg[2] = 0x0F;
 
@@ -395,6 +374,10 @@ void VGA::out8(WORD port, BYTE data)
             break;
         }
         d->graphics_ctrl.reg[d->graphics_ctrl.reg_index] = data;
+        if (d->graphics_ctrl.reg_index == 0x6) {
+            d->graphics_ctrl.memory_map_select = (data >> 2) & 3;
+            vlog(LogVGA, "Memory map select: %u", d->graphics_ctrl.memory_map_select);
+        }
         break;
 
     default:
@@ -655,18 +638,40 @@ BYTE VGA::read_map_select() const
 
 void VGA::writeMemory8(DWORD address, BYTE value)
 {
+    DWORD offset;
+    switch (d->graphics_ctrl.memory_map_select) {
+    case 0: // A0000h-BFFFFh (128K region)
+        if (address < 0xa0000 || address > 0xbffff)
+            return;
+        offset = address - 0xa0000;
+        break;
+    case 1: // A0000h-AFFFFh (64K region)
+        if (address < 0xa0000 || address > 0xaffff)
+            return;
+        offset = address - 0xa0000;
+        break;
+    case 2: // B0000h-B7FFFh (32K region)
+        if (address < 0xb0000 || address > 0xb7fff)
+            return;
+        offset = address - 0xb0000;
+        break;
+    default: // B8000h-BFFFFh (32K region)
+        if (address < 0xb8000 || address > 0xbffff)
+            return;
+        offset = address - 0xb8000;
+        break;
+    }
+
     machine().notifyScreen();
-    address -= 0xa0000;
 
     if (inChain4Mode()) {
-        d->memory[(address & ~0x03) + (address % 4)*65536] = value;
+        d->memory[(offset & ~0x03) + (offset % 4)*65536] = value;
         return;
     }
 
     BYTE new_val[4];
 
     if (write_mode() == 2) {
-
         new_val[0] = d->latch[0] & ~bit_mask();
         new_val[1] = d->latch[1] & ~bit_mask();
         new_val[2] = d->latch[2] & ~bit_mask();
@@ -783,32 +788,51 @@ void VGA::writeMemory8(DWORD address, BYTE value)
     BYTE map_mask = d->sequencer.reg[2] & 0x0f;
 
     if (map_mask & 0x01)
-        d->plane[0][address] = new_val[0];
+        d->plane[0][offset] = new_val[0];
     if (map_mask & 0x02)
-        d->plane[1][address] = new_val[1];
+        d->plane[1][offset] = new_val[1];
     if (map_mask & 0x04)
-        d->plane[2][address] = new_val[2];
+        d->plane[2][offset] = new_val[2];
     if (map_mask & 0x08)
-        d->plane[3][address] = new_val[3];
+        d->plane[3][offset] = new_val[3];
 }
 
 BYTE VGA::readMemory8(DWORD address)
 {
-    address -= 0xa0000;
-
-    if (inChain4Mode()) {
-        return d->memory[(address & ~3) + (address % 4) * 65536];
+    DWORD offset;
+    switch (d->graphics_ctrl.memory_map_select) {
+    case 0: // A0000h-BFFFFh (128K region)
+        offset = address & 0x1ffff;
+        break;
+    case 1: // A0000h-AFFFFh (64K region)
+        if (address > 0xaffff)
+            return 0xff;
+        offset = address & 0xffff;
+        break;
+    case 2: // B0000h-B7FFFh (32K region)
+        if (address < 0xb0000 || address > 0xb7fff)
+            return 0xff;
+        offset = address & 0x7fff;
+        break;
+    default: // B8000h-BFFFFh (32K region)
+        if (address < 0xb8000 || address > 0xbffff)
+            return 0xff;
+        offset = address & 0x7fff;
+        break;
     }
+
+    if (inChain4Mode())
+        return d->memory[(offset & ~3) + (offset % 4) * 65536];
 
     if (read_mode() != 0) {
         vlog(LogVGA, "ZOMG! READ_MODE = %u", read_mode());
         hard_exit(1);
     }
 
-    d->latch[0] = d->plane[0][address];
-    d->latch[1] = d->plane[1][address];
-    d->latch[2] = d->plane[2][address];
-    d->latch[3] = d->plane[3][address];
+    d->latch[0] = d->plane[0][offset];
+    d->latch[1] = d->plane[1][offset];
+    d->latch[2] = d->plane[2][offset];
+    d->latch[3] = d->plane[3][offset];
 
     return d->latch[read_map_select()];
 }

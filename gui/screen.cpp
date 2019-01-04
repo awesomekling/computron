@@ -53,8 +53,6 @@ struct Screen::Private
     QQueue<WORD> keyQueue;
     QQueue<BYTE> rawQueue;
 
-    const BYTE *videoMemory;
-
     QTimer refreshTimer;
     QTimer periodicRefreshTimer;
 
@@ -81,7 +79,6 @@ Screen::Screen(Machine& m)
     d->dummyRenderer = make<DummyRenderer>(*this);
 
     init();
-    d->videoMemory = machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
 
     setFocusPolicy(Qt::ClickFocus);
 
