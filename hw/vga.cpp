@@ -1,5 +1,5 @@
 // Computron x86 PC Emulator
-// Copyright (C) 2003-2018 Andreas Kling <awesomekling@gmail.com>
+// Copyright (C) 2003-2019 Andreas Kling <awesomekling@gmail.com>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -29,8 +29,6 @@
 #include "CPU.h"
 #include "SimpleMemoryProvider.h"
 #include <string.h>
-#include <QtCore/QMutex>
-#include <QtCore/QMutexLocker>
 #include <QtGui/QColor>
 #include <QtGui/QBrush>
 
@@ -53,9 +51,9 @@ struct VGA::Private
     BYTE graphicsControllerAddressRegister;
     BYTE currentSequencer;
     BYTE ioRegister[0x20];
-    BYTE ioRegister2[0x20];
+    BYTE graphics_register[9];
     BYTE ioSequencer[0x20];
-    BYTE paletteIndex { 0 };
+    BYTE attribute_register_index { 0 };
     bool paletteSource { false };
     BYTE columns;
     BYTE rows;
@@ -64,14 +62,21 @@ struct VGA::Private
     BYTE dac_data_read_subindex;
     BYTE dac_data_write_index;
     BYTE dac_data_write_subindex;
+    BYTE dac_mask;
+
+    bool vga_enabled;
 
     bool next3C0IsIndex;
     bool paletteDirty { true };
 
-    QMutex paletteMutex;
-
-    BYTE paletteRegister[17];
+    BYTE palette_register[0x10];
     RGBColor colorRegister[256];
+
+    BYTE attribute_mode_control;
+    BYTE overscan_color;
+    BYTE color_plane_enable;
+    BYTE horizontal_pixel_panning;
+    BYTE color_select;
 
     bool screenInRefresh { false };
     BYTE statusRegister { 0 };
@@ -124,21 +129,13 @@ VGA::VGA(Machine& m)
     listen(0x3B4, IODevice::ReadWrite);
     listen(0x3B5, IODevice::ReadWrite);
     listen(0x3BA, IODevice::ReadWrite);
-    listen(0x3C0, IODevice::ReadWrite);
-    listen(0x3C1, IODevice::ReadOnly);
-    listen(0x3C2, IODevice::WriteOnly);
-    listen(0x3C4, IODevice::ReadWrite);
-    listen(0x3C5, IODevice::ReadWrite);
-    listen(0x3C7, IODevice::WriteOnly);
-    listen(0x3C8, IODevice::WriteOnly);
-    listen(0x3C9, IODevice::ReadWrite);
-    listen(0x3CA, IODevice::ReadOnly);
-    listen(0x3CC, IODevice::ReadOnly);
-    listen(0x3ce, IODevice::ReadWrite);
-    listen(0x3CF, IODevice::ReadWrite);
+
+    for (WORD port = 0x3c0; port <= 0x3cf; ++port)
+        listen(port, IODevice::ReadWrite);
+
     listen(0x3D4, IODevice::ReadWrite);
     listen(0x3D5, IODevice::ReadWrite);
-    listen(0x3DA, IODevice::ReadOnly);
+    listen(0x3DA, IODevice::ReadWrite);
 
     reset();
 }
@@ -158,14 +155,14 @@ void VGA::reset()
     d->currentSequencer = 0;
 
     memset(d->ioRegister, 0, sizeof(d->ioRegister));
-    memset(d->ioRegister2, 0, sizeof(d->ioRegister2));
+    memset(d->graphics_register, 0, sizeof(d->graphics_register));
     memset(d->ioSequencer, 0, sizeof(d->ioSequencer));
 
     d->ioSequencer[2] = 0x0F;
 
     // Start with graphics mode bitmask 0xFF by default.
     // FIXME: This kind of stuff should be done by a VGA BIOS..
-    d->ioRegister2[0x8] = 0xff;
+    d->graphics_register[0x8] = 0xff;
 
     d->ioRegister[0x13] = 80;
 
@@ -173,10 +170,18 @@ void VGA::reset()
     d->dac_data_read_subindex = 0;
     d->dac_data_write_index = 0;
     d->dac_data_write_subindex = 0;
+    d->dac_mask = 0xff;
+    d->vga_enabled = true;
 
     for (int i = 0; i < 16; ++i)
-        d->paletteRegister[i] = i;
-    d->paletteRegister[16] = 0x03;
+        d->palette_register[i] = i;
+
+    // FIXME: Find the correct post-reset values for these registers.
+    d->attribute_mode_control = 3;
+    d->overscan_color = 0;
+    d->color_plane_enable = 0;
+    d->horizontal_pixel_panning = 0;
+    d->color_select = 0;
 
     memcpy(d->colorRegister, default_vga_color_registers, sizeof(default_vga_color_registers));
 
@@ -211,7 +216,7 @@ void VGA::out8(WORD port, BYTE data)
     switch (port) {
     case 0x3B4:
     case 0x3D4:
-        d->currentRegister = data & 0x1F;
+        d->currentRegister = data & 0x3f;
         if (d->currentRegister > 0x18)
             vlog(LogVGA, "Invalid I/O register 0x%02X selected through port %03X", d->currentRegister, port);
         else if (options.vgadebug)
@@ -220,9 +225,12 @@ void VGA::out8(WORD port, BYTE data)
 
     case 0x3B5:
     case 0x3D5:
-        if (d->currentRegister > 0x18)
+        if (d->currentRegister > 0x18) {
             vlog(LogVGA, "Invalid I/O register 0x%02X written (%02X) through port %03X", d->currentRegister, data, port);
-        else if (options.vgadebug)
+            ASSERT_NOT_REACHED();
+            break;
+        }
+        if (options.vgadebug)
             vlog(LogVGA, "I/O register 0x%02X written (%02X) through port %03X", d->currentRegister, data, port);
         d->ioRegister[d->currentRegister] = data;
         break;
@@ -238,20 +246,42 @@ void VGA::out8(WORD port, BYTE data)
         break;
 
     case 0x3C0: {
-        QMutexLocker locker(&d->paletteMutex);
         if (d->next3C0IsIndex) {
-            d->paletteIndex = (data & 0x1f);
+            d->attribute_register_index = (data & 0x1f);
             d->paletteSource = (data & 0x20);
         } else {
-            if (d->paletteIndex < 0x10) {
-                d->paletteRegister[d->paletteIndex] = data;
+            if (d->attribute_register_index < 0x10) {
+                d->palette_register[d->attribute_register_index] = data;
             } else {
-                vlog(LogVGA, "3c0 unhandled write to palette index %02x", d->paletteIndex);
+                switch (d->attribute_register_index) {
+                case 0x10:
+                    d->attribute_mode_control = data;
+                    break;
+                case 0x11:
+                    d->overscan_color = data & 0x3f;
+                    break;
+                case 0x12:
+                    d->color_plane_enable = data;
+                    break;
+                case 0x13:
+                    d->horizontal_pixel_panning = data & 0xf;
+                    break;
+                case 0x14:
+                    d->color_select = data & 0xf;
+                    break;
+                default:
+                    vlog(LogVGA, "3c0 unhandled write to attribute register %02x", d->attribute_register_index);
+                    break;
+                }
             }
         }
         d->next3C0IsIndex = !d->next3C0IsIndex;
         break;
     }
+
+    case 0x3C3:
+        d->vga_enabled = data & 1;
+        break;
 
     case 0x3C4:
         d->currentSequencer = data & 0x1F;
@@ -265,6 +295,10 @@ void VGA::out8(WORD port, BYTE data)
             break;
         }
         d->ioSequencer[d->currentSequencer] = data;
+        break;
+
+    case 0x3C6:
+        d->dac_mask = data;
         break;
 
     case 0x3C7:
@@ -302,18 +336,26 @@ void VGA::out8(WORD port, BYTE data)
 
     case 0x3CE:
         // FIXME: Find the number of valid registers and do something for OOB access.
-        if (data > 0x20)
-            ASSERT_NOT_REACHED();
+        if (data > 8) {
+            vlog(LogVGA, "Selecting invalid graphics register %u", data);
+            //ASSERT_NOT_REACHED();
+        }
         d->graphicsControllerAddressRegister = data;
         break;
 
     case 0x3CF:
         // FIXME: Find the number of valid registers and do something for OOB access.
         //vlog(LogVGA, "Writing to reg2 %02x, data is %02x", d->currentRegister2, data);
-        d->ioRegister2[d->graphicsControllerAddressRegister] = data;
+        if (d->graphicsControllerAddressRegister > 8) {
+            vlog(LogVGA, "Write to invalid graphics register %u <- %02x", d->graphicsControllerAddressRegister, data);
+            break;
+        }
+        d->graphics_register[d->graphicsControllerAddressRegister] = data;
         break;
 
     default:
+        vlog(LogVGA, "Unhandled VGA write %04x <- %02x", port, data);
+        ASSERT_NOT_REACHED();
         IODevice::out8(port, data);
     }
 }
@@ -333,9 +375,26 @@ BYTE VGA::in8(WORD port)
 {
     switch (port) {
     case 0x3C0:
-        return d->paletteIndex | (d->paletteSource * 0x20);
+        if (d->next3C0IsIndex) {
+            return d->attribute_register_index | (d->paletteSource * 0x20);
+        }
+        vlog(LogVGA, "Port 3c0 read in unexpected mode!");
+        return 0;
+
+    case 0x3c2:
+    case 0x3cd:
+        return 0;
+
+    case 0x3C3:
+        return d->vga_enabled;
+
+    case 0x3C6:
+        return d->dac_mask;
 
     case 0x3B4:
+        ASSERT_NOT_REACHED();
+        return 0;
+
     case 0x3D4:
         return d->currentRegister;
 
@@ -368,11 +427,25 @@ BYTE VGA::in8(WORD port)
         return value;
     }
 
-    case 0x3C1: {
-        QMutexLocker locker(&d->paletteMutex);
-        //vlog(LogVGA, "Read PALETTE[%u] (=%02X)", d->paletteIndex, d->paletteRegister[d->paletteIndex]);
-        return d->paletteRegister[d->paletteIndex];
-    }
+    case 0x3C1:
+        //vlog(LogVGA, "Read PALETTE[%u] (=%02X)", d->attribute_register_index, d->palette_register[d->paletteIndex]);
+        if (d->attribute_register_index < 0x10)
+            return d->palette_register[d->attribute_register_index];
+        switch (d->attribute_register_index) {
+        case 0x10:
+            return d->attribute_mode_control;
+        case 0x11:
+            return d->overscan_color;
+        case 0x12:
+            return d->color_plane_enable;
+        case 0x13:
+            return d->horizontal_pixel_panning;
+        case 0x14:
+            return d->color_select;
+        default:
+            vlog(LogVGA, "3c1 unhandled read from attribute register %02x", d->attribute_register_index);
+            return 0;
+        }
 
     case 0x3C4:
         return d->currentSequencer;
@@ -415,6 +488,7 @@ BYTE VGA::in8(WORD port)
 
     case 0x3CA:
         vlog(LogVGA, "Reading FCR");
+        d->next3C0IsIndex = true;
         return 0x00;
 
     case 0x3CC:
@@ -427,9 +501,11 @@ BYTE VGA::in8(WORD port)
     case 0x3CF:
         // FIXME: Find the number of valid registers and do something for OOB access.
         // vlog(LogVGA, "reading reg2 %d, data is %02X", current_register2, io_register2[current_register2]);
-        return d->ioRegister2[d->graphicsControllerAddressRegister];
+        return d->graphics_register[d->graphicsControllerAddressRegister];
 
     default:
+        vlog(LogVGA, "Unhandled VGA read from %04x", port);
+        ASSERT_NOT_REACHED();
         return IODevice::in8(port);
     }
 }
@@ -444,7 +520,7 @@ BYTE VGA::readRegister2(BYTE index) const
 {
     // FIXME: Check if 12 is the correct limit here.
     ASSERT(index < 0x12);
-    return d->ioRegister2[index];
+    return d->graphics_register[index];
 }
 
 BYTE VGA::readSequencer(BYTE index) const
@@ -461,26 +537,20 @@ void VGA::writeRegister(BYTE index, BYTE value)
 
 void VGA::setPaletteDirty(bool dirty)
 {
-    bool shouldEmit = dirty != d->paletteDirty;
-
-    {
-        QMutexLocker locker(&d->paletteMutex);
-        d->paletteDirty = dirty;
-    }
-
-    if (shouldEmit)
-        emit paletteChanged();
+    if (dirty == d->paletteDirty)
+        return;
+    d->paletteDirty = dirty;
+    emit paletteChanged();
 }
 
 bool VGA::isPaletteDirty()
 {
-    QMutexLocker locker(&d->paletteMutex);
     return d->paletteDirty;
 }
 
-QColor VGA::paletteColor(int paletteIndex) const
+QColor VGA::paletteColor(int attribute_register_index) const
 {
-    const RGBColor& c = d->colorRegister[d->paletteRegister[paletteIndex]];
+    const RGBColor& c = d->colorRegister[d->palette_register[attribute_register_index]];
     return c;
 }
 
