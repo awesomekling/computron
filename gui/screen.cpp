@@ -161,7 +161,6 @@ void Screen::refresh()
     if (isVideoModeUsingVGAMemory(videoMode)) {
         if (machine().vga().isPaletteDirty()) {
             renderer().synchronizeColors();
-            // FIXME: This will probably race with VGAMemory's internal palette.
             machine().vga().setPaletteDirty(false);
         }
     }

@@ -1,5 +1,5 @@
 // Computron x86 PC Emulator
-// Copyright (C) 2003-2018 Andreas Kling <awesomekling@gmail.com>
+// Copyright (C) 2003-2019 Andreas Kling <awesomekling@gmail.com>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -52,15 +52,11 @@ public:
     bool isPaletteDirty();
 
     BYTE readRegister(BYTE index) const;
-    BYTE readRegister2(BYTE index) const;
-    BYTE readSequencer(BYTE index) const;
 
     WORD cursor_location() const;
     BYTE cursor_start_scanline() const;
     BYTE cursor_end_scanline() const;
     bool cursor_enabled() const;
-
-    void writeRegister(BYTE index, BYTE value);
 
     QColor color(int index) const;
     QColor paletteColor(int paletteIndex) const;
@@ -79,6 +75,12 @@ signals:
 
 private:
     void synchronizeColors();
+    BYTE read_mode() const;
+    BYTE write_mode() const;
+    BYTE rotate_count() const;
+    BYTE logical_op() const;
+    BYTE bit_mask() const;
+    BYTE read_map_select() const;
 
     struct Private;
     OwnPtr<Private> d;

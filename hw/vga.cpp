@@ -28,7 +28,6 @@
 #include "machine.h"
 #include "CPU.h"
 #include "SimpleMemoryProvider.h"
-#include <string.h>
 #include <QtGui/QColor>
 #include <QtGui/QBrush>
 
@@ -178,10 +177,6 @@ void VGA::reset()
     memset(d->sequencer.reg, 0, sizeof(d->sequencer.reg));
 
     d->sequencer.reg[2] = 0x0F;
-
-    // Start with graphics mode bitmask 0xFF by default.
-    // FIXME: This kind of stuff should be done by a VGA BIOS..
-    d->graphics_ctrl.reg[0x8] = 0xff;
 
     d->crtc.reg[0x13] = 80;
 
@@ -567,25 +562,6 @@ BYTE VGA::readRegister(BYTE index) const
     return d->crtc.reg[index];
 }
 
-BYTE VGA::readRegister2(BYTE index) const
-{
-    // FIXME: Check if 12 is the correct limit here.
-    ASSERT(index < 0x12);
-    return d->graphics_ctrl.reg[index];
-}
-
-BYTE VGA::readSequencer(BYTE index) const
-{
-    ASSERT(index < 0x5);
-    return d->sequencer.reg[index];
-}
-
-void VGA::writeRegister(BYTE index, BYTE value)
-{
-    ASSERT(index < 0x12);
-    d->crtc.reg[index] = value;
-}
-
 void VGA::setPaletteDirty(bool dirty)
 {
     if (dirty == d->paletteDirty)
@@ -628,16 +604,35 @@ bool VGA::inChain4Mode() const
     return d->sequencer.reg[0x4] & 0x8;
 }
 
-#define WRITE_MODE (machine().vga().readRegister2(5) & 0x03)
-#define READ_MODE ((machine().vga().readRegister2(5) >> 3) & 1)
-#define ODD_EVEN ((machine().vga().readRegister2(5) >> 4) & 1)
-#define SHIFT_REG ((machine().vga().readRegister2(5) >> 5) & 0x03)
-#define ROTATE ((machine().vga().readRegister2(3)) & 0x07)
-#define DRAWOP ((machine().vga().readRegister2(3) >> 3) & 3)
-#define MAP_MASK_BIT(i) ((machine().vga().readSequencer(2) >> i)&1)
-#define SET_RESET_BIT(i) ((machine().vga().readRegister2(0) >> i)&1)
-#define SET_RESET_ENABLE_BIT(i) ((machine().vga().readRegister2(1) >> i)&1)
-#define BIT_MASK (machine().vga().readRegister2(8))
+BYTE VGA::write_mode() const
+{
+    return d->graphics_ctrl.reg[5] & 3;
+}
+
+BYTE VGA::read_mode() const
+{
+    return (d->graphics_ctrl.reg[5] >> 3) & 1;
+}
+
+BYTE VGA::rotate_count() const
+{
+    return d->graphics_ctrl.reg[3] & 7;
+}
+
+BYTE VGA::logical_op() const
+{
+    return (d->graphics_ctrl.reg[3] >> 3) & 3;
+}
+
+BYTE VGA::bit_mask() const
+{
+    return d->graphics_ctrl.reg[8];
+}
+
+BYTE VGA::read_map_select() const
+{
+    return d->graphics_ctrl.reg[4] & 3;
+}
 
 void VGA::writeMemory8(DWORD address, BYTE value)
 {
@@ -651,135 +646,130 @@ void VGA::writeMemory8(DWORD address, BYTE value)
 
     BYTE new_val[4];
 
-    if (WRITE_MODE == 2) {
+    if (write_mode() == 2) {
 
-        BYTE bitmask = BIT_MASK;
+        new_val[0] = d->latch[0] & ~bit_mask();
+        new_val[1] = d->latch[1] & ~bit_mask();
+        new_val[2] = d->latch[2] & ~bit_mask();
+        new_val[3] = d->latch[3] & ~bit_mask();
 
-        new_val[0] = d->latch[0] & ~bitmask;
-        new_val[1] = d->latch[1] & ~bitmask;
-        new_val[2] = d->latch[2] & ~bitmask;
-        new_val[3] = d->latch[3] & ~bitmask;
-
-        switch (DRAWOP) {
+        switch (logical_op()) {
         case 0:
-            new_val[0] |= (value & 1) ? bitmask : 0;
-            new_val[1] |= (value & 2) ? bitmask : 0;
-            new_val[2] |= (value & 4) ? bitmask : 0;
-            new_val[3] |= (value & 8) ? bitmask : 0;
+            new_val[0] |= (value & 1) ? bit_mask() : 0;
+            new_val[1] |= (value & 2) ? bit_mask() : 0;
+            new_val[2] |= (value & 4) ? bit_mask() : 0;
+            new_val[3] |= (value & 8) ? bit_mask() : 0;
             break;
         default:
-            vlog(LogVGA, "Gaah, unsupported raster op %d in mode 2 :(\n", DRAWOP);
+            vlog(LogVGA, "Gaah, unsupported draw_op %d in mode 2 :(\n", logical_op());
             hard_exit(1);
         }
-    } else if (WRITE_MODE == 0) {
-
-        BYTE bitmask = BIT_MASK;
-        BYTE set_reset = machine().vga().readRegister2(0);
-        BYTE enable_set_reset = machine().vga().readRegister2(1);
+    } else if (write_mode() == 0) {
+        BYTE set_reset = d->graphics_ctrl.reg[0];
+        BYTE enable_set_reset = d->graphics_ctrl.reg[1];
         BYTE val = value;
 
-        if (ROTATE) {
-            vlog(LogVGA, "Rotate used!");
-            val = (val >> ROTATE) | (val << (8 - ROTATE));
+        if (rotate_count()) {
+            vlog(LogVGA, "rotate_count non-zero!");
+            val = (val >> rotate_count()) | (val << (8 - rotate_count()));
         }
 
-        new_val[0] = d->latch[0] & ~bitmask;
-        new_val[1] = d->latch[1] & ~bitmask;
-        new_val[2] = d->latch[2] & ~bitmask;
-        new_val[3] = d->latch[3] & ~bitmask;
+        new_val[0] = d->latch[0] & ~bit_mask();
+        new_val[1] = d->latch[1] & ~bit_mask();
+        new_val[2] = d->latch[2] & ~bit_mask();
+        new_val[3] = d->latch[3] & ~bit_mask();
 
-        switch (DRAWOP) {
+        switch (logical_op()) {
         case 0:
             new_val[0] |= ((enable_set_reset & 1)
-                ? ((set_reset & 1) ? bitmask : 0)
-                : (val & bitmask));
+                ? ((set_reset & 1) ? bit_mask() : 0)
+                : (val & bit_mask()));
             new_val[1] |= ((enable_set_reset & 2)
-                ? ((set_reset & 2) ? bitmask : 0)
-                : (val & bitmask));
+                ? ((set_reset & 2) ? bit_mask() : 0)
+                : (val & bit_mask()));
             new_val[2] |= ((enable_set_reset & 4)
-                ? ((set_reset & 4) ? bitmask : 0)
-                : (val & bitmask));
+                ? ((set_reset & 4) ? bit_mask() : 0)
+                : (val & bit_mask()));
             new_val[3] |= ((enable_set_reset & 8)
-                ? ((set_reset & 8) ? bitmask : 0)
-                : (val & bitmask));
+                ? ((set_reset & 8) ? bit_mask() : 0)
+                : (val & bit_mask()));
             break;
         case 1:
             new_val[0] |= ((enable_set_reset & 1)
                 ? ((set_reset & 1)
-                    ? (~d->latch[0] & bitmask)
-                    : (d->latch[0] & bitmask))
-                : (val & d->latch[0]) & bitmask);
+                    ? (~d->latch[0] & bit_mask())
+                    : (d->latch[0] & bit_mask()))
+                : (val & d->latch[0]) & bit_mask());
 
             new_val[1] |= ((enable_set_reset & 2)
                 ? ((set_reset & 2)
-                    ? (~d->latch[1] & bitmask)
-                    : (d->latch[1] & bitmask))
-                : (val & d->latch[1]) & bitmask);
+                    ? (~d->latch[1] & bit_mask())
+                    : (d->latch[1] & bit_mask()))
+                : (val & d->latch[1]) & bit_mask());
 
             new_val[2] |= ((enable_set_reset & 4)
                 ? ((set_reset & 4)
-                    ? (~d->latch[2] & bitmask)
-                    : (d->latch[2] & bitmask))
-                : (val & d->latch[2]) & bitmask);
+                    ? (~d->latch[2] & bit_mask())
+                    : (d->latch[2] & bit_mask()))
+                : (val & d->latch[2]) & bit_mask());
 
             new_val[3] |= ((enable_set_reset & 8)
                 ? ((set_reset & 8)
-                    ? (~d->latch[3] & bitmask)
-                    : (d->latch[3] & bitmask))
-                : (val & d->latch[3]) & bitmask);
+                    ? (~d->latch[3] & bit_mask())
+                    : (d->latch[3] & bit_mask()))
+                : (val & d->latch[3]) & bit_mask());
             break;
         case 3:
             new_val[0] |= ((enable_set_reset & 1)
                 ? ((set_reset & 1)
-                    ? (~d->latch[0] & bitmask)
-                    : (d->latch[0] & bitmask))
-                : (val ^ d->latch[0]) & bitmask);
+                    ? (~d->latch[0] & bit_mask())
+                    : (d->latch[0] & bit_mask()))
+                : (val ^ d->latch[0]) & bit_mask());
 
             new_val[1] |= ((enable_set_reset & 2)
                 ? ((set_reset & 2)
-                    ? (~d->latch[1] & bitmask)
-                    : (d->latch[1] & bitmask))
-                : (val ^ d->latch[1]) & bitmask);
+                    ? (~d->latch[1] & bit_mask())
+                    : (d->latch[1] & bit_mask()))
+                : (val ^ d->latch[1]) & bit_mask());
 
             new_val[2] |= ((enable_set_reset & 4)
                 ? ((set_reset & 4)
-                    ? (~d->latch[2] & bitmask)
-                    : (d->latch[2] & bitmask))
-                : (val ^ d->latch[2]) & bitmask);
+                    ? (~d->latch[2] & bit_mask())
+                    : (d->latch[2] & bit_mask()))
+                : (val ^ d->latch[2]) & bit_mask());
 
             new_val[3] |= ((enable_set_reset & 8)
                 ? ((set_reset & 8)
-                    ? (~d->latch[3] & bitmask)
-                    : (d->latch[3] & bitmask))
-                : (val ^ d->latch[3]) & bitmask);
+                    ? (~d->latch[3] & bit_mask())
+                    : (d->latch[3] & bit_mask()))
+                : (val ^ d->latch[3]) & bit_mask());
             break;
         default:
-            vlog(LogVGA, "Unsupported raster operation %d", DRAWOP);
+            vlog(LogVGA, "Unsupported draw_op %u", logical_op());
             hard_exit(0);
         }
-    } else if(WRITE_MODE == 1) {
+    } else if(write_mode() == 1) {
         new_val[0] = d->latch[0];
         new_val[1] = d->latch[1];
         new_val[2] = d->latch[2];
         new_val[3] = d->latch[3];
     } else {
-        vlog(LogVGA, "Unsupported 6845 write mode %d", WRITE_MODE);
+        vlog(LogVGA, "Unsupported 6845 write mode %d", write_mode());
         hard_exit(1);
 
         /* This is just here to make GCC stop worrying about accessing new_val[] uninitialized. */
         return;
     }
 
-    BYTE plane = 0xf;
-    plane &= machine().vga().readSequencer(2) & 0x0f;
+    BYTE map_mask = d->sequencer.reg[2] & 0x0f;
 
-    if (plane & 0x01)
+    if (map_mask & 0x01)
         d->plane[0][address] = new_val[0];
-    if (plane & 0x02)
+    if (map_mask & 0x02)
         d->plane[1][address] = new_val[1];
-    if (plane & 0x04)
+    if (map_mask & 0x04)
         d->plane[2][address] = new_val[2];
-    if (plane & 0x08)
+    if (map_mask & 0x08)
         d->plane[3][address] = new_val[3];
 }
 
@@ -791,8 +781,8 @@ BYTE VGA::readMemory8(DWORD address)
         return d->memory[(address & ~3) + (address % 4) * 65536];
     }
 
-    if (READ_MODE != 0) {
-        vlog(LogVGA, "ZOMG! READ_MODE = %u", READ_MODE);
+    if (read_mode() != 0) {
+        vlog(LogVGA, "ZOMG! READ_MODE = %u", read_mode());
         hard_exit(1);
     }
 
@@ -801,8 +791,7 @@ BYTE VGA::readMemory8(DWORD address)
     d->latch[2] = d->plane[2][address];
     d->latch[3] = d->plane[3][address];
 
-    BYTE plane = machine().vga().readRegister2(4) & 0xf;
-    return d->latch[plane];
+    return d->latch[read_map_select()];
 }
 
 const BYTE* VGA::plane(int index) const
