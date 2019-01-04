@@ -73,6 +73,15 @@ struct VGA::Private
         BYTE reg[9];
     } graphics_ctrl;
 
+    struct {
+        bool vertical_sync_polarity;
+        bool horizontal_sync_polarity;
+        bool odd_even_page_select;
+        BYTE clock_select;
+        bool ram_enable;
+        bool input_output_address_select;
+    } misc_output;
+
     BYTE columns;
     BYTE rows;
 
@@ -92,8 +101,6 @@ struct VGA::Private
 
     bool screenInRefresh { false };
     BYTE statusRegister { 0 };
-
-    BYTE miscellaneousOutputRegister { 0 };
 
     OwnPtr<SimpleMemoryProvider> textMemory;
 };
@@ -187,6 +194,13 @@ void VGA::reset()
     d->dac_mask = 0xff;
     d->vga_enabled = true;
 
+    d->misc_output.vertical_sync_polarity = 1;
+    d->misc_output.horizontal_sync_polarity = 1;
+    d->misc_output.odd_even_page_select = 0;
+    d->misc_output.clock_select = 0;
+    d->misc_output.ram_enable = 1;
+    d->misc_output.input_output_address_select = 1;
+
     for (int i = 0; i < 16; ++i)
         d->attr.palette_reg[i] = i;
 
@@ -204,8 +218,6 @@ void VGA::reset()
     d->paletteDirty = true;
     d->screenInRefresh = false;
     d->statusRegister = 0;
-
-    d->miscellaneousOutputRegister = 0xff;
 
     d->memory = new BYTE[0x40000];
     d->plane[0] = d->memory;
@@ -267,10 +279,16 @@ void VGA::out8(WORD port, BYTE data)
         vlog(LogVGA, "Writing FCR");
         break;
 
-    case 0x3C2:
+    case 0x3c2:
         vlog(LogVGA, "Writing MOR (Miscellaneous Output Register), data: %02x", data);
-        d->miscellaneousOutputRegister = data;
-        // FIXME: Do we need to deal with I/O remapping here?
+        d->misc_output.input_output_address_select = (data >> 0) & 1;
+        d->misc_output.ram_enable = (data >> 1) & 1;
+        d->misc_output.clock_select = (data >> 2) & 3;
+        d->misc_output.odd_even_page_select = (data >> 5) & 1;
+        d->misc_output.horizontal_sync_polarity = (data >> 6) & 1;
+        d->misc_output.vertical_sync_polarity = (data >> 7) & 1;
+        // FIXME: Support remapping between 3bx/3dx
+        ASSERT(d->misc_output.input_output_address_select == true);
         break;
 
     case 0x3C0: {
@@ -516,8 +534,13 @@ BYTE VGA::in8(WORD port)
         return 0x00;
 
     case 0x3CC:
-        vlog(LogVGA, "Read MOR (Miscellaneous Output Register): %02x", d->miscellaneousOutputRegister);
-        return d->miscellaneousOutputRegister;
+        return
+            (d->misc_output.input_output_address_select << 0) |
+            (d->misc_output.ram_enable << 1) |
+            (d->misc_output.clock_select << 2) |
+            (d->misc_output.odd_even_page_select << 5) |
+            (d->misc_output.horizontal_sync_polarity << 6) |
+            (d->misc_output.vertical_sync_polarity << 7);
 
     case 0x3ce:
         return d->graphics_ctrl.reg_index;
