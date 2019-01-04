@@ -338,7 +338,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
 
     fp = fopen(qPrintable(drive->imagePath()), function == WriteSectors ? "rb+" : "rb");
     if (!fp) {
-        vlog(LogDisk, "PANIC: Could not access drive %d image!", drive);
+        vlog(LogDisk, "PANIC: Could not access drive %d image (%s)!", driveIndex, qPrintable(drive->imagePath()));
         hard_exit(1);
     }
 
