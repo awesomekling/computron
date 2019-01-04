@@ -45,7 +45,8 @@ public:
     virtual void writeMemory8(DWORD address, BYTE value) override;
     virtual BYTE readMemory8(DWORD address) override;
 
-    BYTE* plane(int index) const;
+    const BYTE* plane(int index) const;
+    const BYTE* text_memory() const;
 
     void setPaletteDirty(bool);
     bool isPaletteDirty();
@@ -54,6 +55,11 @@ public:
     BYTE readRegister2(BYTE index) const;
     BYTE readSequencer(BYTE index) const;
 
+    WORD cursor_location() const;
+    BYTE cursor_start_scanline() const;
+    BYTE cursor_end_scanline() const;
+    bool cursor_enabled() const;
+
     void writeRegister(BYTE index, BYTE value);
 
     QColor color(int index) const;
@@ -61,7 +67,7 @@ public:
 
     BYTE currentVideoMode() const;
 
-    WORD startAddress() const;
+    WORD start_address() const;
 
     void willRefreshScreen();
     void didRefreshScreen();

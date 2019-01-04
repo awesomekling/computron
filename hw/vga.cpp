@@ -129,6 +129,11 @@ private:
     VGA& m_vga;
 };
 
+const BYTE* VGA::text_memory() const
+{
+    return d->textMemory->memoryPointer(0xb8000);
+}
+
 VGA::VGA(Machine& m)
     : IODevice("VGA", m)
     , MemoryProvider(PhysicalAddress(0xa0000), 0x10000)
@@ -536,6 +541,26 @@ BYTE VGA::in8(WORD port)
     }
 }
 
+WORD VGA::cursor_location() const
+{
+    return (d->crtc.reg[0x0e] << 8) | d->crtc.reg[0x0f];
+}
+
+BYTE VGA::cursor_start_scanline() const
+{
+    return d->crtc.reg[0x0a] & 0x1f;
+}
+
+BYTE VGA::cursor_end_scanline() const
+{
+    return d->crtc.reg[0x0b] & 0x1f;
+}
+
+bool VGA::cursor_enabled() const
+{
+    return d->crtc.reg[0x0a] & 0x20;
+}
+
 BYTE VGA::readRegister(BYTE index) const
 {
     ASSERT(index <= 0x18);
@@ -586,7 +611,7 @@ QColor VGA::color(int index) const
     return c;
 }
 
-WORD VGA::startAddress() const
+WORD VGA::start_address() const
 {
     return weld<WORD>(d->crtc.reg[0x0C], d->crtc.reg[0x0D]);
 }
@@ -780,7 +805,7 @@ BYTE VGA::readMemory8(DWORD address)
     return d->latch[plane];
 }
 
-BYTE* VGA::plane(int index) const
+const BYTE* VGA::plane(int index) const
 {
     ASSERT(index >= 0 && index <= 3);
     return d->plane[index];

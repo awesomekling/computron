@@ -32,7 +32,7 @@ public:
     SimpleMemoryProvider(PhysicalAddress baseAddress, DWORD size, bool allowDirectReadAccess);
     virtual ~SimpleMemoryProvider();
 
-    virtual const BYTE* memoryPointer(DWORD address) override;
+    virtual const BYTE* memoryPointer(DWORD address) const override;
     virtual BYTE readMemory8(DWORD address) override;
     virtual void writeMemory8(DWORD address, BYTE) override;
 

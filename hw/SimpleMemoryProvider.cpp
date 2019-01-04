@@ -48,7 +48,7 @@ void SimpleMemoryProvider::writeMemory8(DWORD address, BYTE data)
     m_data.data()[address - baseAddress().get()] = data;
 }
 
-const BYTE* SimpleMemoryProvider::memoryPointer(DWORD address)
+const BYTE* SimpleMemoryProvider::memoryPointer(DWORD address) const
 {
     return reinterpret_cast<const BYTE*>(&m_data.data()[address - baseAddress().get()]);
 }

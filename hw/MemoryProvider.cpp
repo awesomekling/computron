@@ -25,7 +25,7 @@
 #include "MemoryProvider.h"
 #include "CPU.h"
 
-const BYTE* MemoryProvider::memoryPointer(DWORD)
+const BYTE* MemoryProvider::memoryPointer(DWORD) const
 {
     return nullptr;
 }

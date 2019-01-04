@@ -74,12 +74,10 @@ void TextRenderer::putCharacter(QPainter& p, int row, int column, BYTE color, BY
 
 void Mode04Renderer::render()
 {
-    const BYTE* videoMemory = screen().machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
-    WORD startAddress = vga().startAddress();
-    videoMemory += startAddress;
+    const BYTE* video_memory = vga().text_memory() + vga().start_address();
     for (unsigned scanLine = 0; scanLine < 200; ++scanLine) {
         BYTE* out = m_buffer.scanLine(scanLine);
-        const BYTE* in = videoMemory;
+        const BYTE* in = video_memory;
         if ((scanLine & 1))
             in += 0x2000;
         in += (scanLine / 2) * 80;
@@ -126,11 +124,11 @@ void Mode0DRenderer::render()
     const BYTE *p2 = vga().plane(2);
     const BYTE *p3 = vga().plane(3);
 
-    WORD startAddress = vga().startAddress();
-    p0 += startAddress;
-    p1 += startAddress;
-    p2 += startAddress;
-    p3 += startAddress;
+    WORD start_address = vga().start_address();
+    p0 += start_address;
+    p1 += start_address;
+    p2 += start_address;
+    p3 += start_address;
 
     BYTE* bits = bufferBits();
     int offset = 0;
@@ -181,7 +179,7 @@ void Mode13Renderer::synchronizeColors()
 
 void Mode13Renderer::render()
 {
-    const BYTE* videoMemory = vga().plane(0) + vga().startAddress();
+    const BYTE* videoMemory = vga().plane(0) + vga().start_address();
 
     ValueSize mode;
     DWORD lineOffset = vga().readRegister(0x13);
@@ -234,38 +232,26 @@ void TextRenderer::willBecomeActive()
 
 void TextRenderer::paint(QPainter& p)
 {
-    auto* textPtr = screen().machine().cpu().pointerToPhysicalMemory(PhysicalAddress(0xb8000));
-    textPtr += vga().startAddress() * 2;
+    auto* text_ptr = vga().text_memory() + vga().start_address() * 2;
 
     int screenColumns = screen().currentColumnCount();
 
-    WORD rawCursor = (vga().readRegister(0x0e) << 8 | vga().readRegister(0x0f)) - vga().startAddress();
+    WORD rawCursor = vga().cursor_location() - vga().start_address();
     BYTE row = screenColumns ? (rawCursor / screenColumns) : 0;
     BYTE column = screenColumns ? (rawCursor % screenColumns) : 0;
 
     // Repaint everything
     for (int y = 0; y < m_rows; ++y) {
         for (int x = 0; x < m_columns; ++x) {
-            putCharacter(p, y, x, textPtr[1], textPtr[0]);
-            textPtr += 2;
+            putCharacter(p, y, x, text_ptr[1], text_ptr[0]);
+            text_ptr += 2;
         }
     }
 
-    BYTE cursorStart = vga().readRegister(0x0a);
-    BYTE cursorEnd = vga().readRegister(0x0b);
+    BYTE cursor_start = vga().cursor_start_scanline();
+    BYTE cursor_end = vga().cursor_end_scanline();
 
-    // HACK 2000!
-    if (cursorEnd < 14)
-    {
-        cursorEnd *= 2;
-        cursorStart *= 2;
-    }
-
-    //vlog(LogScreen, "rows: %d, row: %d, col: %d", m_rows, cursor.row, cursor.column);
-    //vlog(LogScreen, "cursor: %d to %d", cursorStart, cursorEnd);
-
-    //p.setCompositionMode(QPainter::CompositionMode_Xor);
-    p.fillRect(column * m_characterWidth, row * m_characterHeight + cursorStart, m_characterWidth, cursorEnd - cursorStart, m_brush[14]);
+    p.fillRect(column * m_characterWidth, row * m_characterHeight + cursor_start, m_characterWidth, cursor_end - cursor_start, m_brush[14]);
 }
 
 void TextRenderer::synchronizeColors()
