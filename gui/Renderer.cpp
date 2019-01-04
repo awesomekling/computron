@@ -234,12 +234,6 @@ void TextRenderer::paint(QPainter& p)
 {
     auto* text_ptr = vga().text_memory() + vga().start_address() * 2;
 
-    int screenColumns = screen().currentColumnCount();
-
-    WORD rawCursor = vga().cursor_location() - vga().start_address();
-    BYTE row = screenColumns ? (rawCursor / screenColumns) : 0;
-    BYTE column = screenColumns ? (rawCursor % screenColumns) : 0;
-
     // Repaint everything
     for (int y = 0; y < m_rows; ++y) {
         for (int x = 0; x < m_columns; ++x) {
@@ -248,10 +242,22 @@ void TextRenderer::paint(QPainter& p)
         }
     }
 
-    BYTE cursor_start = vga().cursor_start_scanline();
-    BYTE cursor_end = vga().cursor_end_scanline();
+    if (vga().cursor_enabled()) {
+        WORD raw_cursor = vga().cursor_location() - vga().start_address();
+        WORD screen_columns = screen().currentColumnCount();
+        WORD row = screen_columns ? (raw_cursor / screen_columns) : 0;
+        WORD column = screen_columns ? (raw_cursor % screen_columns) : 0;
+        BYTE cursor_start = vga().cursor_start_scanline();
+        BYTE cursor_end = vga().cursor_end_scanline();
 
-    p.fillRect(column * m_characterWidth, row * m_characterHeight + cursor_start, m_characterWidth, cursor_end - cursor_start, m_brush[14]);
+        p.fillRect(
+            column * m_characterWidth,
+            row * m_characterHeight + cursor_start,
+            m_characterWidth,
+            cursor_end - cursor_start,
+            m_brush[14]
+        );
+    }
 }
 
 void TextRenderer::synchronizeColors()

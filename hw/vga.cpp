@@ -558,7 +558,7 @@ BYTE VGA::cursor_end_scanline() const
 
 bool VGA::cursor_enabled() const
 {
-    return d->crtc.reg[0x0a] & 0x20;
+    return (d->crtc.reg[0x0a] & 0x20) == 0;
 }
 
 BYTE VGA::readRegister(BYTE index) const
