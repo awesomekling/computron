@@ -78,6 +78,8 @@ struct VGA::Private
     BYTE horizontal_pixel_panning;
     BYTE color_select;
 
+    bool write_protect;
+
     bool screenInRefresh { false };
     BYTE statusRegister { 0 };
 
@@ -205,6 +207,8 @@ void VGA::reset()
     d->latch[2] = 0;
     d->latch[3] = 0;
 
+    d->write_protect = false;
+
     synchronizeColors();
     setPaletteDirty(true);
 }
@@ -232,6 +236,17 @@ void VGA::out8(WORD port, BYTE data)
         }
         if (options.vgadebug)
             vlog(LogVGA, "I/O register 0x%02X written (%02X) through port %03X", d->currentRegister, data, port);
+        if (d->write_protect && d->currentRegister < 8) {
+            if (d->currentRegister == 7) {
+                d->ioRegister[d->currentRegister] &= ~0x10;
+                d->ioRegister[d->currentRegister] |= data & 0x10;
+            }
+        }
+        if (d->currentRegister == 0x11) {
+            d->write_protect = data & 0x80;
+            vlog(LogVGA, "write_protect <- %u", d->write_protect);
+            //ASSERT_NOT_REACHED();
+        }
         d->ioRegister[d->currentRegister] = data;
         break;
 
@@ -334,8 +349,7 @@ void VGA::out8(WORD port, BYTE data)
         break;
     }
 
-    case 0x3CE:
-        // FIXME: Find the number of valid registers and do something for OOB access.
+    case 0x3ce:
         if (data > 8) {
             vlog(LogVGA, "Selecting invalid graphics register %u", data);
             //ASSERT_NOT_REACHED();
@@ -343,9 +357,7 @@ void VGA::out8(WORD port, BYTE data)
         d->graphicsControllerAddressRegister = data;
         break;
 
-    case 0x3CF:
-        // FIXME: Find the number of valid registers and do something for OOB access.
-        //vlog(LogVGA, "Writing to reg2 %02x, data is %02x", d->currentRegister2, data);
+    case 0x3cf:
         if (d->graphicsControllerAddressRegister > 8) {
             vlog(LogVGA, "Write to invalid graphics register %u <- %02x", d->graphicsControllerAddressRegister, data);
             break;
@@ -498,9 +510,11 @@ BYTE VGA::in8(WORD port)
     case 0x3ce:
         return d->graphicsControllerAddressRegister;
 
-    case 0x3CF:
-        // FIXME: Find the number of valid registers and do something for OOB access.
-        // vlog(LogVGA, "reading reg2 %d, data is %02X", current_register2, io_register2[current_register2]);
+    case 0x3cf:
+        if (d->graphicsControllerAddressRegister > 8) {
+            vlog(LogVGA, "Read from invalid graphics register %u", d->graphicsControllerAddressRegister);
+            return 0;
+        }
         return d->graphics_register[d->graphicsControllerAddressRegister];
 
     default:

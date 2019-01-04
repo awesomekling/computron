@@ -28,6 +28,8 @@
 #include "debugger.h"
 #include "Tasking.h"
 
+//#define DEBUG_VM86
+
 void CPU::_INT_imm8(Instruction& insn)
 {
     interrupt(insn.imm8(), InterruptSource::Internal);
@@ -395,7 +397,9 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 
 void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor& codeDescriptor, InterruptSource source, QVariant errorCode)
 {
+#ifdef DEBUG_VM86
     vlog(LogCPU, "Interrupt from VM86 mode -> %04x:%08x", gate.selector(), offset);
+#endif
 
     DWORD originalFlags = getEFlags();
     WORD originalSS = getSS();
@@ -564,7 +568,9 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
 
 void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, DWORD flags)
 {
+#ifdef DEBUG_VM86
     vlog(LogCPU, "IRET (o%u) to VM86 mode -> %04x:%04x", o16() ? 16 : 32, entry.selector(), entry.offset());
+#endif
     if (!o32()) {
         vlog(LogCPU, "Hmm, o16 IRET to VM86!?");
         ASSERT_NOT_REACHED();
