@@ -82,20 +82,21 @@ struct VGA::Private
         bool input_output_address_select;
     } misc_output;
 
+    struct {
+        BYTE data_read_index;
+        BYTE data_read_subindex;
+        BYTE data_write_index;
+        BYTE data_write_subindex;
+        RGBColor color[256];
+        BYTE mask;
+    } dac;
+
     BYTE columns;
     BYTE rows;
-
-    BYTE dac_data_read_index;
-    BYTE dac_data_read_subindex;
-    BYTE dac_data_write_index;
-    BYTE dac_data_write_subindex;
-    BYTE dac_mask;
 
     bool vga_enabled;
 
     bool paletteDirty { true };
-
-    RGBColor colorRegister[256];
 
     bool write_protect;
 
@@ -187,11 +188,11 @@ void VGA::reset()
 
     d->crtc.reg[0x13] = 80;
 
-    d->dac_data_read_index = 0;
-    d->dac_data_read_subindex = 0;
-    d->dac_data_write_index = 0;
-    d->dac_data_write_subindex = 0;
-    d->dac_mask = 0xff;
+    d->dac.data_read_index = 0;
+    d->dac.data_read_subindex = 0;
+    d->dac.data_write_index = 0;
+    d->dac.data_write_subindex = 0;
+    d->dac.mask = 0xff;
     d->vga_enabled = true;
 
     d->misc_output.vertical_sync_polarity = 1;
@@ -213,7 +214,7 @@ void VGA::reset()
     d->attr.horizontal_pixel_panning = 0;
     d->attr.color_select = 0;
 
-    memcpy(d->colorRegister, default_vga_color_registers, sizeof(default_vga_color_registers));
+    memcpy(d->dac.color, default_vga_color_registers, sizeof(default_vga_color_registers));
 
     d->paletteDirty = true;
     d->screenInRefresh = false;
@@ -344,35 +345,35 @@ void VGA::out8(WORD port, BYTE data)
         break;
 
     case 0x3C6:
-        d->dac_mask = data;
+        d->dac.mask = data;
         break;
 
     case 0x3C7:
-        d->dac_data_read_index = data;
-        d->dac_data_read_subindex = 0;
+        d->dac.data_read_index = data;
+        d->dac.data_read_subindex = 0;
         break;
 
     case 0x3C8:
-        d->dac_data_write_index = data;
-        d->dac_data_write_subindex = 0;
+        d->dac.data_write_index = data;
+        d->dac.data_write_subindex = 0;
         break;
 
     case 0x3C9: {
         // vlog(LogVGA, "Setting component %u of color %02X to %02X", dac_data_subindex, dac_data_index, data);
-        RGBColor& color = d->colorRegister[d->dac_data_write_index];
-        switch (d->dac_data_write_subindex) {
+        RGBColor& color = d->dac.color[d->dac.data_write_index];
+        switch (d->dac.data_write_subindex) {
         case 0:
             color.red = data;
-            d->dac_data_write_subindex = 1;
+            d->dac.data_write_subindex = 1;
             break;
         case 1:
             color.green = data;
-            d->dac_data_write_subindex = 2;
+            d->dac.data_write_subindex = 2;
             break;
         case 2:
             color.blue = data;
-            d->dac_data_write_subindex = 0;
-            d->dac_data_write_index += 1;
+            d->dac.data_write_subindex = 0;
+            d->dac.data_write_index += 1;
             break;
         }
 
@@ -431,7 +432,7 @@ BYTE VGA::in8(WORD port)
         return d->vga_enabled;
 
     case 0x3C6:
-        return d->dac_mask;
+        return d->dac.mask;
 
     case 0x3B4:
         ASSERT_NOT_REACHED();
@@ -507,20 +508,20 @@ BYTE VGA::in8(WORD port)
 
     case 0x3C9: {
         BYTE data = 0;
-        RGBColor& color = d->colorRegister[d->dac_data_read_index];
-        switch (d->dac_data_read_subindex) {
+        RGBColor& color = d->dac.color[d->dac.data_read_index];
+        switch (d->dac.data_read_subindex) {
         case 0:
             data = color.red;
-            d->dac_data_read_subindex = 1;
+            d->dac.data_read_subindex = 1;
             break;
         case 1:
             data = color.green;
-            d->dac_data_read_subindex = 2;
+            d->dac.data_read_subindex = 2;
             break;
         case 2:
             data = color.blue;
-            d->dac_data_read_subindex = 0;
-            d->dac_data_read_index += 1;
+            d->dac.data_read_subindex = 0;
+            d->dac.data_read_index += 1;
             break;
         }
 
@@ -600,13 +601,13 @@ bool VGA::isPaletteDirty()
 
 QColor VGA::paletteColor(int attribute_register_index) const
 {
-    const RGBColor& c = d->colorRegister[d->attr.palette_reg[attribute_register_index]];
+    const RGBColor& c = d->dac.color[d->attr.palette_reg[attribute_register_index]];
     return c;
 }
 
 QColor VGA::color(int index) const
 {
-    const RGBColor& c = d->colorRegister[index];
+    const RGBColor& c = d->dac.color[index];
     return c;
 }
 
