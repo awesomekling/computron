@@ -47,14 +47,33 @@ struct VGA::Private
     BYTE* plane[4];
     BYTE latch[4];
 
-    BYTE currentRegister;
-    BYTE graphicsControllerAddressRegister;
-    BYTE currentSequencer;
-    BYTE ioRegister[0x20];
-    BYTE graphics_register[9];
-    BYTE ioSequencer[0x20];
-    BYTE attribute_register_index { 0 };
-    bool paletteSource { false };
+    struct {
+        BYTE reg_index;
+        BYTE reg[0x19];
+    } crtc;
+
+    struct {
+        bool next_3c0_is_index;
+        bool palette_address_source { false };
+        BYTE reg_index;
+        BYTE palette_reg[0x10];
+        BYTE mode_control;
+        BYTE overscan_color;
+        BYTE color_plane_enable;
+        BYTE horizontal_pixel_panning;
+        BYTE color_select;
+    } attr;
+
+    struct {
+        BYTE reg_index;
+        BYTE reg[5];
+    } sequencer;
+
+    struct {
+        BYTE reg_index;
+        BYTE reg[9];
+    } graphics_ctrl;
+
     BYTE columns;
     BYTE rows;
 
@@ -66,17 +85,9 @@ struct VGA::Private
 
     bool vga_enabled;
 
-    bool next3C0IsIndex;
     bool paletteDirty { true };
 
-    BYTE palette_register[0x10];
     RGBColor colorRegister[256];
-
-    BYTE attribute_mode_control;
-    BYTE overscan_color;
-    BYTE color_plane_enable;
-    BYTE horizontal_pixel_panning;
-    BYTE color_select;
 
     bool write_protect;
 
@@ -152,21 +163,22 @@ void VGA::reset()
     d->columns = 80;
     d->rows = 0;
 
-    d->currentRegister = 0;
-    d->graphicsControllerAddressRegister = 0;
-    d->currentSequencer = 0;
+    d->crtc.reg_index = 0;
+    d->graphics_ctrl.reg_index = 0;
+    d->sequencer.reg_index = 0;
+    d->attr.reg_index = 0;
 
-    memset(d->ioRegister, 0, sizeof(d->ioRegister));
-    memset(d->graphics_register, 0, sizeof(d->graphics_register));
-    memset(d->ioSequencer, 0, sizeof(d->ioSequencer));
+    memset(d->crtc.reg, 0, sizeof(d->crtc.reg));
+    memset(d->graphics_ctrl.reg, 0, sizeof(d->graphics_ctrl.reg));
+    memset(d->sequencer.reg, 0, sizeof(d->sequencer.reg));
 
-    d->ioSequencer[2] = 0x0F;
+    d->sequencer.reg[2] = 0x0F;
 
     // Start with graphics mode bitmask 0xFF by default.
     // FIXME: This kind of stuff should be done by a VGA BIOS..
-    d->graphics_register[0x8] = 0xff;
+    d->graphics_ctrl.reg[0x8] = 0xff;
 
-    d->ioRegister[0x13] = 80;
+    d->crtc.reg[0x13] = 80;
 
     d->dac_data_read_index = 0;
     d->dac_data_read_subindex = 0;
@@ -176,18 +188,19 @@ void VGA::reset()
     d->vga_enabled = true;
 
     for (int i = 0; i < 16; ++i)
-        d->palette_register[i] = i;
+        d->attr.palette_reg[i] = i;
 
+    d->attr.next_3c0_is_index = true;
+    d->attr.palette_address_source = true;
     // FIXME: Find the correct post-reset values for these registers.
-    d->attribute_mode_control = 3;
-    d->overscan_color = 0;
-    d->color_plane_enable = 0;
-    d->horizontal_pixel_panning = 0;
-    d->color_select = 0;
+    d->attr.mode_control = 3;
+    d->attr.overscan_color = 0;
+    d->attr.color_plane_enable = 0;
+    d->attr.horizontal_pixel_panning = 0;
+    d->attr.color_select = 0;
 
     memcpy(d->colorRegister, default_vga_color_registers, sizeof(default_vga_color_registers));
 
-    d->next3C0IsIndex = true;
     d->paletteDirty = true;
     d->screenInRefresh = false;
     d->statusRegister = 0;
@@ -220,34 +233,34 @@ void VGA::out8(WORD port, BYTE data)
     switch (port) {
     case 0x3B4:
     case 0x3D4:
-        d->currentRegister = data & 0x3f;
-        if (d->currentRegister > 0x18)
-            vlog(LogVGA, "Invalid I/O register 0x%02X selected through port %03X", d->currentRegister, port);
+        d->crtc.reg_index = data & 0x3f;
+        if (d->crtc.reg_index > 0x18)
+            vlog(LogVGA, "Invalid I/O register 0x%02X selected through port %03X", d->crtc.reg_index, port);
         else if (options.vgadebug)
-            vlog(LogVGA, "I/O register 0x%02X selected through port %03X", d->currentRegister, port);
+            vlog(LogVGA, "I/O register 0x%02X selected through port %03X", d->crtc.reg_index, port);
         break;
 
     case 0x3B5:
     case 0x3D5:
-        if (d->currentRegister > 0x18) {
-            vlog(LogVGA, "Invalid I/O register 0x%02X written (%02X) through port %03X", d->currentRegister, data, port);
+        if (d->crtc.reg_index > 0x18) {
+            vlog(LogVGA, "Invalid I/O register 0x%02X written (%02X) through port %03X", d->crtc.reg_index, data, port);
             ASSERT_NOT_REACHED();
             break;
         }
         if (options.vgadebug)
-            vlog(LogVGA, "I/O register 0x%02X written (%02X) through port %03X", d->currentRegister, data, port);
-        if (d->write_protect && d->currentRegister < 8) {
-            if (d->currentRegister == 7) {
-                d->ioRegister[d->currentRegister] &= ~0x10;
-                d->ioRegister[d->currentRegister] |= data & 0x10;
+            vlog(LogVGA, "I/O register 0x%02X written (%02X) through port %03X", d->crtc.reg_index, data, port);
+        if (d->write_protect && d->crtc.reg_index < 8) {
+            if (d->crtc.reg_index == 7) {
+                d->crtc.reg[d->crtc.reg_index] &= ~0x10;
+                d->crtc.reg[d->crtc.reg_index] |= data & 0x10;
             }
         }
-        if (d->currentRegister == 0x11) {
+        if (d->crtc.reg_index == 0x11) {
             d->write_protect = data & 0x80;
             vlog(LogVGA, "write_protect <- %u", d->write_protect);
             //ASSERT_NOT_REACHED();
         }
-        d->ioRegister[d->currentRegister] = data;
+        d->crtc.reg[d->crtc.reg_index] = data;
         break;
 
     case 0x3BA:
@@ -261,36 +274,36 @@ void VGA::out8(WORD port, BYTE data)
         break;
 
     case 0x3C0: {
-        if (d->next3C0IsIndex) {
-            d->attribute_register_index = (data & 0x1f);
-            d->paletteSource = (data & 0x20);
+        if (d->attr.next_3c0_is_index) {
+            d->attr.reg_index = data & 0x1f;
+            d->attr.palette_address_source = data & 0x20;
         } else {
-            if (d->attribute_register_index < 0x10) {
-                d->palette_register[d->attribute_register_index] = data;
+            if (d->attr.reg_index < 0x10) {
+                d->attr.palette_reg[d->attr.reg_index] = data;
             } else {
-                switch (d->attribute_register_index) {
+                switch (d->attr.reg_index) {
                 case 0x10:
-                    d->attribute_mode_control = data;
+                    d->attr.mode_control = data;
                     break;
                 case 0x11:
-                    d->overscan_color = data & 0x3f;
+                    d->attr.overscan_color = data & 0x3f;
                     break;
                 case 0x12:
-                    d->color_plane_enable = data;
+                    d->attr.color_plane_enable = data;
                     break;
                 case 0x13:
-                    d->horizontal_pixel_panning = data & 0xf;
+                    d->attr.horizontal_pixel_panning = data & 0xf;
                     break;
                 case 0x14:
-                    d->color_select = data & 0xf;
+                    d->attr.color_select = data & 0xf;
                     break;
                 default:
-                    vlog(LogVGA, "3c0 unhandled write to attribute register %02x", d->attribute_register_index);
+                    vlog(LogVGA, "3c0 unhandled write to attribute register %02x", d->attr.reg_index);
                     break;
                 }
             }
         }
-        d->next3C0IsIndex = !d->next3C0IsIndex;
+        d->attr.next_3c0_is_index = !d->attr.next_3c0_is_index;
         break;
     }
 
@@ -299,17 +312,17 @@ void VGA::out8(WORD port, BYTE data)
         break;
 
     case 0x3C4:
-        d->currentSequencer = data & 0x1F;
-        if (d->currentSequencer > 0x4 && d->currentSequencer != 0x6)
-            vlog(LogVGA, "Invalid VGA sequencer register #%u selected", d->currentSequencer);
+        d->sequencer.reg_index = data & 0x1F;
+        if (d->sequencer.reg_index > 0x4 && d->sequencer.reg_index != 0x6)
+            vlog(LogVGA, "Invalid VGA sequencer register #%u selected", d->sequencer.reg_index);
         break;
 
     case 0x3C5:
-        if (d->currentSequencer > 0x4) {
-            vlog(LogVGA, "Invalid VGA sequencer register #%u written (data: %02x)", d->currentSequencer, data);
+        if (d->sequencer.reg_index > 0x4) {
+            vlog(LogVGA, "Invalid VGA sequencer register #%u written (data: %02x)", d->sequencer.reg_index, data);
             break;
         }
-        d->ioSequencer[d->currentSequencer] = data;
+        d->sequencer.reg[d->sequencer.reg_index] = data;
         break;
 
     case 0x3C6:
@@ -354,15 +367,15 @@ void VGA::out8(WORD port, BYTE data)
             vlog(LogVGA, "Selecting invalid graphics register %u", data);
             //ASSERT_NOT_REACHED();
         }
-        d->graphicsControllerAddressRegister = data;
+        d->graphics_ctrl.reg_index = data;
         break;
 
     case 0x3cf:
-        if (d->graphicsControllerAddressRegister > 8) {
-            vlog(LogVGA, "Write to invalid graphics register %u <- %02x", d->graphicsControllerAddressRegister, data);
+        if (d->graphics_ctrl.reg_index > 8) {
+            vlog(LogVGA, "Write to invalid graphics register %u <- %02x", d->graphics_ctrl.reg_index, data);
             break;
         }
-        d->graphics_register[d->graphicsControllerAddressRegister] = data;
+        d->graphics_ctrl.reg[d->graphics_ctrl.reg_index] = data;
         break;
 
     default:
@@ -387,9 +400,8 @@ BYTE VGA::in8(WORD port)
 {
     switch (port) {
     case 0x3C0:
-        if (d->next3C0IsIndex) {
-            return d->attribute_register_index | (d->paletteSource * 0x20);
-        }
+        if (d->attr.next_3c0_is_index)
+            return d->attr.reg_index | (d->attr.palette_address_source * 0x20);
         vlog(LogVGA, "Port 3c0 read in unexpected mode!");
         return 0;
 
@@ -408,17 +420,17 @@ BYTE VGA::in8(WORD port)
         return 0;
 
     case 0x3D4:
-        return d->currentRegister;
+        return d->crtc.reg_index;
 
     case 0x3B5:
     case 0x3D5:
-        if (d->currentRegister > 0x18) {
-            vlog(LogVGA, "Invalid I/O register 0x%02X read through port %03X", d->currentRegister, port);
+        if (d->crtc.reg_index > 0x18) {
+            vlog(LogVGA, "Invalid I/O register 0x%02X read through port %03X", d->crtc.reg_index, port);
             return IODevice::JunkValue;
         }
         if (options.vgadebug)
-            vlog(LogVGA, "I/O register 0x%02X read through port %03X", d->currentRegister, port);
-        return d->ioRegister[d->currentRegister];
+            vlog(LogVGA, "I/O register 0x%02X read through port %03X", d->crtc.reg_index, port);
+        return d->crtc.reg[d->crtc.reg_index];
 
     case 0x3BA:
     case 0x3DA: {
@@ -435,45 +447,45 @@ BYTE VGA::in8(WORD port)
         d->statusRegister ^= 0x01;
         d->statusRegister &= 0x01;
 
-        d->next3C0IsIndex = true;
+        d->attr.next_3c0_is_index = true;
         return value;
     }
 
     case 0x3C1:
-        //vlog(LogVGA, "Read PALETTE[%u] (=%02X)", d->attribute_register_index, d->palette_register[d->paletteIndex]);
-        if (d->attribute_register_index < 0x10)
-            return d->palette_register[d->attribute_register_index];
-        switch (d->attribute_register_index) {
+        //vlog(LogVGA, "Read PALETTE[%u] (=%02X)", d->attr.reg_index, d->attr.palette_reg[d->paletteIndex]);
+        if (d->attr.reg_index < 0x10)
+            return d->attr.palette_reg[d->attr.reg_index];
+        switch (d->attr.reg_index) {
         case 0x10:
-            return d->attribute_mode_control;
+            return d->attr.mode_control;
         case 0x11:
-            return d->overscan_color;
+            return d->attr.overscan_color;
         case 0x12:
-            return d->color_plane_enable;
+            return d->attr.color_plane_enable;
         case 0x13:
-            return d->horizontal_pixel_panning;
+            return d->attr.horizontal_pixel_panning;
         case 0x14:
-            return d->color_select;
+            return d->attr.color_select;
         default:
-            vlog(LogVGA, "3c1 unhandled read from attribute register %02x", d->attribute_register_index);
+            vlog(LogVGA, "3c1 unhandled read from attribute register %02x", d->attr.reg_index);
             return 0;
         }
 
     case 0x3C4:
-        return d->currentSequencer;
+        return d->sequencer.reg_index;
 
     case 0x3C5:
-        if (d->currentSequencer == 0x6) {
+        if (d->sequencer.reg_index == 0x6) {
             // FIXME: What is this thing? Windows 3.0 sets this to 0x12 so I'll leave it like that for now..
             vlog(LogVGA, "Weird VGA sequencer register 6 read");
             return 0x12;
         }
-        if (d->currentSequencer > 0x4) {
-            vlog(LogVGA, "Invalid VGA sequencer register #%u read", d->currentSequencer);
+        if (d->sequencer.reg_index > 0x4) {
+            vlog(LogVGA, "Invalid VGA sequencer register #%u read", d->sequencer.reg_index);
             return IODevice::JunkValue;
         }
-        //vlog(LogVGA, "Reading sequencer register %u, data is %02X", d->currentSequencer, d->ioSequencer[d->currentSequencer]);
-        return d->ioSequencer[d->currentSequencer];
+        //vlog(LogVGA, "Reading sequencer register %u, data is %02X", d->sequencer.reg_index, d->sequencer.reg[d->sequencer.reg_index]);
+        return d->sequencer.reg[d->sequencer.reg_index];
 
     case 0x3C9: {
         BYTE data = 0;
@@ -500,7 +512,7 @@ BYTE VGA::in8(WORD port)
 
     case 0x3CA:
         vlog(LogVGA, "Reading FCR");
-        d->next3C0IsIndex = true;
+        d->attr.next_3c0_is_index = true;
         return 0x00;
 
     case 0x3CC:
@@ -508,14 +520,14 @@ BYTE VGA::in8(WORD port)
         return d->miscellaneousOutputRegister;
 
     case 0x3ce:
-        return d->graphicsControllerAddressRegister;
+        return d->graphics_ctrl.reg_index;
 
     case 0x3cf:
-        if (d->graphicsControllerAddressRegister > 8) {
-            vlog(LogVGA, "Read from invalid graphics register %u", d->graphicsControllerAddressRegister);
+        if (d->graphics_ctrl.reg_index > 8) {
+            vlog(LogVGA, "Read from invalid graphics register %u", d->graphics_ctrl.reg_index);
             return 0;
         }
-        return d->graphics_register[d->graphicsControllerAddressRegister];
+        return d->graphics_ctrl.reg[d->graphics_ctrl.reg_index];
 
     default:
         vlog(LogVGA, "Unhandled VGA read from %04x", port);
@@ -527,26 +539,26 @@ BYTE VGA::in8(WORD port)
 BYTE VGA::readRegister(BYTE index) const
 {
     ASSERT(index <= 0x18);
-    return d->ioRegister[index];
+    return d->crtc.reg[index];
 }
 
 BYTE VGA::readRegister2(BYTE index) const
 {
     // FIXME: Check if 12 is the correct limit here.
     ASSERT(index < 0x12);
-    return d->graphics_register[index];
+    return d->graphics_ctrl.reg[index];
 }
 
 BYTE VGA::readSequencer(BYTE index) const
 {
     ASSERT(index < 0x5);
-    return d->ioSequencer[index];
+    return d->sequencer.reg[index];
 }
 
 void VGA::writeRegister(BYTE index, BYTE value)
 {
     ASSERT(index < 0x12);
-    d->ioRegister[index] = value;
+    d->crtc.reg[index] = value;
 }
 
 void VGA::setPaletteDirty(bool dirty)
@@ -564,7 +576,7 @@ bool VGA::isPaletteDirty()
 
 QColor VGA::paletteColor(int attribute_register_index) const
 {
-    const RGBColor& c = d->colorRegister[d->palette_register[attribute_register_index]];
+    const RGBColor& c = d->colorRegister[d->attr.palette_reg[attribute_register_index]];
     return c;
 }
 
@@ -576,7 +588,7 @@ QColor VGA::color(int index) const
 
 WORD VGA::startAddress() const
 {
-    return weld<WORD>(d->ioRegister[0x0C], d->ioRegister[0x0D]);
+    return weld<WORD>(d->crtc.reg[0x0C], d->crtc.reg[0x0D]);
 }
 
 BYTE VGA::currentVideoMode() const
@@ -588,7 +600,7 @@ BYTE VGA::currentVideoMode() const
 
 bool VGA::inChain4Mode() const
 {
-    return d->ioSequencer[0x4] & 0x8;
+    return d->sequencer.reg[0x4] & 0x8;
 }
 
 #define WRITE_MODE (machine().vga().readRegister2(5) & 0x03)
