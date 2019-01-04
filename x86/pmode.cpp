@@ -338,7 +338,9 @@ Exception CPU::GeneralProtectionFault(WORD code, const QString& reason)
     bool TI = code & 4;
     bool I = code & 2;
     bool EX = code & 1;
-    vlog(LogCPU, "Exception: #GP(%04x) selector=%04X, TI=%u, I=%u, EX=%u :: %s", code, selector, TI, I, EX, qPrintable(reason));
+
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #GP(%04x) selector=%04X, TI=%u, I=%u, EX=%u :: %s", code, selector, TI, I, EX, qPrintable(reason));
     if (options.crashOnGPF) {
         dumpAll();
         vlog(LogAlert, "CRASH ON GPF");
@@ -349,37 +351,43 @@ Exception CPU::GeneralProtectionFault(WORD code, const QString& reason)
 
 Exception CPU::StackFault(WORD selector, const QString& reason)
 {
-    vlog(LogCPU, "Exception: #SS(%04x) :: %s", selector, qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #SS(%04x) :: %s", selector, qPrintable(reason));
     return Exception(0xc, selector, reason);
 }
 
 Exception CPU::NotPresent(WORD selector, const QString& reason)
 {
-    vlog(LogCPU, "Exception: #NP(%04x) :: %s", selector, qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #NP(%04x) :: %s", selector, qPrintable(reason));
     return Exception(0xb, selector, reason);
 }
 
 Exception CPU::InvalidOpcode(const QString& reason)
 {
-    vlog(LogCPU, "Exception: #UD :: %s", qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #UD :: %s", qPrintable(reason));
     return Exception(0x6, reason);
 }
 
 Exception CPU::BoundRangeExceeded(const QString& reason)
 {
-    vlog(LogCPU, "Exception: #BR :: %s", qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #BR :: %s", qPrintable(reason));
     return Exception(0x5, reason);
 }
 
 Exception CPU::InvalidTSS(WORD selector, const QString& reason)
 {
-    vlog(LogCPU, "Exception: #TS(%04x) :: %s", selector, qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #TS(%04x) :: %s", selector, qPrintable(reason));
     return Exception(0xa, selector, reason);
 }
 
 Exception CPU::DivideError(const QString& reason)
 {
-    vlog(LogCPU, "Exception: #DE :: %s", qPrintable(reason));
+    if (options.log_exceptions)
+        vlog(LogCPU, "Exception: #DE :: %s", qPrintable(reason));
     return Exception(0x0, reason);
 }
 

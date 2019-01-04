@@ -361,7 +361,8 @@ FLATTEN void CPU::executeOneInstruction()
         InstructionExecutionContext context(*this);
         decodeNext();
     } catch(Exception e) {
-        dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), m_baseEIP, 3);
+        if (options.log_exceptions)
+            dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), m_baseEIP, 3);
         raiseException(e);
     } catch(HardwareInterruptDuringREP) {
         setEIP(currentBaseInstructionPointer());
@@ -1147,17 +1148,19 @@ static WORD makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType a
 Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode, const char* faultTable, DWORD pde, DWORD pte)
 {
     WORD error = makePFErrorCode(flags, accessType, inUserMode);
-    vlog(LogCPU, "Exception: #PF(%04x) %s in %s for %s %s @%08x, PDBR=%08x, PDE=%08x, PTE=%08x",
-         error,
-         (flags & PageFaultFlags::ProtectionViolation) ? "PV" : "NP",
-         faultTable,
-         inUserMode ? "User" : "Supervisor",
-         toString(accessType),
-         linearAddress.get(),
-         getCR3(),
-         pde,
-         pte
-    );
+    if (options.log_exceptions) {
+        vlog(LogCPU, "Exception: #PF(%04x) %s in %s for %s %s @%08x, PDBR=%08x, PDE=%08x, PTE=%08x",
+            error,
+            (flags & PageFaultFlags::ProtectionViolation) ? "PV" : "NP",
+            faultTable,
+            inUserMode ? "User" : "Supervisor",
+            toString(accessType),
+            linearAddress.get(),
+            getCR3(),
+            pde,
+            pte
+        );
+    }
     m_CR2 = linearAddress.get();
     if (options.crashOnPF) {
         dumpAll();

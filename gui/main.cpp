@@ -138,6 +138,8 @@ void parseArguments(const QStringList& arguments)
             options.start_in_debug = true;
         else if (argument == "--no-vlog")
             options.novlog = true;
+        else if (argument == "--no-log-exceptions")
+            options.log_exceptions = false;
         else if (argument == "--config") {
             ++it;
             if (it == arguments.end()) {

@@ -68,6 +68,7 @@ struct RuntimeOptions {
 #ifdef DEBUG_SERENITY
     bool serenity { false };
 #endif
+    bool log_exceptions { true };
 };
 
 extern RuntimeOptions options;
