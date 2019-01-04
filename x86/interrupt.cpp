@@ -198,7 +198,7 @@ void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
 }
 
 #ifdef DEBUG_SERENITY
-#include "../Serenity/Kernel/Syscall.h"
+#include "../serenity/Kernel/Syscall.h"
 
 static void logSerenitySyscall(CPU& cpu)
 {
@@ -214,7 +214,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
     ASSERT(getPE());
 
 #if DEBUG_SERENITY
-    bool logAsSyscall = options.serenity && isr == 0x80;
+    bool logAsSyscall = options.trapint && options.serenity && isr == 0x80;
 
     if (logAsSyscall)
         logSerenitySyscall(*this);
