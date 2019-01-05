@@ -48,6 +48,8 @@ struct VGA::Private
     struct {
         BYTE reg_index;
         BYTE reg[0x19];
+        WORD vertical_display_end;
+        BYTE maximum_scanline;
     } crtc;
 
     struct {
@@ -71,6 +73,7 @@ struct VGA::Private
         BYTE reg_index;
         BYTE reg[9];
         BYTE memory_map_select;
+        bool alphanumeric_mode_disable;
     } graphics_ctrl;
 
     struct {
@@ -162,9 +165,12 @@ void VGA::reset()
     memset(d->sequencer.reg, 0, sizeof(d->sequencer.reg));
 
     d->graphics_ctrl.memory_map_select = 2;
+    d->graphics_ctrl.alphanumeric_mode_disable = false;
 
     d->sequencer.reg[2] = 0x0F;
 
+    d->crtc.vertical_display_end = 399;
+    d->crtc.maximum_scanline = 0;
     d->crtc.reg[0x13] = 80;
 
     d->dac.data_read_index = 0;
@@ -251,6 +257,21 @@ void VGA::out8(WORD port, BYTE data)
             d->write_protect = data & 0x80;
             vlog(LogVGA, "write_protect <- %u", d->write_protect);
             //ASSERT_NOT_REACHED();
+        }
+        if (d->crtc.reg_index == 0x09)
+            d->crtc.maximum_scanline = data & 0x1f;
+        if (d->crtc.reg_index == 0x12) {
+            d->crtc.vertical_display_end &= 0x300;
+            d->crtc.vertical_display_end |= data;
+            vlog(LogVGA, "vertical_display_end = %u", d->crtc.vertical_display_end);
+        }
+        if (d->crtc.reg_index == 0x07) {
+            d->crtc.vertical_display_end &= 0xff;
+            if (data & 0x02)
+                d->crtc.vertical_display_end |= 0x100;
+            if (data & 0x40)
+                d->crtc.vertical_display_end |= 0x200;
+            vlog(LogVGA, "vertical_display_end = %u", d->crtc.vertical_display_end);
         }
         d->crtc.reg[d->crtc.reg_index] = data;
         break;
@@ -374,9 +395,11 @@ void VGA::out8(WORD port, BYTE data)
             break;
         }
         d->graphics_ctrl.reg[d->graphics_ctrl.reg_index] = data;
-        if (d->graphics_ctrl.reg_index == 0x6) {
+        if (d->graphics_ctrl.reg_index == 6) {
             d->graphics_ctrl.memory_map_select = (data >> 2) & 3;
+            d->graphics_ctrl.alphanumeric_mode_disable = data & 1;
             vlog(LogVGA, "Memory map select: %u", d->graphics_ctrl.memory_map_select);
+            vlog(LogVGA, "Alphanumeric mode disable: %u", d->graphics_ctrl.alphanumeric_mode_disable);
         }
         break;
 
@@ -849,4 +872,11 @@ void VGA::synchronizeColors()
         d->color[i] = paletteColor(i);
         d->brush[i] = QBrush(d->color[i]);
     }
+}
+
+void VGA::dump()
+{
+    vlog(LogVGA, "current video mode: %u", currentVideoMode());
+    vlog(LogVGA, "alphanumeric_mode_disable: %u", d->graphics_ctrl.alphanumeric_mode_disable);
+    vlog(LogVGA, "maximum_scanline: %u", d->crtc.maximum_scanline);
 }

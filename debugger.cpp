@@ -29,6 +29,7 @@
 #include "pic.h"
 #include "machine.h"
 #include "pic.h"
+#include "vga.h"
 #include <QDebug>
 #include <QStringBuilder>
 #include <QStringList>
@@ -194,6 +195,31 @@ void Debugger::handleCommand(const QString& rawCommand)
         return;
     }
 
+    if (lowerCommand == "stz") {
+        vlog(LogDump, "ZF <- 1");
+        cpu().setZF(1);
+        return;
+    }
+
+    if (lowerCommand == "clz") {
+        vlog(LogDump, "ZF <- 0");
+        cpu().setZF(0);
+        return;
+    }
+
+    if (lowerCommand == "stc") {
+        vlog(LogDump, "CF <- 1");
+        cpu().setCF(1);
+        return;
+    }
+
+    if (lowerCommand == "clc") {
+        vlog(LogDump, "CF <- 0");
+        cpu().setCF(0);
+        return;
+    }
+
+
     if (lowerCommand == "unhlt") {
         cpu().setState(CPU::Alive);
         return;
@@ -221,6 +247,11 @@ void Debugger::handleCommand(const QString& rawCommand)
 
     if (lowerCommand == "sloff") {
         options.stacklog = false;
+        return;
+    }
+
+    if (lowerCommand == "vga") {
+        cpu().machine().vga().dump();
         return;
     }
 

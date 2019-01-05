@@ -70,6 +70,8 @@ public:
 
     bool inChain4Mode() const;
 
+    void dump();
+
 signals:
     void paletteChanged();
 
