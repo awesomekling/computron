@@ -292,8 +292,8 @@ usage:
 
 void Debugger::handleBreakpoint(const QStringList& arguments)
 {
-    if (arguments.size() != 3) {
-        printf("usage: b <add|del> <segment> <offset>\n");
+    if (arguments.size() < 2) {
+        printf("usage: b <add|del> [segment] <offset>\n");
         if (!cpu().breakpoints().empty()) {
             printf("\nCurrent breakpoints:\n");
             for (auto& breakpoint : cpu().breakpoints()) {
@@ -303,8 +303,32 @@ void Debugger::handleBreakpoint(const QStringList& arguments)
         }
         return;
     }
-    WORD selector = arguments.at(1).toUInt(0, 16);
-    DWORD offset = arguments.at(2).toUInt(0, 16);
+    WORD selector;
+    int offset_index;
+    if (arguments.size() == 3) {
+        selector = arguments.at(1).toUInt(0, 16);
+        offset_index = 2;
+    } else {
+        selector = cpu().getCS();
+        offset_index = 1;
+    }
+    bool ok;
+    DWORD offset = arguments.at(offset_index).toUInt(&ok, 16);
+
+    if (!ok) {
+#ifdef SYMBOLIC_TRACING
+        auto it = cpu().m_symbols_reverse.find(arguments.at(offset_index));
+        if (it != cpu().m_symbols_reverse.end()) {
+            offset = *it;
+        } else {
+#endif
+            printf("invalid breakpoint '%s'\n", qPrintable(arguments.at(offset_index)));
+            return;
+#ifdef SYMBOLIC_TRACING
+        }
+#endif
+    }
+
     LogicalAddress address(selector, offset);
     if (arguments[0] == "add") {
         printf("add breakpoint: %04x:%08x\n", selector, offset);

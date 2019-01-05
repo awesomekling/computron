@@ -214,6 +214,19 @@ void CPU::setMemorySizeAndReallocateIfNeeded(DWORD size)
 CPU::CPU(Machine& m)
     : m_machine(m)
 {
+#ifdef SYMBOLIC_TRACING
+    {
+        QFile file("win311.sym");
+        file.open(QIODevice::ReadOnly);
+        static QRegExp whitespaceRegExp("\\s");
+        while (!file.atEnd()) {
+            auto line = QString::fromLocal8Bit(file.readLine());
+            auto parts = line.split(whitespaceRegExp, QString::SkipEmptyParts);
+            m_symbols.insert(parts[0].toUInt(nullptr, 16), parts.last());
+            m_symbols_reverse.insert(parts.last(), parts[0].toUInt(nullptr, 16));
+        }
+    }
+#endif
     m_isForAutotest = machine().isForAutotest();
 
     buildOpcodeTablesIfNeeded();
@@ -359,6 +372,12 @@ FLATTEN void CPU::executeOneInstruction()
 {
     try {
         InstructionExecutionContext context(*this);
+#ifdef SYMBOLIC_TRACING
+        auto it = m_symbols.find(getEIP());
+        if (it != m_symbols.end()) {
+            vlog(LogCPU, "\033[34;1m%s\033[0m", qPrintable(*it));
+        }
+#endif
         decodeNext();
     } catch(Exception e) {
         if (options.log_exceptions)

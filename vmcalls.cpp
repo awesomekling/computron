@@ -47,6 +47,8 @@ void bios_disk_call(CPU&, DiskCallFunction);
 static void vm_handleE6(CPU& cpu);
 
 void vm_call8(CPU& cpu, WORD port, BYTE data) {
+    if (cpu.getPE() && !cpu.getVM())
+        return;
     switch (port) {
     case 0xE0:
         vlog(LogAlert, "Interrupt %02X, function %04X requested", cpu.getBL(), cpu.getAX());

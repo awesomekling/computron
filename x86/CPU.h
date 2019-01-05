@@ -1120,6 +1120,14 @@ protected:
     void _ADC_RM32_reg32(Instruction&);
     void _SUB_RM32_reg32(Instruction&);
 
+    template<typename op, typename T> void _BTx_RM_reg(Instruction&);
+    template<typename op, typename T> void _BTx_RM_imm8(Instruction&);
+
+    template<typename op> void _BTx_RM32_reg32(Instruction&);
+    template<typename op> void _BTx_RM16_reg16(Instruction&);
+    template<typename op> void _BTx_RM32_imm8(Instruction&);
+    template<typename op> void _BTx_RM16_imm8(Instruction&);
+
     void _BT_RM16_imm8(Instruction&);
     void _BT_RM32_imm8(Instruction&);
     void _BT_RM16_reg16(Instruction&);
@@ -1325,10 +1333,6 @@ private:
     template<typename T> T doOR(T, T);
     template<typename T> T doAND(T, T);
 
-    template<typename T> T doBT(T, int bitIndex);
-    template<typename T> T doBTR(T, int bitIndex);
-    template<typename T> T doBTC(T, int bitIndex);
-    template<typename T> T doBTS(T, int bitIndex);
     template<typename T> T doBSF(T);
     template<typename T> T doBSR(T);
 
@@ -1440,6 +1444,11 @@ private:
     std::atomic<bool> m_shouldHardReboot { false };
 
     QVector<WatchedAddress> m_watches;
+
+#ifdef SYMBOLIC_TRACING
+    QHash<DWORD, QString> m_symbols;
+    QHash<QString, DWORD> m_symbols_reverse;
+#endif
 
     bool m_isForAutotest { false };
 

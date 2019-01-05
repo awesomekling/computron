@@ -253,17 +253,13 @@ void VGA::out8(WORD port, BYTE data)
                 d->crtc.reg[d->crtc.reg_index] |= data & 0x10;
             }
         }
-        if (d->crtc.reg_index == 0x11) {
+        if (d->crtc.reg_index == 0x11)
             d->write_protect = data & 0x80;
-            vlog(LogVGA, "write_protect <- %u", d->write_protect);
-            //ASSERT_NOT_REACHED();
-        }
         if (d->crtc.reg_index == 0x09)
             d->crtc.maximum_scanline = data & 0x1f;
         if (d->crtc.reg_index == 0x12) {
             d->crtc.vertical_display_end &= 0x300;
             d->crtc.vertical_display_end |= data;
-            vlog(LogVGA, "vertical_display_end = %u", d->crtc.vertical_display_end);
         }
         if (d->crtc.reg_index == 0x07) {
             d->crtc.vertical_display_end &= 0xff;
@@ -271,7 +267,6 @@ void VGA::out8(WORD port, BYTE data)
                 d->crtc.vertical_display_end |= 0x100;
             if (data & 0x40)
                 d->crtc.vertical_display_end |= 0x200;
-            vlog(LogVGA, "vertical_display_end = %u", d->crtc.vertical_display_end);
         }
         d->crtc.reg[d->crtc.reg_index] = data;
         break;
@@ -398,8 +393,8 @@ void VGA::out8(WORD port, BYTE data)
         if (d->graphics_ctrl.reg_index == 6) {
             d->graphics_ctrl.memory_map_select = (data >> 2) & 3;
             d->graphics_ctrl.alphanumeric_mode_disable = data & 1;
-            vlog(LogVGA, "Memory map select: %u", d->graphics_ctrl.memory_map_select);
-            vlog(LogVGA, "Alphanumeric mode disable: %u", d->graphics_ctrl.alphanumeric_mode_disable);
+            //vlog(LogVGA, "Memory map select: %u", d->graphics_ctrl.memory_map_select);
+            //vlog(LogVGA, "Alphanumeric mode disable: %u", d->graphics_ctrl.alphanumeric_mode_disable);
         }
         break;
 

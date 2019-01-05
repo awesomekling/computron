@@ -28,6 +28,7 @@
 //#define LOG_FAR_JUMPS
 //#define DEBUG_TASK_SWITCH
 //#define DISASSEMBLE_EVERYTHING
+//#define SYMBOLIC_TRACING
 
 #include "types.h"
 #include <QString>

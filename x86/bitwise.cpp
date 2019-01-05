@@ -1,5 +1,5 @@
 // Computron x86 PC Emulator
-// Copyright (C) 2003-2018 Andreas Kling <awesomekling@gmail.com>
+// Copyright (C) 2003-2019 Andreas Kling <awesomekling@gmail.com>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -258,51 +258,92 @@ void CPU::_NOT_RM32(Instruction& insn)
     doNOT<DWORD>(insn);
 }
 
-DEFINE_INSTRUCTION_HANDLERS_GRP2(BT)
-DEFINE_INSTRUCTION_HANDLERS_GRP2(BTR)
-DEFINE_INSTRUCTION_HANDLERS_GRP2(BTC)
-DEFINE_INSTRUCTION_HANDLERS_GRP2(BTS)
+struct op_BT { static DWORD op(DWORD original, DWORD) { return original; } };
+struct op_BTS { static DWORD op(DWORD original, DWORD bit_mask) { return original | bit_mask; } };
+struct op_BTR { static DWORD op(DWORD original, DWORD bit_mask) { return original & ~bit_mask; } };
+struct op_BTC { static DWORD op(DWORD original, DWORD bit_mask) { return original ^ bit_mask; } };
 
-template<typename T>
-T CPU::doBT(T src, int bitIndex)
+template<typename BTx_Op, typename T>
+void CPU::_BTx_RM_imm8(Instruction& insn)
 {
-    bitIndex &= TypeTrivia<T>::bits - 1;
-    setCF((src >> bitIndex) & 1);
-    return src;
+    auto& modrm = insn.modrm();
+    unsigned bit_index = insn.imm8() & (TypeTrivia<T>::bits - 1);
+    T original = modrm.read<T>();
+    T bit_mask = 1 << bit_index;
+    T result = BTx_Op::op(original, bit_mask);
+    setCF((original & bit_mask) != 0);
+    modrm.write(result);
 }
 
-template<typename T>
-T CPU::doBTR(T dest, int bitIndex)
+template<typename BTx_Op>
+void CPU::_BTx_RM32_imm8(Instruction& insn)
 {
-    bitIndex &= TypeTrivia<T>::bits - 1;
-    T bitMask = 1 << bitIndex;
-    T result = dest & ~bitMask;
-    setCF((dest & bitMask) != 0);
-    return result;
+    _BTx_RM_imm8<BTx_Op, DWORD>(insn);
 }
 
-template<typename T>
-T CPU::doBTS(T dest, int bitIndex)
+template<typename BTx_Op>
+void CPU::_BTx_RM16_imm8(Instruction& insn)
 {
-    bitIndex &= TypeTrivia<T>::bits - 1;
-    T bitMask = 1 << bitIndex;
-    T result = dest | bitMask;
-    setCF((dest & bitMask) != 0);
-    return result;
+    _BTx_RM_imm8<BTx_Op, WORD>(insn);
 }
 
-template<typename T>
-T CPU::doBTC(T dest, int bitIndex)
+template<typename BTx_Op>
+void CPU::_BTx_RM32_reg32(Instruction& insn)
 {
-    bitIndex &= TypeTrivia<T>::bits - 1;
-    T bitMask = 1 << bitIndex;
-    T result;
-    if (dest & bitMask)
-        result = dest & ~bitMask;
-    else
-        result = dest | bitMask;
-    setCF((dest & bitMask) != 0);
-    return result;
+    _BTx_RM_reg<BTx_Op, DWORD>(insn);
+}
+
+template<typename BTx_Op>
+void CPU::_BTx_RM16_reg16(Instruction& insn)
+{
+    _BTx_RM_reg<BTx_Op, WORD>(insn);
+}
+
+#define DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(op) \
+    void CPU::_ ## op ## _RM32_reg32(Instruction& insn) \
+    { \
+        _BTx_RM32_reg32<op_ ## op>(insn); \
+    } \
+    void CPU::_ ## op ## _RM16_reg16(Instruction& insn) \
+    { \
+        _BTx_RM16_reg16<op_ ## op>(insn); \
+    } \
+    void CPU::_ ## op ## _RM32_imm8(Instruction& insn) \
+    { \
+        _BTx_RM32_imm8<op_ ## op>(insn); \
+    } \
+    void CPU::_ ## op ## _RM16_imm8(Instruction& insn) \
+    { \
+        _BTx_RM16_imm8<op_ ## op>(insn); \
+    }
+
+DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTS)
+DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTR)
+DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTC)
+DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BT)
+
+template<typename BTx_Op, typename T>
+void CPU::_BTx_RM_reg(Instruction& insn)
+{
+    auto& modrm = insn.modrm();
+    if (modrm.isRegister()) {
+        unsigned bit_index = insn.reg<T>() & (TypeTrivia<T>::bits - 1);
+        T original = modrm.read<T>();
+        T bit_mask = 1 << bit_index;
+        T result = BTx_Op::op(original, bit_mask);
+        setCF((original & bit_mask) != 0);
+        modrm.write<T>(result);
+        return;
+    }
+    // FIXME: Maybe this should do 32-bit r/m/w?
+    unsigned bit_offset_in_array = insn.reg<T>() / 8;
+    unsigned bit_offset_in_byte = insn.reg<T>() & 7;
+    LinearAddress laddr(modrm.offset() + bit_offset_in_array);
+    BYTE dest = readMemory8(laddr);
+    BYTE bit_mask = 1 << bit_offset_in_byte;
+    BYTE result = BTx_Op::op(dest, bit_mask);
+    setCF((dest & bit_mask) != 0);
+    writeMemory8(laddr, result);
 }
 
 template<typename T>
