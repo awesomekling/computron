@@ -258,10 +258,10 @@ void CPU::_NOT_RM32(Instruction& insn)
     doNOT<DWORD>(insn);
 }
 
-struct op_BT { static DWORD op(DWORD original, DWORD) { return original; } };
-struct op_BTS { static DWORD op(DWORD original, DWORD bit_mask) { return original | bit_mask; } };
-struct op_BTR { static DWORD op(DWORD original, DWORD bit_mask) { return original & ~bit_mask; } };
-struct op_BTC { static DWORD op(DWORD original, DWORD bit_mask) { return original ^ bit_mask; } };
+struct op_BT { static bool should_update() { return false; } static DWORD op(DWORD original, DWORD) { return original; } };
+struct op_BTS { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original | bit_mask; } };
+struct op_BTR { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original & ~bit_mask; } };
+struct op_BTC { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original ^ bit_mask; } };
 
 template<typename BTx_Op, typename T>
 void CPU::_BTx_RM_imm8(Instruction& insn)
@@ -272,7 +272,8 @@ void CPU::_BTx_RM_imm8(Instruction& insn)
     T bit_mask = 1 << bit_index;
     T result = BTx_Op::op(original, bit_mask);
     setCF((original & bit_mask) != 0);
-    modrm.write(result);
+    if (BTx_Op::should_update())
+        modrm.write(result);
 }
 
 template<typename BTx_Op>
@@ -332,7 +333,8 @@ void CPU::_BTx_RM_reg(Instruction& insn)
         T bit_mask = 1 << bit_index;
         T result = BTx_Op::op(original, bit_mask);
         setCF((original & bit_mask) != 0);
-        modrm.write<T>(result);
+        if (BTx_Op::should_update())
+            modrm.write<T>(result);
         return;
     }
     // FIXME: Maybe this should do 32-bit r/m/w?
@@ -343,7 +345,8 @@ void CPU::_BTx_RM_reg(Instruction& insn)
     BYTE bit_mask = 1 << bit_offset_in_byte;
     BYTE result = BTx_Op::op(dest, bit_mask);
     setCF((dest & bit_mask) != 0);
-    writeMemory8(laddr, result);
+    if (BTx_Op::should_update())
+        writeMemory8(laddr, result);
 }
 
 template<typename T>
