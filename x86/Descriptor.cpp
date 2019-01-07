@@ -52,7 +52,7 @@ SegmentDescriptor CPU::getRealModeOrVM86Descriptor(WORD selector, SegmentRegiste
 Descriptor CPU::getDescriptor(WORD selector)
 {
     if ((selector & 0xfffc) == 0)
-        return Descriptor();
+        return ErrorDescriptor(Descriptor::NullSelector);
 
     bool isGlobal = (selector & 0x04) == 0;
     if (isGlobal)
@@ -78,6 +78,9 @@ SegmentDescriptor CPU::getSegmentDescriptor(WORD selector)
 
 Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, WORD index, bool indexIsSelector)
 {
+    if (indexIsSelector && (index & 0xfffc) == 0)
+        return ErrorDescriptor(Descriptor::NullSelector);
+
     Descriptor descriptor;
     DWORD tableIndex;
 

@@ -40,8 +40,9 @@ class Descriptor {
     friend class CPU;
 public:
     enum Error {
-        NoError = 0,
-        LimitExceeded = 1,
+        NoError,
+        LimitExceeded,
+        NullSelector,
     };
 
     Descriptor() { }
@@ -53,6 +54,7 @@ public:
     bool isSegmentDescriptor() const { return m_DT; }
     bool isSystemDescriptor() const { return !m_DT; }
 
+    bool isNull() const { return m_error == NullSelector; }
     bool isOutsideTableLimits() const { return m_error == LimitExceeded; }
 
     unsigned DPL() const { return m_DPL; }
@@ -67,7 +69,6 @@ public:
     bool isGate() const;
     bool isTSS() const;
     bool isLDT() const;
-    bool isNull() const { return m_DT == 0 && m_type == 0; }
 
     bool isConformingCode() const;
     bool isNonconformingCode() const;
