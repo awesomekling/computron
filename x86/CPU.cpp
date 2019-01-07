@@ -1761,12 +1761,6 @@ void CPU::_CPUID(Instruction&)
     }
 }
 
-void CPU::_LOCK(Instruction&)
-{
-    //vlog(LogAlert, "LOCK");
-    //ASSERT_NOT_REACHED();
-}
-
 void CPU::initWatches()
 {
 }

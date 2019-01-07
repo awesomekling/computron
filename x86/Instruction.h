@@ -42,6 +42,7 @@ enum Op {
     REP = 0xf3,
     REPZ = 0xf3,
     REPNZ = 0xf2,
+    LOCK = 0xf0,
 };
 };
 
@@ -158,8 +159,8 @@ public:
     bool hasSegmentPrefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
     bool hasAddressSizeOverridePrefix() const { return m_hasAddressSizeOverridePrefix; }
     bool hasOperandSizeOverridePrefix() const { return m_hasOperandSizeOverridePrefix; }
+    bool hasLockPrefix() const { return m_hasLockPrefix; }
     bool hasRepPrefix() const { return m_repPrefix; }
-
     BYTE repPrefix() const { return m_repPrefix; }
 
     bool isValid() const { return m_descriptor; }
@@ -223,6 +224,7 @@ private:
     BYTE m_registerIndex { 0 };
     bool m_a32 { false };
     bool m_o32 { false };
+    bool m_hasLockPrefix { false };
 
     bool m_hasSubOp { false };
     bool m_hasRM { false };
