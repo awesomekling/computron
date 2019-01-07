@@ -277,8 +277,24 @@ public:
         // FIXME: Check SS limits as we go.
         void commit() { m_cpu.adjustStackPointer(m_offset); }
 
-        DWORD pop32() { auto data = m_cpu.readMemory32(SegmentRegisterIndex::SS, m_cpu.currentStackPointer() + m_offset); m_offset += 4; return data; }
-        WORD pop16() { auto data = m_cpu.readMemory16(SegmentRegisterIndex::SS, m_cpu.currentStackPointer() + m_offset); m_offset += 2; return data; }
+        DWORD pop32()
+        {
+            DWORD new_esp = m_cpu.currentStackPointer() + m_offset;
+            if (m_cpu.s16())
+                new_esp &= 0xffff;
+            auto data = m_cpu.readMemory32(SegmentRegisterIndex::SS, new_esp);
+            m_offset += 4;
+            return data;
+        }
+        WORD pop16()
+        {
+            DWORD new_esp = m_cpu.currentStackPointer() + m_offset;
+            if (m_cpu.s16())
+                new_esp &= 0xffff;
+            auto data = m_cpu.readMemory16(SegmentRegisterIndex::SS, new_esp);
+            m_offset += 2;
+            return data;
+        }
         DWORD popOperandSizedValue() { return m_cpu.o16() ? pop16() : pop32(); }
         void adjustStackPointer(int adjustment) { m_offset += adjustment; }
         DWORD adjustedStackPointer() const { return m_cpu.currentStackPointer() + m_offset; }

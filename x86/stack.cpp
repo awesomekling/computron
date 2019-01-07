@@ -31,7 +31,10 @@ void CPU::pushSegmentRegisterValue(WORD value)
         push16(value);
         return;
     }
-    writeMemory16(SegmentRegisterIndex::SS, currentStackPointer() - 4, value);
+    DWORD new_esp = currentStackPointer() - 4;
+    if (s16())
+        new_esp &= 0xffff;
+    writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
     adjustStackPointer(-4);
     if (UNLIKELY(options.stacklog))
         vlog(LogCPU, "push32: %04x (at esp=%08x, special 16-bit write for segment registers)", value, getESP());
@@ -39,25 +42,31 @@ void CPU::pushSegmentRegisterValue(WORD value)
 
 void CPU::push32(DWORD value)
 {
-    writeMemory32(SegmentRegisterIndex::SS, currentStackPointer() - 4, value);
+    DWORD new_esp = currentStackPointer() - 4;
+    if (s16())
+        new_esp &= 0xffff;
+    writeMemory32(SegmentRegisterIndex::SS, new_esp, value);
     adjustStackPointer(-4);
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "push32: %08x (at esp=%08x)", value, getESP());
+        vlog(LogCPU, "push32: %08x (at esp=%08x)", value, currentStackPointer());
 }
 
 void CPU::push16(WORD value)
 {
-    writeMemory16(SegmentRegisterIndex::SS, currentStackPointer() - 2, value);
+    DWORD new_esp = currentStackPointer() - 2;
+    if (s16())
+        new_esp &= 0xffff;
+    writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
     adjustStackPointer(-2);
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "push16: %04x (at esp=%08x)", value, getESP());
+        vlog(LogCPU, "push16: %04x (at esp=%08x)", value, currentStackPointer());
 }
 
 DWORD CPU::pop32()
 {
     DWORD data = readMemory32(SegmentRegisterIndex::SS, currentStackPointer());
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "pop32: %08x (from esp=%08x)", data, getESP());
+        vlog(LogCPU, "pop32: %08x (from esp=%08x)", data, currentStackPointer());
     adjustStackPointer(4);
     return data;
 }
@@ -66,7 +75,7 @@ WORD CPU::pop16()
 {
     WORD data = readMemory16(SegmentRegisterIndex::SS, currentStackPointer());
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "pop16: %04x (from esp=%08x)", data, getESP());
+        vlog(LogCPU, "pop16: %04x (from esp=%08x)", data, currentStackPointer());
     adjustStackPointer(2);
     return data;
 }
@@ -296,8 +305,12 @@ void CPU::_LEAVE32(Instruction&)
 template<typename T>
 void CPU::doPUSHA()
 {
+    DWORD new_esp = currentStackPointer() - sizeof(T) * 8;
+    if (s16())
+        new_esp &= 0xffff;
+
     snoop(SegmentRegisterIndex::SS, currentStackPointer(), MemoryAccessType::Write);
-    snoop(SegmentRegisterIndex::SS, currentStackPointer() - (sizeof(T) * 8), MemoryAccessType::Write);
+    snoop(SegmentRegisterIndex::SS, new_esp, MemoryAccessType::Write);
 
     T oldStackPointer = readRegister<T>(RegisterSP);
     push<T>(readRegister<T>(RegisterAX));
@@ -323,8 +336,12 @@ void CPU::_PUSHAD(Instruction&)
 template<typename T>
 void CPU::doPOPA()
 {
+    DWORD new_esp = currentStackPointer() + sizeof(T) * 8;
+    if (s16())
+        new_esp &= 0xffff;
+
     snoop(SegmentRegisterIndex::SS, currentStackPointer(), MemoryAccessType::Read);
-    snoop(SegmentRegisterIndex::SS, currentStackPointer() + (sizeof(T) * 8), MemoryAccessType::Read);
+    snoop(SegmentRegisterIndex::SS, new_esp, MemoryAccessType::Read);
 
     writeRegister<T>(RegisterDI, pop<T>());
     writeRegister<T>(RegisterSI, pop<T>());
