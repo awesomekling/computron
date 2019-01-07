@@ -122,6 +122,8 @@ protected:
     bool m_isGlobal { false };
     BYTE m_RPL { 0 };
     Error m_error { NoError };
+
+    bool m_loaded_in_ss { false };
 };
 
 class ErrorDescriptor : public Descriptor {

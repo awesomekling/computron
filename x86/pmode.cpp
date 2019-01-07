@@ -497,6 +497,7 @@ void CPU::writeSegmentRegister(SegmentRegisterIndex segreg, WORD selector)
         updateCodeSegmentCache();
         break;
     case SegmentRegisterIndex::SS:
+        cachedDescriptor(SegmentRegisterIndex::SS).m_loaded_in_ss = true;
         updateStackSize();
         break;
     default:

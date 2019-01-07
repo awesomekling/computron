@@ -1292,7 +1292,10 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
                  toString(accessType),
                  offset,
                  descriptor.index());
-            throw GeneralProtectionFault(0, "Access through null selector");
+            if (descriptor.m_loaded_in_ss)
+                throw StackFault(0, "Access through null selector");
+            else
+                throw GeneralProtectionFault(0, "Access through null selector");
         }
     }
 
@@ -1304,10 +1307,16 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
         break;
     case MemoryAccessType::Write:
         if (!descriptor.isData()) {
-            throw GeneralProtectionFault(0, "Attempt to write to non-data segment");
+            if (descriptor.m_loaded_in_ss)
+                throw StackFault(0, "Attempt to write to non-data segment");
+            else
+                throw GeneralProtectionFault(0, "Attempt to write to non-data segment");
         }
         if (!descriptor.asDataSegmentDescriptor().writable()) {
-            throw GeneralProtectionFault(0, "Attempt to write to non-writable data segment");
+            if (descriptor.m_loaded_in_ss)
+                throw StackFault(0, "Attempt to write to non-writable data segment");
+            else
+                throw GeneralProtectionFault(0, "Attempt to write to non-writable data segment");
         }
         break;
     case MemoryAccessType::Execute:
@@ -1340,7 +1349,10 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
         dumpDescriptor(descriptor);
         //dumpAll();
         //debugger().enter();
-        throw GeneralProtectionFault(0, "Access outside segment limit");
+        if (descriptor.m_loaded_in_ss)
+            throw StackFault(0, "Access outside segment limit");
+        else
+            throw GeneralProtectionFault(0, "Access outside segment limit");
     }
 }
 
