@@ -134,6 +134,23 @@ T CPU::doROR(T data, unsigned steps)
 }
 
 template<typename T>
+T CPU::doSHL(T data, unsigned steps)
+{
+    T result = data;
+    steps &= 0x1F;
+    if (!steps)
+        return data;
+
+    if (steps <= TypeTrivia<T>::bits) {
+        setCF(result >> (TypeTrivia<T>::bits - steps) & 1);
+    }
+    result <<= steps;
+    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ getCF());
+    updateFlags<T>(result);
+    return result;
+}
+
+template<typename T>
 T CPU::doSHR(T data, unsigned steps)
 {
     T result = data;
@@ -147,23 +164,6 @@ T CPU::doSHR(T data, unsigned steps)
     }
     result >>= steps;
 
-    updateFlags<T>(result);
-    return result;
-}
-
-template<typename T>
-T CPU::doSHL(T data, unsigned steps)
-{
-    T result = data;
-    steps &= 0x1F;
-    if (!steps)
-        return data;
-
-    if (steps <= TypeTrivia<T>::bits) {
-        setCF(result >> (TypeTrivia<T>::bits - steps) & 1);
-    }
-    result <<= steps;
-    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ getCF());
     updateFlags<T>(result);
     return result;
 }
@@ -352,8 +352,9 @@ void CPU::_BTx_RM_reg(Instruction& insn)
 template<typename T>
 T CPU::doBSF(T src)
 {
-    ASSERT(src != 0);
-    setZF(0);
+    setZF(src == 0);
+    if (!src)
+        return 0;
     for (unsigned i = 0; i < TypeTrivia<T>::bits; ++i) {
         T mask = 1 << i;
         if (src & mask)
@@ -366,8 +367,9 @@ T CPU::doBSF(T src)
 template<typename T>
 T CPU::doBSR(T src)
 {
-    ASSERT(src != 0);
-    setZF(0);
+    setZF(src == 0);
+    if (!src)
+        return 0;
     for (int i = TypeTrivia<T>::bits - 1; i >= 0; --i) {
         T mask = 1 << i;
         if (src & mask)
@@ -379,42 +381,22 @@ T CPU::doBSR(T src)
 
 void CPU::_BSF_reg16_RM16(Instruction& insn)
 {
-    auto value = insn.modrm().read16();
-    if (!value) {
-        setZF(1);
-        return;
-    }
-    insn.reg16() = doBSF(value);
+    insn.reg16() = doBSF(insn.modrm().read16());
 }
 
 void CPU::_BSF_reg32_RM32(Instruction& insn)
 {
-    auto value = insn.modrm().read32();
-    if (!value) {
-        setZF(1);
-        return;
-    }
-    insn.reg32() = doBSF(value);
+    insn.reg32() = doBSF(insn.modrm().read32());
 }
 
 void CPU::_BSR_reg16_RM16(Instruction& insn)
 {
-    auto value = insn.modrm().read16();
-    if (!value) {
-        setZF(1);
-        return;
-    }
-    insn.reg16() = doBSR(value);
+    insn.reg16() = doBSR(insn.modrm().read16());
 }
 
 void CPU::_BSR_reg32_RM32(Instruction& insn)
 {
-    auto value = insn.modrm().read32();
-    if (!value) {
-        setZF(1);
-        return;
-    }
-    insn.reg32() = doBSR(value);
+    insn.reg32() = doBSR(insn.modrm().read32());
 }
 
 template<typename T>
