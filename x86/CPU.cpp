@@ -1257,6 +1257,9 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
     pageDirectoryEntry |= PageTableEntryFlags::Accessed;
     pageTableEntry |= PageTableEntryFlags::Accessed;
 
+    writePhysicalMemory(pdeAddress, pageDirectoryEntry);
+    writePhysicalMemory(pteAddress, pageTableEntry);
+
     PhysicalAddress physicalAddress((pageTableEntry & 0xfffff000) | offset);
 #ifdef DEBUG_PAGING
     if (options.log_page_translations)
