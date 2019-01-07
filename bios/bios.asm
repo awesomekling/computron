@@ -181,6 +181,9 @@ _bios_post:                         ; Power On Self-Test ;-)
     xor     ax, ax
     mov     es, ax
 
+    out     0x21, al                ; Master PIC IMR <- 0
+    out     0xa1, al                ; Slave PIC IMR <- 0
+
     mov     [es:0x500], byte 0xFF   ; PrintScreen error.
 
     call    _bios_setup_ints        ; Install BIOS Interrupts

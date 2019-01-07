@@ -106,7 +106,7 @@ void PIC::writePort0(BYTE data)
 {
     if (data & 0x10) {
 #ifdef PIC_DEBUG
-        vlog(LogPIC, "Got ICW1 %02X on port %02X", data, port);
+        vlog(LogPIC, "Got ICW1 %02X on port %02X", data, m_baseAddress + 0);
         vlog(LogPIC, "[ICW1] ICW4 needed = %s", (data & 1) ? "yes" : "no");
         vlog(LogPIC, "[ICW1] Cascade = %s", (data & 2) ? "yes" : "no");
         vlog(LogPIC, "[ICW1] Vector size = %u", (data & 4) ? 4 : 8);
@@ -125,7 +125,7 @@ void PIC::writePort0(BYTE data)
 
     if ((data & 0x18) == 0x08) {
 #ifdef PIC_DEBUG
-        vlog(LogPIC, "Got OCW3 %02X on port %02X", data, port);
+        vlog(LogPIC, "Got OCW3 %02X on port %02X", data, m_baseAddress + 0);
 #endif
         if (data & 0x02)
             m_readISR = data & 0x01;
@@ -166,7 +166,7 @@ void PIC::writePort1(BYTE data)
 {
     if (((data & 0x07) == 0x00) && m_icw2Expected) {
 #ifdef PIC_DEBUG
-        vlog(LogPIC, "Got ICW2 %02X on port %02X", data, port);
+        vlog(LogPIC, "Got ICW2 %02X on port %02X", data, m_baseAddress + 0);
 #endif
         m_isrBase = data & 0xF8;
         m_icw2Expected = false;
