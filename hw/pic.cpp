@@ -76,7 +76,7 @@ void PIC::reset()
 {
     m_isr = 0x00;
     m_irr = 0x00;
-    m_imr = 0x00;
+    m_imr = 0xff;
     m_icw2Expected = false;
     m_icw4Expected = false;
     m_readISR = false;
