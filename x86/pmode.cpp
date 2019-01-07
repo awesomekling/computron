@@ -446,7 +446,7 @@ void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Des
 
     if (!descriptor.isNull() && !descriptor.isSegmentDescriptor()) {
         dumpDescriptor(descriptor);
-        throw GeneralProtectionFault(0, QString("%1 loaded with system segment").arg(registerName(reg)));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with system segment").arg(registerName(reg)));
     }
 }
 
