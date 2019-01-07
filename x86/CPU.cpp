@@ -41,7 +41,7 @@
 #define CRASH_ON_PVI
 #define A20_ENABLED
 #define DEBUG_PHYSICAL_OOB
-#define DEBUG_ON_UD0
+//#define DEBUG_ON_UD0
 //#define DEBUG_ON_UD1
 //#define DEBUG_ON_UD2
 #define MEMORY_DEBUGGING
@@ -1326,8 +1326,9 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
     }
 #endif
 
-    if (UNLIKELY(offset > descriptor.effectiveLimit())) {
-        vlog(LogAlert, "FUG! %s offset %08X outside limit (selector index: %04X, effective limit: %08X [%08X x %s])",
+    if (UNLIKELY((offset + (sizeof(T) - 1)) > descriptor.effectiveLimit())) {
+        vlog(LogAlert, "%zu-bit %s offset %08X outside limit (selector index: %04X, effective limit: %08X [%08X x %s])",
+             sizeof(T) * 8,
              toString(accessType),
              offset,
              descriptor.index(),
@@ -1339,7 +1340,7 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
         dumpDescriptor(descriptor);
         //dumpAll();
         //debugger().enter();
-        throw GeneralProtectionFault(descriptor.index(), "Access outside segment limit");
+        throw GeneralProtectionFault(0, "Access outside segment limit");
     }
 }
 
