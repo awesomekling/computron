@@ -1305,8 +1305,6 @@ protected:
 
     void _RDTSC(Instruction&);
 
-    void _LOCK(Instruction&);
-
     void _UD0(Instruction&);
     void _UD1(Instruction&);
     void _UD2(Instruction&);
