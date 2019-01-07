@@ -28,6 +28,8 @@
 //#define LOG_FAR_JUMPS
 //#define DEBUG_TASK_SWITCH
 //#define DISASSEMBLE_EVERYTHING
+//#define DEBUG_VM86
+//#define VMM_TRACING
 //#define SYMBOLIC_TRACING
 
 #include "types.h"
@@ -70,6 +72,7 @@ struct RuntimeOptions {
     bool serenity { false };
 #endif
     bool log_exceptions { true };
+    bool log_page_translations { false };
 };
 
 extern RuntimeOptions options;

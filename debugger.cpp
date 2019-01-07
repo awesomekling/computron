@@ -117,16 +117,16 @@ void Debugger::handleCommand(const QString& rawCommand)
 
             printf("%08x { dir=%03x, page=%03x, offset=%03x }\n", address, dir, page, offset);
 
-            DWORD* PDBR = reinterpret_cast<DWORD*>(&cpu().m_memory[cpu().getCR3()]);
-            ASSERT(!(cpu().getCR3() & 0x03ff));
-            DWORD& pageDirectoryEntry = PDBR[dir];
+            PhysicalAddress pdeAddress(cpu().getCR3() + dir * sizeof(DWORD));
+            DWORD pageDirectoryEntry = cpu().readPhysicalMemory<DWORD>(pdeAddress);
+            PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(DWORD));
+            DWORD pageTableEntry = cpu().readPhysicalMemory<DWORD>(pteAddress);
 
-            printf("PDE: %08x\n", pageDirectoryEntry);
+            printf("PDE: %08x @ %08x\n", pageDirectoryEntry, pdeAddress.get());
+            printf("PTE: %08x @ %08x\n", pageTableEntry, pteAddress.get());
 
-            DWORD* pageTable = reinterpret_cast<DWORD*>(&cpu().m_memory[pageDirectoryEntry & 0xfffff000]);
-            DWORD& pageTableEntry = pageTable[page];
-
-            printf("PTE: %08x\n", pageTableEntry);
+            PhysicalAddress paddr((pageTableEntry & 0xfffff000) | offset);
+            printf("Physical: %08x\n", paddr.get());
         }
         return;
     }
@@ -247,6 +247,16 @@ void Debugger::handleCommand(const QString& rawCommand)
 
     if (lowerCommand == "sloff") {
         options.stacklog = false;
+        return;
+    }
+
+    if (lowerCommand == "pt1") {
+        options.log_page_translations = true;
+        return;
+    }
+
+    if (lowerCommand == "pt0") {
+        options.log_page_translations = false;
         return;
     }
 

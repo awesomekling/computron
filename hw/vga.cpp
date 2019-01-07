@@ -242,7 +242,7 @@ void VGA::out8(WORD port, BYTE data)
     case 0x3D5:
         if (d->crtc.reg_index > 0x18) {
             vlog(LogVGA, "Invalid I/O register 0x%02X written (%02X) through port %03X", d->crtc.reg_index, data, port);
-            ASSERT_NOT_REACHED();
+            //ASSERT_NOT_REACHED();
             break;
         }
         if (options.vgadebug)
@@ -375,6 +375,10 @@ void VGA::out8(WORD port, BYTE data)
         setPaletteDirty(true);
         break;
     }
+
+    case 0x3cd:
+        // idk
+        break;
 
     case 0x3ce:
         if (data > 8) {

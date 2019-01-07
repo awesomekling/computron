@@ -258,10 +258,10 @@ void CPU::_NOT_RM32(Instruction& insn)
     doNOT<DWORD>(insn);
 }
 
-struct op_BT { static bool should_update() { return false; } static DWORD op(DWORD original, DWORD) { return original; } };
-struct op_BTS { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original | bit_mask; } };
-struct op_BTR { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original & ~bit_mask; } };
-struct op_BTC { static bool should_update() { return true; } static DWORD op(DWORD original, DWORD bit_mask) { return original ^ bit_mask; } };
+struct op_BT { static bool should_update() { return false; } template<typename T> static T op(T original, T) { return original; } };
+struct op_BTS { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original | bit_mask; } };
+struct op_BTR { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original & ~bit_mask; } };
+struct op_BTC { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original ^ bit_mask; } };
 
 template<typename BTx_Op, typename T>
 void CPU::_BTx_RM_imm8(Instruction& insn)
@@ -334,7 +334,7 @@ void CPU::_BTx_RM_reg(Instruction& insn)
         T result = BTx_Op::op(original, bit_mask);
         setCF((original & bit_mask) != 0);
         if (BTx_Op::should_update())
-            modrm.write<T>(result);
+            modrm.write(result);
         return;
     }
     // FIXME: Maybe this should do 32-bit r/m/w?

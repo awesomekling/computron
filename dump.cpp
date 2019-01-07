@@ -26,6 +26,7 @@
 #include "Common.h"
 #include "CPU.h"
 #include "debug.h"
+#include "debugger.h"
 #include "Tasking.h"
 
 unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offset)
@@ -239,18 +240,24 @@ void CPU::dumpWatches()
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %02X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
+                if (cycle() > 1 && watch.breakOnChange)
+                    debugger().enter();
             }
         } else if (watch.size == WordSize) {
             auto data = readPhysicalMemory<WORD>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %04X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
+                if (cycle() > 1 && watch.breakOnChange)
+                    debugger().enter();
             }
         } else if (watch.size == DWordSize) {
             auto data = readPhysicalMemory<DWORD>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %08X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
+                if (cycle() > 1 && watch.breakOnChange)
+                    debugger().enter();
             }
         }
     }
@@ -492,7 +499,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
 
 void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefix)
 {
-    vlog(LogCPU, "%s%04x (%s segment) { type: code, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, readable:%u, conforming:%u }",
+    vlog(LogCPU, "%s%04x (%s) { type: code, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, r:%u, c:%u }",
         prefix,
         segment.index(),
         segment.isGlobal() ? "global" : " local",
@@ -510,7 +517,7 @@ void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefi
 
 void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefix)
 {
-    vlog(LogCPU, "%s%04x (%s segment) { type: data, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, writable:%u, expandDown:%u }",
+    vlog(LogCPU, "%s%04x (%s) { type: data, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, w:%u, ed:%u }",
         prefix,
         segment.index(),
         segment.isGlobal() ? "global" : " local",

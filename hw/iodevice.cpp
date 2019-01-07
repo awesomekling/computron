@@ -130,7 +130,7 @@ void IODevice::raiseIRQ()
     ASSERT(m_irq < 256);
 #ifdef IRQ_DEBUG
     if (!isIRQRaised())
-        vlog(LogPIC, "Raise IRQ %d", m_irq);
+        vlog(LogPIC, "\033[35;1mRaise IRQ %d\033[0m", m_irq);
 #endif
     PIC::raiseIRQ(machine(), m_irq);
 }

@@ -33,6 +33,7 @@
 #include "pit.h"
 #include "Tasking.h"
 
+//#define DEBUG_PAGING
 #define CRASH_ON_OPCODE_00_00
 //#define CRASH_ON_EXECUTE_00000000
 #define CRASH_ON_PE_JMP_00000000
@@ -40,10 +41,10 @@
 #define CRASH_ON_PVI
 #define A20_ENABLED
 #define DEBUG_PHYSICAL_OOB
-//#define DEBUG_ON_UD0
-#define DEBUG_ON_UD1
+#define DEBUG_ON_UD0
+//#define DEBUG_ON_UD1
 //#define DEBUG_ON_UD2
-//#define MEMORY_DEBUGGING
+#define MEMORY_DEBUGGING
 //#define DEBUG_WARCRAFT2
 //#define DEBUG_BOUND
 
@@ -225,6 +226,14 @@ CPU::CPU(Machine& m)
             m_symbols.insert(parts[0].toUInt(nullptr, 16), parts.last());
             m_symbols_reverse.insert(parts.last(), parts[0].toUInt(nullptr, 16));
         }
+    }
+#endif
+#ifdef VMM_TRACING
+    QFile file("windows_vmm.txt");
+    file.open(QIODevice::ReadOnly);
+    while (!file.atEnd()) {
+        auto line = QString::fromLocal8Bit(file.readLine());
+        m_vmm_names.append(line.trimmed());
     }
 #endif
     m_isForAutotest = machine().isForAutotest();
@@ -579,7 +588,7 @@ void CPU::realModeFarJump(LogicalAddress address, JumpType type)
     DWORD originalEIP = getEIP();
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=0] %s from %04x:%08x to %04x:%08x", toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, VM=%u] %s from %04x:%08x to %04x:%08x", getPE(), getVM(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
     setCS(selector);
@@ -1149,7 +1158,7 @@ static const char* toString(CPU::MemoryAccessType type)
     }
 }
 
-ALWAYS_INLINE PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
+PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
 {
     if (!getPE() || !getPG())
         return PhysicalAddress(linearAddress.get());
@@ -1250,7 +1259,8 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
 
     PhysicalAddress physicalAddress((pageTableEntry & 0xfffff000) | offset);
 #ifdef DEBUG_PAGING
-    vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x] <PTE @ %08x>", linearAddress.get(), dir, page, offset, physicalAddress.get(), pageDirectoryEntry, pageTableEntry, pteAddress);
+    if (options.log_page_translations)
+        vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x] <PTE @ %08x>", linearAddress.get(), dir, page, offset, physicalAddress.get(), pageDirectoryEntry, pageTableEntry, pteAddress);
 #endif
     return physicalAddress;
 }
@@ -1337,22 +1347,11 @@ ALWAYS_INLINE void CPU::validateAddress(SegmentRegisterIndex segreg, DWORD offse
 }
 
 template<typename T>
-bool CPU::validatePhysicalAddress(PhysicalAddress physicalAddress, MemoryAccessType accessType)
+ALWAYS_INLINE bool CPU::validatePhysicalAddress(PhysicalAddress physicalAddress, MemoryAccessType accessType)
 {
     UNUSED_PARAM(accessType);
     if (physicalAddress.get() < m_memorySize)
         return true;
-#ifdef MEMORY_DEBUGGING
-    if (options.memdebug) {
-        vlog(LogCPU, "OOB %zu-bit %s access @ physical %08x [A20=%s] [PG=%u]",
-            sizeof(T) * 8,
-            toString(accessType),
-            physicalAddress.get(),
-            isA20Enabled() ? "on" : "off",
-            getPG()
-        );
-    }
-#endif
     return false;
 }
 
@@ -1360,8 +1359,8 @@ template<typename T>
 T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
 {
     if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Read)) {
+        vlog(LogCPU, "Read outside physical memory: %08x", physicalAddress.get());
 #ifdef DEBUG_PHYSICAL_OOB
-        vlog(LogCPU, "Read outside physical memory: %08x", physicalAddress);
         debugger().enter();
 #endif
         return 0;
@@ -1383,8 +1382,8 @@ template<typename T>
 void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
 {
     if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Write)) {
+        vlog(LogCPU, "Write outside physical memory: %08x", physicalAddress.get());
 #ifdef DEBUG_PHYSICAL_OOB
-        vlog(LogCPU, "Write outside physical memory: %08x", physicalAddress);
         debugger().enter();
 #endif
         return;
@@ -1738,7 +1737,8 @@ void CPU::_CPUID(Instruction&)
 
 void CPU::_LOCK(Instruction&)
 {
-    ASSERT_NOT_REACHED();
+    //vlog(LogAlert, "LOCK");
+    //ASSERT_NOT_REACHED();
 }
 
 void CPU::initWatches()

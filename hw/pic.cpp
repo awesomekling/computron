@@ -154,6 +154,11 @@ void PIC::writePort0(BYTE data)
         return;
     }
 
+    if ((data & 0xc8) == 0xc0) {
+        vlog(LogPIC, "Got that weird OCW2 thing that XENIX sends");
+        return;
+    }
+
     vlog(LogPIC, "Unhandled OCW2 %02X on port %02X", data, m_baseAddress + 0);
     ASSERT_NOT_REACHED();
 }

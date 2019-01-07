@@ -28,10 +28,18 @@
 #include "debugger.h"
 #include "Tasking.h"
 
-//#define DEBUG_VM86
-
 void CPU::_INT_imm8(Instruction& insn)
 {
+#ifdef VMM_TRACING
+    if (insn.imm8() == 0x20) {
+        WORD service_id = readMemory16(SegmentRegisterIndex::CS, getEIP());
+        if (service_id < m_vmm_names.size())
+            vlog(LogCPU, "VMM %04x: %s", service_id, qPrintable(m_vmm_names.at(service_id)));
+        else {
+            vlog(LogCPU, "VMM %04x: unknown service", service_id);
+        }
+    }
+#endif
     interrupt(insn.imm8(), InterruptSource::Internal);
 }
 
@@ -439,6 +447,10 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
         throw StackFault(makeErrorCode(newSS, 0, source), "New ss not present");
     }
 
+#ifdef DEBUG_VM86
+    vlog(LogCPU, "VM86 ss:esp %04x:%08x -> %04x:%08x", originalSS, originalESP, newSS, newESP);
+#endif
+
     BEGIN_ASSERT_NO_EXCEPTIONS
     setCPL(0);
     setVM(0);
@@ -453,8 +465,17 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
     pushValueWithSize(getFS(), gate.size());
     pushValueWithSize(getDS(), gate.size());
     pushValueWithSize(getES(), gate.size());
+#ifdef DEBUG_VM86
+    vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), getESP());
+    LinearAddress esp_laddr = cachedDescriptor(SegmentRegisterIndex::SS).base().offset(getESP());
+    PhysicalAddress esp_paddr = translateAddress(esp_laddr, MemoryAccessType::Write);
+    vlog(LogCPU, "Relevant stack pointer at P 0x%08x", esp_paddr.get());
+#endif
     pushValueWithSize(originalSS, gate.size());
     pushValueWithSize(originalESP, gate.size());
+#ifdef DEBUG_VM86
+    vlog(LogCPU, "Pushing original flags %08x (VM=%u)", originalFlags, !!(originalFlags & Flag::VM));
+#endif
     pushValueWithSize(originalFlags, gate.size());
     pushValueWithSize(getCS(), gate.size());
     pushValueWithSize(getEIP(), gate.size());

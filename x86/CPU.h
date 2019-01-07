@@ -1450,6 +1450,10 @@ private:
     QHash<QString, DWORD> m_symbols_reverse;
 #endif
 
+#ifdef VMM_TRACING
+    QVector<QString> m_vmm_names;
+#endif
+
     bool m_isForAutotest { false };
 
     QWORD m_cycle { 0 };
