@@ -1710,6 +1710,13 @@ void CPU::_CPUID(Instruction&)
         return;
     }
 
+    if (getEAX() == 0x80000001) {
+        setEAX(0);
+        setEBX(0);
+        setECX(0);
+        setEDX(0);
+    }
+
     if (getEAX() == 0x80000002) {
         setEAX(0x61632049);
         setEBX(0x2074276e);
