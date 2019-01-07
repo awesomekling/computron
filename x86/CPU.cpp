@@ -1702,6 +1702,9 @@ void CPU::_CPUID(Instruction&)
         DWORD family = 3;
         DWORD type = 0;
         setEAX(stepping | (model << 4) | (family << 8) | (type << 12));
+        setEBX(0);
+        setEDX(0);
+        setECX(0);
         return;
     }
 
