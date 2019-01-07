@@ -260,7 +260,6 @@ void CPU::doENTER(Instruction& insn)
     push<T>(readRegister<T>(RegisterBP));
     T frameTemp = readRegister<T>(RegisterSP);
 
-    RELEASE_ASSERT(!nestingLevel); // FIXME: I don't know if I trust this code, so let's just crash here when the time comes.
     if (nestingLevel > 0) {
         DWORD tempBasePointer = currentBasePointer();
         for (BYTE i = 1; i < nestingLevel; ++i) {
@@ -289,7 +288,10 @@ void CPU::doLEAVE()
 {
     T newBasePointer = readMemory<T>(SegmentRegisterIndex::SS, currentBasePointer());
     setCurrentStackPointer(currentBasePointer() + sizeof(T));
-    setCurrentBasePointer(newBasePointer);
+    if constexpr (sizeof(T) == 2)
+        setBP(newBasePointer);
+    else
+        setEBP(newBasePointer);
 }
 
 void CPU::_LEAVE16(Instruction&)
