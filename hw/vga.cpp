@@ -725,6 +725,8 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         new_val[2] = d->latch[2] & ~bit_mask();
         new_val[3] = d->latch[3] & ~bit_mask();
 
+        val &= bit_mask();
+
         switch (logical_op()) {
         case 0:
             new_val[0] |= ((enable_set_reset & 1)
@@ -765,6 +767,31 @@ void VGA::writeMemory8(DWORD address, BYTE value)
                     : (d->latch[3] & bit_mask()))
                 : (val & d->latch[3]) & bit_mask());
             break;
+        case 2:
+            new_val[0] |= ((enable_set_reset & 1)
+                ? ((set_reset & 1)
+                    ? (~d->latch[0] & bit_mask())
+                    : (d->latch[0] & bit_mask()))
+                : (val | d->latch[0]) & bit_mask());
+
+            new_val[1] |= ((enable_set_reset & 2)
+                ? ((set_reset & 2)
+                    ? (~d->latch[1] & bit_mask())
+                    : (d->latch[1] & bit_mask()))
+                : (val | d->latch[1]) & bit_mask());
+
+            new_val[2] |= ((enable_set_reset & 4)
+                ? ((set_reset & 4)
+                    ? (~d->latch[2] & bit_mask())
+                    : (d->latch[2] & bit_mask()))
+                : (val | d->latch[2]) & bit_mask());
+
+            new_val[3] |= ((enable_set_reset & 8)
+                ? ((set_reset & 8)
+                    ? (~d->latch[3] & bit_mask())
+                    : (d->latch[3] & bit_mask()))
+                : (val | d->latch[3]) & bit_mask());
+            break;
         case 3:
             new_val[0] |= ((enable_set_reset & 1)
                 ? ((set_reset & 1)
@@ -790,9 +817,48 @@ void VGA::writeMemory8(DWORD address, BYTE value)
                     : (d->latch[3] & bit_mask()))
                 : (val ^ d->latch[3]) & bit_mask());
             break;
-        default:
-            vlog(LogVGA, "Unsupported draw_op %u", logical_op());
-            hard_exit(0);
+        }
+    } else if (write_mode() == 3) {
+        BYTE set_reset = d->graphics_ctrl.reg[0];
+        BYTE val = value;
+
+        if (rotate_count()) {
+            vlog(LogVGA, "rotate_count non-zero!");
+            val = (val >> rotate_count()) | (val << (8 - rotate_count()));
+        }
+
+        new_val[0] = d->latch[0] & ~bit_mask();
+        new_val[1] = d->latch[1] & ~bit_mask();
+        new_val[2] = d->latch[2] & ~bit_mask();
+        new_val[3] = d->latch[3] & ~bit_mask();
+
+        val &= bit_mask();
+
+        switch (logical_op()) {
+        case 0:
+            new_val[0] |= (set_reset & 1) ? value : 0;
+            new_val[1] |= (set_reset & 2) ? value : 0;
+            new_val[2] |= (set_reset & 4) ? value : 0;
+            new_val[3] |= (set_reset & 8) ? value : 0;
+            break;
+        case 1:
+            new_val[0] |= ((set_reset & 1) ? value : 0) & d->latch[0];
+            new_val[1] |= ((set_reset & 2) ? value : 0) & d->latch[1];
+            new_val[2] |= ((set_reset & 4) ? value : 0) & d->latch[2];
+            new_val[3] |= ((set_reset & 8) ? value : 0) & d->latch[3];
+            break;
+        case 2:
+            new_val[0] |= ((set_reset & 1) ? value : 0) | d->latch[0];
+            new_val[1] |= ((set_reset & 2) ? value : 0) | d->latch[1];
+            new_val[2] |= ((set_reset & 4) ? value : 0) | d->latch[2];
+            new_val[3] |= ((set_reset & 8) ? value : 0) | d->latch[3];
+            break;
+        case 3:
+            new_val[0] |= ((set_reset & 1) ? value : 0) ^ d->latch[0];
+            new_val[1] |= ((set_reset & 2) ? value : 0) ^ d->latch[1];
+            new_val[2] |= ((set_reset & 4) ? value : 0) ^ d->latch[2];
+            new_val[3] |= ((set_reset & 8) ? value : 0) ^ d->latch[3];
+            break;
         }
     } else if(write_mode() == 1) {
         new_val[0] = d->latch[0];
@@ -800,10 +866,10 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         new_val[2] = d->latch[2];
         new_val[3] = d->latch[3];
     } else {
-        vlog(LogVGA, "Unsupported 6845 write mode %d", write_mode());
+        vlog(LogVGA, "Unsupported VGA write mode %d", write_mode());
         hard_exit(1);
 
-        /* This is just here to make GCC stop worrying about accessing new_val[] uninitialized. */
+        // This is just here to make GCC stop worrying about accessing new_val[] uninitialized.
         return;
     }
 
