@@ -213,7 +213,7 @@ void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
 static void logSerenitySyscall(CPU& cpu)
 {
     auto func = (Syscall::Function)cpu.getEAX();
-    vlog(LogSerenity, "Syscall %02u %s (%08x, %08x, %08x)", cpu.getEAX(), Syscall::toString(func), cpu.getEDX(), cpu.getECX(), cpu.getEBX());
+    vlog(LogSerenity, "Syscall %02u %s (%08x, %08x, %08x)", cpu.getEAX(), Syscall::to_string(func), cpu.getEDX(), cpu.getECX(), cpu.getEBX());
 }
 #endif
 
