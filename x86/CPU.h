@@ -218,6 +218,7 @@ public:
     enum Bits : DWORD {
         VME = 1u << 0,
         PVI = 1u << 1,
+        TSD = 1u << 2,
     };
     };
 
@@ -412,6 +413,7 @@ public:
     bool getPG() const { return m_CR0 & CR0::PG; }
     bool getVME() const { return m_CR4 & CR4::VME; }
     bool getPVI() const { return m_CR4 & CR4::PVI; }
+    bool getTSD() const { return m_CR4 & CR4::TSD; }
 
     WORD getCS() const { return this->CS; }
     WORD getIP() const { return m_EIP & 0xffff; }
