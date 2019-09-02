@@ -170,11 +170,12 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
     }
 
+    auto value = readRegister<DWORD>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7));
+
     if (crIndex == 4) {
-        vlog(LogCPU, "cr4 written but not supported!");
-        ASSERT_NOT_REACHED();
+        vlog(LogCPU, "CR4 written (%08x) but not supported!", value);
     }
-    setControlRegister(crIndex, readRegister<DWORD>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7)));
+    setControlRegister(crIndex, value);
 
     if (crIndex == 0 || crIndex == 3)
         updateCodeSegmentCache();
