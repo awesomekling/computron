@@ -1719,7 +1719,7 @@ void CPU::_CPUID(Instruction&)
         DWORD type = 0;
         setEAX(stepping | (model << 4) | (family << 8) | (type << 12));
         setEBX(0);
-        setEDX(0);
+        setEDX((1 << 4) | (1 << 15)); // RDTSC + CMOV
         setECX(0);
         return;
     }
