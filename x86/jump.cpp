@@ -95,6 +95,18 @@ void CPU::_CALL_FAR_mem32(Instruction& insn)
     doFarJump<DWORD>(insn, JumpType::CALL);
 }
 
+void CPU::_CMOVcc_reg16_RM16(Instruction& insn)
+{
+    if (evaluate(insn.cc()))
+        insn.reg16() = insn.modrm().read16();
+}
+
+void CPU::_CMOVcc_reg32_RM32(Instruction& insn)
+{
+    if (evaluate(insn.cc()))
+        insn.reg32() = insn.modrm().read32();
+}
+
 void CPU::_SETcc_RM8(Instruction& insn)
 {
     insn.modrm().write8(evaluate(insn.cc()));

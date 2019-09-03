@@ -799,6 +799,8 @@ protected:
     void _Jcc_imm8(Instruction&);
     void _Jcc_NEAR_imm(Instruction&);
     void _SETcc_RM8(Instruction&);
+    void _CMOVcc_reg16_RM16(Instruction&);
+    void _CMOVcc_reg32_RM32(Instruction&);
 
     void _CALL_imm16(Instruction&);
     void _CALL_imm32(Instruction&);

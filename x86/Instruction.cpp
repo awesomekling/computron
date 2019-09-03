@@ -738,6 +738,23 @@ void buildOpcodeTablesIfNeeded()
 
     build0F(0x31, "RDTSC", OP,             &CPU::_RDTSC);
 
+    build0F(0x40, "CMOVO",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x41, "CMOVNO", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x42, "CMOVC",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x43, "CMOVNC", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x44, "CMOVZ",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x45, "CMOVNZ", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x46, "CMOVNA", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x47, "CMOVA",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x48, "CMOVS",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x49, "CMOVNS", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4A, "CMOVP",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4B, "CMOVNP", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4C, "CMOVL",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4D, "CMOVNL", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4E, "CMOVNG", OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+    build0F(0x4F, "CMOVG",  OP_reg16_RM16,  &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32,  &CPU::_CMOVcc_reg32_RM32);
+
     build0F(0x80, "JO",    OP_NEAR_imm,    &CPU::_Jcc_NEAR_imm);
     build0F(0x81, "JNO",   OP_NEAR_imm,    &CPU::_Jcc_NEAR_imm);
     build0F(0x82, "JC",    OP_NEAR_imm,    &CPU::_Jcc_NEAR_imm);
