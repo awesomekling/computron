@@ -165,7 +165,7 @@ void CPU::interruptToTaskGate(BYTE, InterruptSource source, QVariant errorCode, 
     if (!tssDescriptor.present()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing non-present TSS descriptor");
     }
-    taskSwitch(tssDescriptor, JumpType::INT);
+    taskSwitch(gate.selector(), tssDescriptor, JumpType::INT);
     if (errorCode.isValid()) {
         if (tssDescriptor.is32Bit())
             push32(errorCode.value<WORD>());

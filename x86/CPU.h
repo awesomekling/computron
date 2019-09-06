@@ -1371,7 +1371,7 @@ private:
 
     void setLDT(WORD segment);
     void taskSwitch(WORD task, JumpType);
-    void taskSwitch(TSSDescriptor&, JumpType);
+    void taskSwitch(WORD task_selector, TSSDescriptor&, JumpType);
     TSS currentTSS();
 
     void writeToGDT(Descriptor&);

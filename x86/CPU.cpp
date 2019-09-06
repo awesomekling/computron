@@ -697,7 +697,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
         if (!tssDescriptor.present())
             throw NotPresent(selector & 0xfffc, "TSS not present");
-        taskSwitch(tssDescriptor, type);
+        taskSwitch(selector, tssDescriptor, type);
         return;
     }
 

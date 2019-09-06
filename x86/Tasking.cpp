@@ -77,19 +77,26 @@ void CPU::_LTR_RM16(Instruction& insn)
         } \
     } while(0)
 
-void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
+void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
 {
     ASSERT(incomingTSSDescriptor.is32Bit());
 
     EXCEPTION_ON(GeneralProtectionFault, 0, incomingTSSDescriptor.isNull(), "Incoming TSS descriptor is null");
-    EXCEPTION_ON(GeneralProtectionFault, 0, !incomingTSSDescriptor.isGlobal(), "Incoming TSS descriptor is not from GDT");
-    EXCEPTION_ON(NotPresent, 0, !incomingTSSDescriptor.present(), "Incoming TSS descriptor is not present");
-    EXCEPTION_ON(GeneralProtectionFault, 0, incomingTSSDescriptor.limit() < 103, "Incoming TSS descriptor limit too small");
+
+    if (!incomingTSSDescriptor.isGlobal()) {
+        if (source == JumpType::IRET)
+            throw InvalidTSS(task_selector & 0xfffc, "Incoming TSS descriptor is not from GDT");
+        throw GeneralProtectionFault(task_selector & 0xfffc, "Incoming TSS descriptor is not from GDT");
+    }
+    EXCEPTION_ON(NotPresent, task_selector & 0xfffc, !incomingTSSDescriptor.present(), "Incoming TSS descriptor is not present");
+
+    DWORD minimum_tss_limit = incomingTSSDescriptor.is32Bit() ? 108 : 44;
+    EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, incomingTSSDescriptor.limit() < minimum_tss_limit, "Incoming TSS descriptor limit too small");
 
     if (source == JumpType::IRET) {
-        EXCEPTION_ON(GeneralProtectionFault, 0, incomingTSSDescriptor.isAvailable(), "Incoming TSS descriptor is available");
+        EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, !incomingTSSDescriptor.isBusy(), "Incoming TSS descriptor is not busy");
     } else {
-        EXCEPTION_ON(GeneralProtectionFault, 0, incomingTSSDescriptor.isBusy(), "Incoming TSS descriptor is busy");
+        EXCEPTION_ON(GeneralProtectionFault, task_selector & 0xfffc, incomingTSSDescriptor.isBusy(), "Incoming TSS descriptor is busy");
     }
 
     auto outgoingDescriptor = getDescriptor(TR.selector);
@@ -151,9 +158,7 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
 #endif
 
     // First, load all registers from TSS without validating contents.
-    if (getPG()) {
-        m_CR3 = incomingTSS.getCR3();
-    }
+    m_CR3 = incomingTSS.getCR3();
 
     m_LDTR.setSelector(incomingTSS.getLDT());
     m_LDTR.setBase(LinearAddress());
@@ -222,24 +227,24 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
     if (csDescriptor.isCode()) {
         if (csDescriptor.isNonconformingCode()) {
             if (csDescriptor.DPL() != (getCS() & 3))
-                throw InvalidTSS(getCS(), QString("CS is non-conforming with DPL(%1) != RPL(%2)").arg(csDescriptor.DPL()).arg(getCS() & 3));
+                throw InvalidTSS(getCS() & 0xfffc, QString("CS is non-conforming with DPL(%1) != RPL(%2)").arg(csDescriptor.DPL()).arg(getCS() & 3));
         } else if (csDescriptor.isConformingCode()) {
             if (csDescriptor.DPL() > (getCS() & 3))
-                throw InvalidTSS(getCS(), "CS is conforming with DPL > RPL");
+                throw InvalidTSS(getCS() & 0xfffc, "CS is conforming with DPL > RPL");
         }
     }
     auto ssDescriptor = getDescriptor(getSS());
     if (!ssDescriptor.isNull()) {
         if (ssDescriptor.isOutsideTableLimits())
-            throw InvalidTSS(getSS(), "SS outside table limits");
+            throw InvalidTSS(getSS() & 0xfffc, "SS outside table limits");
         if (!ssDescriptor.isData())
-            throw InvalidTSS(getSS(), "SS is not a data segment");
+            throw InvalidTSS(getSS() & 0xfffc, "SS is not a data segment");
         if (!ssDescriptor.asDataSegmentDescriptor().writable())
-            throw InvalidTSS(getSS(), "SS is not writable");
+            throw InvalidTSS(getSS() & 0xfffc, "SS is not writable");
         if (!ssDescriptor.present())
-            throw StackFault(getSS(), "SS is not present");
+            throw StackFault(getSS() & 0xfffc, "SS is not present");
         if (ssDescriptor.DPL() != incomingCPL)
-            throw InvalidTSS(getSS(), QString("SS DPL(%1) != CPL(%2)").arg(ssDescriptor.DPL()).arg(incomingCPL));
+            throw InvalidTSS(getSS() & 0xfffc, QString("SS DPL(%1) != CPL(%2)").arg(ssDescriptor.DPL()).arg(incomingCPL));
     }
 
     if (!ldtDescriptor.isNull()) {
@@ -248,12 +253,12 @@ void CPU::taskSwitch(TSSDescriptor& incomingTSSDescriptor, JumpType source)
     }
 
     if (!csDescriptor.isCode())
-        throw InvalidTSS(getCS(), "CS is not a code segment");
+        throw InvalidTSS(getCS() & 0xfffc, "CS is not a code segment");
     if (!csDescriptor.present())
-        throw InvalidTSS(getCS(), "CS is not present");
+        throw InvalidTSS(getCS() & 0xfffc, "CS is not present");
 
     if (ssDescriptor.DPL() != (getSS() & 3))
-        throw InvalidTSS(getSS(), "SS DPL != RPL");
+        throw InvalidTSS(getSS() & 0xfffc, "SS DPL != RPL");
 
     auto validateDataSegment = [&] (SegmentRegisterIndex segreg) {
         WORD selector = readSegmentRegister(segreg);
@@ -312,11 +317,11 @@ void CPU::dumpTSS(const TSS &tss)
     vlog(LogCPU, "stack2 { %04x:%08x }", tss.getSS2(), tss.getESP2());
 }
 
-void CPU::taskSwitch(WORD task, JumpType source)
+void CPU::taskSwitch(WORD task_selector, JumpType source)
 {
-    auto descriptor = getDescriptor(task);
+    auto descriptor = getDescriptor(task_selector);
     auto& tssDescriptor = descriptor.asTSSDescriptor();
-    taskSwitch(tssDescriptor, source);
+    taskSwitch(task_selector, tssDescriptor, source);
 }
 
 TSS CPU::currentTSS()
