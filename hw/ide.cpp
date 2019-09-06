@@ -264,7 +264,9 @@ BYTE IDE::in8(WORD port)
 
     // FIXME: This port should maybe be managed by the FDC?
     if (port == 0x3f6) {
+#ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d alternate status queried: %02X", controllerIndex, status(controller));
+#endif
         return status(controller);
     }
 
