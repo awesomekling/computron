@@ -34,17 +34,14 @@
 #include <QStringBuilder>
 #include <QStringList>
 #include <QLatin1Literal>
-#ifdef HAVE_READLINE
-#include <readline/readline.h>
-#include <readline/history.h>
+#ifdef HAVE_EDITLINE
+#include <editline/readline.h>
+#include <editline/history.h>
 #endif
 
 Debugger::Debugger(CPU& cpu)
     : m_cpu(cpu)
 {
-#ifdef HAVE_READLINE
-    using_history();
-#endif
 }
 
 Debugger::~Debugger()
@@ -78,7 +75,7 @@ static QString doPrompt(const CPU& cpu)
 
     QString prompt = brightMagenta % QLatin1Literal("CT ") % brightCyan % s % defaultColor % QLatin1Literal("> ");
 
-#ifdef HAVE_READLINE
+#ifdef HAVE_EDITLINE
     char* line = readline(prompt.toLatin1().constData());
 #else
     char* line = (char*)malloc(1024 * sizeof(char));
@@ -97,7 +94,7 @@ void Debugger::handleCommand(const QString& rawCommand)
     if (arguments.isEmpty())
         return;
 
-#ifdef HAVE_READLINE
+#ifdef HAVE_EDITLINE
     add_history(qPrintable(rawCommand));
 #endif
 

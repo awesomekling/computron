@@ -22,8 +22,8 @@ QT += widgets
 CONFIG -= app_bundle
 
 unix {
-    LIBS += -lreadline
-    DEFINES += HAVE_READLINE
+    LIBS += -leditline
+    DEFINES += HAVE_EDITLINE
     DEFINES += HAVE_USLEEP
 }
 
