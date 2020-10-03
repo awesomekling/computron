@@ -40,9 +40,9 @@ public:
     virtual u8 readMemory8(u32 address);
     virtual u16 readMemory16(u32 address);
     virtual u32 readMemory32(u32 address);
-    virtual void writeMemory8(u32 address, u8);
-    virtual void writeMemory16(u32 address, u16);
-    virtual void writeMemory32(u32 address, u32);
+    virtual void write_memory8(u32 address, u8);
+    virtual void write_memory16(u32 address, u16);
+    virtual void write_memory32(u32 address, u32);
 
     const u8* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
 
@@ -80,9 +80,9 @@ template<typename T>
 inline void MemoryProvider::write(u32 address, T data)
 {
     if (sizeof(T) == 1)
-        return writeMemory8(address, data);
+        return write_memory8(address, data);
     if (sizeof(T) == 2)
-        return writeMemory16(address, data);
+        return write_memory16(address, data);
     ASSERT(sizeof(T) == 4);
-    return writeMemory32(address, data);
+    return write_memory32(address, data);
 }

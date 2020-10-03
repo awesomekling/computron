@@ -78,7 +78,7 @@ void IDEController::identify(IDE& ide)
     memcpy(m_readBuffer.data(), data, sizeof(data));
     strcpy(m_readBuffer.data() + 54, "oCpmtuor niDks");
     m_readBufferIndex = 0;
-    ide.raiseIRQ();
+    ide.raise_irq();
 }
 
 void IDEController::readSectors(IDE& ide)
@@ -97,7 +97,7 @@ void IDEController::readSectors(IDE& ide)
     result = fclose(f);
     ASSERT(result != -1);
     m_readBufferIndex = 0;
-    ide.raiseIRQ();
+    ide.raise_irq();
 }
 
 void IDEController::writeSectors()
@@ -134,7 +134,7 @@ void IDEController::writeToSectorBuffer(IDE& ide, T data)
     ASSERT(result != -1);
     result = fclose(f);
     ASSERT(result != -1);
-    ide.raiseIRQ();
+    ide.raise_irq();
 }
 
 template<typename T>
@@ -229,13 +229,13 @@ void IDE::out8(u16 port, u8 data)
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder LSB set: %u", controllerIndex, data);
 #endif
-        controller.cylinderIndex = weld<u16>(mostSignificant<u8>(controller.cylinderIndex), data);
+        controller.cylinderIndex = weld<u16>(most_significant<u8>(controller.cylinderIndex), data);
         break;
     case 0x5:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder MSB set: %u", controllerIndex, data);
 #endif
-        controller.cylinderIndex = weld<u16>(data, leastSignificant<u8>(controller.cylinderIndex));
+        controller.cylinderIndex = weld<u16>(data, least_significant<u8>(controller.cylinderIndex));
         break;
     case 0x6:
         controller.headIndex = data & 0xf;
@@ -290,14 +290,14 @@ u8 IDE::in8(u16 port)
         return controller.sectorIndex;
     case 0x4:
 #ifdef IDE_DEBUG
-        vlog(LogIDE, "Controller %d cylinder LSB queried: %02X", controllerIndex, leastSignificant<BYTE>(controller.cylinderIndex));
+        vlog(LogIDE, "Controller %d cylinder LSB queried: %02X", controllerIndex, least_significant<BYTE>(controller.cylinderIndex));
 #endif
-        return leastSignificant<u8>(controller.cylinderIndex);
+        return least_significant<u8>(controller.cylinderIndex);
     case 0x5:
 #ifdef IDE_DEBUG
-        vlog(LogIDE, "Controller %d cylinder MSB queried: %02X", controllerIndex, mostSignificant<BYTE>(controller.cylinderIndex));
+        vlog(LogIDE, "Controller %d cylinder MSB queried: %02X", controllerIndex, most_significant<BYTE>(controller.cylinderIndex));
 #endif
-        return mostSignificant<u8>(controller.cylinderIndex);
+        return most_significant<u8>(controller.cylinderIndex);
     case 0x6:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d head index queried: %u", controllerIndex, controller.headIndex);

@@ -30,20 +30,20 @@ const u8* MemoryProvider::memoryPointer(u32) const
     return nullptr;
 }
 
-void MemoryProvider::writeMemory8(u32, u8)
+void MemoryProvider::write_memory8(u32, u8)
 {
 }
 
-void MemoryProvider::writeMemory16(u32 address, u16 data)
+void MemoryProvider::write_memory16(u32 address, u16 data)
 {
-    writeMemory8(address, leastSignificant<u8>(data));
-    writeMemory8(address + 1, mostSignificant<u8>(data));
+    write_memory8(address, least_significant<u8>(data));
+    write_memory8(address + 1, most_significant<u8>(data));
 }
 
-void MemoryProvider::writeMemory32(u32 address, u32 data)
+void MemoryProvider::write_memory32(u32 address, u32 data)
 {
-    writeMemory16(address, leastSignificant<u16>(data));
-    writeMemory16(address + 2, mostSignificant<u16>(data));
+    write_memory16(address, least_significant<u16>(data));
+    write_memory16(address + 2, most_significant<u16>(data));
 }
 
 u8 MemoryProvider::readMemory8(u32)

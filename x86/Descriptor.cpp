@@ -26,9 +26,9 @@
 #include "CPU.h"
 #include "debugger.h"
 
-SegmentDescriptor CPU::getRealModeOrVM86Descriptor(u16 selector, SegmentRegisterIndex segmentRegister)
+SegmentDescriptor CPU::get_real_mode_or_vm86_descriptor(u16 selector, SegmentRegisterIndex segmentRegister)
 {
-    ASSERT(!getPE() || getVM());
+    ASSERT(!get_pe() || get_vm());
     SegmentDescriptor descriptor;
     descriptor.m_index = selector;
     descriptor.m_segmentBase = (u32)selector << 4;
@@ -49,34 +49,34 @@ SegmentDescriptor CPU::getRealModeOrVM86Descriptor(u16 selector, SegmentRegister
     return descriptor;
 }
 
-Descriptor CPU::getDescriptor(u16 selector)
+Descriptor CPU::get_descriptor(u16 selector)
 {
     if ((selector & 0xfffc) == 0)
         return ErrorDescriptor(Descriptor::NullSelector);
 
     bool isGlobal = (selector & 0x04) == 0;
     if (isGlobal)
-        return getDescriptor(m_GDTR, selector, true);
-    return getDescriptor(m_LDTR, selector, true);
+        return get_descriptor(m_gdtr, selector, true);
+    return get_descriptor(m_ldtr, selector, true);
 }
 
-Descriptor CPU::getInterruptDescriptor(u8 number)
+Descriptor CPU::get_interrupt_descriptor(u8 number)
 {
-    ASSERT(getPE());
-    return getDescriptor(m_IDTR, number, false);
+    ASSERT(get_pe());
+    return get_descriptor(m_idtr, number, false);
 }
 
-SegmentDescriptor CPU::getSegmentDescriptor(u16 selector)
+SegmentDescriptor CPU::get_segment_descriptor(u16 selector)
 {
-    if (!getPE() || getVM())
-        return getRealModeOrVM86Descriptor(selector);
-    auto descriptor = getDescriptor(selector);
+    if (!get_pe() || get_vm())
+        return get_real_mode_or_vm86_descriptor(selector);
+    auto descriptor = get_descriptor(selector);
     if (descriptor.isNull())
         return SegmentDescriptor();
     return descriptor.asSegmentDescriptor();
 }
 
-Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, u16 index, bool indexIsSelector)
+Descriptor CPU::get_descriptor(DescriptorTableRegister& tableRegister, u16 index, bool indexIsSelector)
 {
     if (indexIsSelector && (index & 0xfffc) == 0)
         return ErrorDescriptor(Descriptor::NullSelector);
@@ -98,8 +98,8 @@ Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, u16 index,
         return ErrorDescriptor(Descriptor::LimitExceeded);
     }
 
-    u32 hi = readMemoryMetal32(tableRegister.base().offset(tableIndex + 4));
-    u32 lo = readMemoryMetal32(tableRegister.base().offset(tableIndex));
+    u32 hi = read_memory_metal32(tableRegister.base().offset(tableIndex + 4));
+    u32 lo = read_memory_metal32(tableRegister.base().offset(tableIndex));
 
     descriptor.m_G = (hi >> 23) & 1; // Limit granularity, 0=1b, 1=4kB
     descriptor.m_D = (hi >> 22) & 1;
@@ -175,9 +175,9 @@ void TSSDescriptor::setAvailable()
     m_high &= ~0x200;
 }
 
-void CPU::writeToGDT(Descriptor& descriptor)
+void CPU::write_to_gdt(Descriptor& descriptor)
 {
     ASSERT(descriptor.isGlobal());
-    writeMemoryMetal32(m_GDTR.base().offset(descriptor.index() + 4), descriptor.m_high);
-    writeMemoryMetal32(m_GDTR.base().offset(descriptor.index()), descriptor.m_low);
+    write_memory_metal32(m_gdtr.base().offset(descriptor.index() + 4), descriptor.m_high);
+    write_memory_metal32(m_gdtr.base().offset(descriptor.index()), descriptor.m_low);
 }

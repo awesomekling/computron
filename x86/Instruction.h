@@ -48,10 +48,10 @@ struct Prefix {
 
 class InstructionStream {
 public:
-    virtual u8 readInstruction8() = 0;
-    virtual u16 readInstruction16() = 0;
-    virtual u32 readInstruction32() = 0;
-    u32 readBytes(unsigned count);
+    virtual u8 read_instruction8() = 0;
+    virtual u16 read_instruction16() = 0;
+    virtual u32 read_instruction32() = 0;
+    u32 read_bytes(unsigned count);
 };
 
 class SimpleInstructionStream final : public InstructionStream {
@@ -61,9 +61,9 @@ public:
     {
     }
 
-    virtual u8 readInstruction8() override { return *(m_data++); }
-    virtual u16 readInstruction16() override;
-    virtual u32 readInstruction32() override;
+    virtual u8 read_instruction8() override { return *(m_data++); }
+    virtual u16 read_instruction16() override;
+    virtual u32 read_instruction32() override;
 
 private:
     const u8* m_data { nullptr };
@@ -99,7 +99,7 @@ public:
     void write8(u8);
     void write16(u16);
     void write32(u32);
-    void writeSpecial(u32, bool o32);
+    void write_special(u32, bool o32);
 
     template<typename T>
     class Accessor;
@@ -111,10 +111,10 @@ public:
     QString toStringO16() const;
     QString toStringO32() const;
 
-    bool isRegister() const { return m_registerIndex != 0xffffffff; }
+    bool is_register() const { return m_register_index != 0xffffffff; }
     SegmentRegisterIndex segment() const
     {
-        ASSERT(!isRegister());
+        ASSERT(!is_register());
         return m_segment;
     }
     u32 offset();
@@ -136,7 +136,7 @@ private:
 
     u32 evaluateSIB();
 
-    unsigned m_registerIndex { 0xffffffff };
+    unsigned m_register_index { 0xffffffff };
     SegmentRegisterIndex m_segment { SegmentRegisterIndex::None };
     union {
         u32 m_offset32 { 0 };
@@ -172,14 +172,14 @@ public:
         return m_modrm;
     }
 
-    bool hasSegmentPrefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
-    bool hasAddressSizeOverridePrefix() const { return m_hasAddressSizeOverridePrefix; }
-    bool hasOperandSizeOverridePrefix() const { return m_hasOperandSizeOverridePrefix; }
-    bool hasLockPrefix() const { return m_hasLockPrefix; }
-    bool hasRepPrefix() const { return m_repPrefix; }
-    u8 repPrefix() const { return m_repPrefix; }
+    bool has_segment_prefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
+    bool has_address_size_override_prefix() const { return m_hasAddressSizeOverridePrefix; }
+    bool has_operand_size_override_prefix() const { return m_hasOperandSizeOverridePrefix; }
+    bool has_lock_prefix() const { return m_hasLockPrefix; }
+    bool has_rep_prefix() const { return m_repPrefix; }
+    u8 rep_prefix() const { return m_repPrefix; }
 
-    bool isValid() const { return m_descriptor; }
+    bool is_valid() const { return m_descriptor; }
 
     unsigned length() const;
 
@@ -246,8 +246,8 @@ public:
     bool hasRM() const { return m_hasRM; }
     bool hasSubOp() const { return m_hasSubOp; }
 
-    unsigned registerIndex() const { return m_registerIndex; }
-    SegmentRegisterIndex segmentRegisterIndex() const { return static_cast<SegmentRegisterIndex>(registerIndex()); }
+    unsigned register_index() const { return m_register_index; }
+    SegmentRegisterIndex segmentRegisterIndex() const { return static_cast<SegmentRegisterIndex>(register_index()); }
 
     u8 cc() const { return m_hasSubOp ? m_subOp & 0xf : m_op & 0xf; }
 
@@ -266,7 +266,7 @@ private:
     u8 m_subOp { 0 };
     u32 m_imm1 { 0 };
     u32 m_imm2 { 0 };
-    u8 m_registerIndex { 0 };
+    u8 m_register_index { 0 };
     bool m_a32 { false };
     bool m_o32 { false };
     bool m_hasLockPrefix { false };
@@ -309,4 +309,4 @@ inline MemoryOrRegisterReference::Accessor<u8> MemoryOrRegisterReference::access
 inline MemoryOrRegisterReference::Accessor<u16> MemoryOrRegisterReference::accessor16() { return Accessor<u16>(*this); }
 inline MemoryOrRegisterReference::Accessor<u32> MemoryOrRegisterReference::accessor32() { return Accessor<u32>(*this); }
 
-void buildOpcodeTablesIfNeeded();
+void build_opcode_tables_if_needed();

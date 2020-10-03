@@ -28,7 +28,8 @@
 #include "ThreadedTimer.h"
 #include "iodevice.h"
 
-class PIT final : public IODevice
+class PIT final
+    : public IODevice
     , public ThreadedTimer::Listener {
 public:
     explicit PIT(Machine&);
@@ -40,16 +41,16 @@ public:
 
     void boot();
 
-    virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
+    virtual void threaded_timer_fired(Badge<ThreadedTimer>) override;
 
 private:
     friend class CPU;
 
-    u8 readCounter(u8 index);
-    void writeCounter(u8 index, u8 data);
+    u8 read_counter(u8 index);
+    void write_counter(u8 index, u8 data);
 
-    void modeControl(int timerIndex, u8 data);
-    void reconfigureTimer(u8 index);
+    void mode_control(int timerIndex, u8 data);
+    void reconfigure_timer(u8 index);
 
     struct Private;
     OwnPtr<Private> d;

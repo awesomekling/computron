@@ -59,7 +59,7 @@ MachineWidget::MachineWidget(Machine& m)
 #endif
 
     m_screen = make<Screen>(m);
-    m_machine.setWidget(this);
+    m_machine.set_widget(this);
 
     d->toolBar = new QToolBar(tr("Virtual Machine"));
 

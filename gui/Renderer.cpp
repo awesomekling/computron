@@ -182,12 +182,12 @@ void Mode13Renderer::render()
     const u8* videoMemory = vga().plane(0) + vga().start_address();
 
     ValueSize mode;
-    u32 lineOffset = vga().readRegister(0x13);
+    u32 lineOffset = vga().read_register(0x13);
 
-    if (vga().readRegister(0x14) & 0x40) {
+    if (vga().read_register(0x14) & 0x40) {
         mode = DWordSize;
         lineOffset <<= 3;
-    } else if (vga().readRegister(0x17) & 0x40) {
+    } else if (vga().read_register(0x17) & 0x40) {
         mode = ByteSize;
         lineOffset <<= 1;
     } else {
@@ -269,9 +269,9 @@ void TextRenderer::synchronizeColors()
 
 void TextRenderer::synchronizeFont()
 {
-    auto vector = screen().machine().cpu().getRealModeInterruptVector(0x43);
+    auto vector = screen().machine().cpu().get_real_mode_interrupt_vector(0x43);
     auto physicalAddress = PhysicalAddress::fromRealMode(vector);
-    auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointerToPhysicalMemory(physicalAddress));
+    auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointer_to_physical_memory(physicalAddress));
 
     for (int i = 0; i < 256; ++i)
         m_character[i] = QBitmap::fromData(QSize(m_characterWidth, m_characterHeight), fbmp[i].data, QImage::Format_Mono);

@@ -43,7 +43,7 @@ u8 SimpleMemoryProvider::readMemory8(u32 address)
     return m_data.data()[address - baseAddress().get()];
 }
 
-void SimpleMemoryProvider::writeMemory8(u32 address, u8 data)
+void SimpleMemoryProvider::write_memory8(u32 address, u8 data)
 {
     m_data.data()[address - baseAddress().get()] = data;
 }

@@ -101,7 +101,7 @@ void BusMouse::moveEvent(u16 x, u16 y)
     //vlog(LogMouse, "BusMouse::moveEvent(): dX = %d, dY = %d", m_deltaX, m_deltaY);
 
     if (m_interrupts)
-        raiseIRQ();
+        raise_irq();
 }
 
 void BusMouse::buttonPressEvent(u16 x, u16 y, MouseButton button)
@@ -123,7 +123,7 @@ void BusMouse::buttonPressEvent(u16 x, u16 y, MouseButton button)
     m_deltaY = 0;
 
     if (m_interrupts)
-        raiseIRQ();
+        raise_irq();
 }
 
 void BusMouse::buttonReleaseEvent(u16 x, u16 y, MouseButton button)
@@ -145,7 +145,7 @@ void BusMouse::buttonReleaseEvent(u16 x, u16 y, MouseButton button)
     m_deltaY = 0;
 
     if (m_interrupts)
-        raiseIRQ();
+        raise_irq();
 }
 
 u8 BusMouse::in8(u16 port)

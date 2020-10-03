@@ -50,13 +50,13 @@ Debugger::~Debugger()
 void Debugger::enter()
 {
     m_active = true;
-    cpu().recomputeMainLoopNeedsSlowStuff();
+    cpu().recompute_main_loop_needs_slow_stuff();
 }
 
 void Debugger::exit()
 {
     m_active = false;
-    cpu().recomputeMainLoopNeedsSlowStuff();
+    cpu().recompute_main_loop_needs_slow_stuff();
 }
 
 static QString doPrompt(const CPU& cpu)
@@ -67,10 +67,10 @@ static QString doPrompt(const CPU& cpu)
 
     QString s;
 
-    if (cpu.getPE())
-        s.sprintf("%04X:%08X", cpu.getCS(), cpu.getEIP());
+    if (cpu.get_pe())
+        s.sprintf("%04X:%08X", cpu.get_cs(), cpu.get_eip());
     else
-        s.sprintf("%04X:%04X", cpu.getCS(), cpu.getIP());
+        s.sprintf("%04X:%04X", cpu.get_cs(), cpu.get_ip());
 
     QString prompt = brightMagenta % QLatin1Literal("CT ") % brightCyan % s % defaultColor % QLatin1Literal("> ");
 
@@ -109,14 +109,14 @@ void Debugger::handleCommand(const QString& rawCommand)
             u32 page = (address >> 12) & 0x3FF;
             u32 offset = address & 0xFFF;
 
-            printf("CR3: %08x\n", cpu().getCR3());
+            printf("CR3: %08x\n", cpu().get_cr3());
 
             printf("%08x { dir=%03x, page=%03x, offset=%03x }\n", address, dir, page, offset);
 
-            PhysicalAddress pdeAddress(cpu().getCR3() + dir * sizeof(u32));
-            u32 pageDirectoryEntry = cpu().readPhysicalMemory<u32>(pdeAddress);
+            PhysicalAddress pdeAddress(cpu().get_cr3() + dir * sizeof(u32));
+            u32 pageDirectoryEntry = cpu().read_physical_memory<u32>(pdeAddress);
             PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(u32));
-            u32 pageTableEntry = cpu().readPhysicalMemory<u32>(pteAddress);
+            u32 pageTableEntry = cpu().read_physical_memory<u32>(pteAddress);
 
             printf("PDE: %08x @ %08x\n", pageDirectoryEntry, pdeAddress.get());
             printf("PTE: %08x @ %08x\n", pageTableEntry, pteAddress.get());
@@ -170,53 +170,53 @@ void Debugger::handleCommand(const QString& rawCommand)
         return handleStack(arguments);
 
     if (lowerCommand == "gdt") {
-        cpu().dumpGDT();
+        cpu().dump_gdt();
         return;
     }
 
     if (lowerCommand == "ldt") {
-        cpu().dumpLDT();
+        cpu().dump_ldt();
         return;
     }
 
     if (lowerCommand == "sti") {
         vlog(LogDump, "IF <- 1");
-        cpu().setIF(1);
+        cpu().set_if(1);
         return;
     }
 
     if (lowerCommand == "cli") {
         vlog(LogDump, "IF <- 0");
-        cpu().setIF(0);
+        cpu().set_if(0);
         return;
     }
 
     if (lowerCommand == "stz") {
         vlog(LogDump, "ZF <- 1");
-        cpu().setZF(1);
+        cpu().set_zf(1);
         return;
     }
 
     if (lowerCommand == "clz") {
         vlog(LogDump, "ZF <- 0");
-        cpu().setZF(0);
+        cpu().set_zf(0);
         return;
     }
 
     if (lowerCommand == "stc") {
         vlog(LogDump, "CF <- 1");
-        cpu().setCF(1);
+        cpu().set_cf(1);
         return;
     }
 
     if (lowerCommand == "clc") {
         vlog(LogDump, "CF <- 0");
-        cpu().setCF(0);
+        cpu().set_cf(0);
         return;
     }
 
     if (lowerCommand == "unhlt") {
-        cpu().setState(CPU::Alive);
+        cpu().set_state(CPU::Alive);
         return;
     }
 
@@ -224,14 +224,14 @@ void Debugger::handleCommand(const QString& rawCommand)
         return handleIRQ(arguments);
 
     if (lowerCommand == "picmasks") {
-        cpu().machine().masterPIC().dumpMask();
-        cpu().machine().slavePIC().dumpMask();
+        cpu().machine().master_pic().dump_mask();
+        cpu().machine().slave_pic().dump_mask();
         return;
     }
 
     if (lowerCommand == "unmask") {
-        cpu().machine().masterPIC().unmaskAll();
-        cpu().machine().slavePIC().unmaskAll();
+        cpu().machine().master_pic().unmask_all();
+        cpu().machine().slave_pic().unmask_all();
         return;
     }
 
@@ -281,13 +281,13 @@ void Debugger::handleIRQ(const QStringList& arguments)
 
     if (arguments[0] == "off") {
         printf("Ignoring all IRQs\n");
-        PIC::setIgnoreAllIRQs(true);
+        PIC::set_ignore_all_irqs(true);
         return;
     }
 
     if (arguments[0] == "on") {
         printf("Allowing all IRQs\n");
-        PIC::setIgnoreAllIRQs(false);
+        PIC::set_ignore_all_irqs(false);
         return;
     }
 
@@ -314,7 +314,7 @@ void Debugger::handleBreakpoint(const QStringList& arguments)
         selector = arguments.at(1).toUInt(0, 16);
         offset_index = 2;
     } else {
-        selector = cpu().getCS();
+        selector = cpu().get_cs();
         offset_index = 1;
     }
     bool ok;
@@ -343,7 +343,7 @@ void Debugger::handleBreakpoint(const QStringList& arguments)
         printf("delete breakpoint: %04x:%08x\n", selector, offset);
         cpu().breakpoints().erase(address);
     }
-    cpu().recomputeMainLoopNeedsSlowStuff();
+    cpu().recompute_main_loop_needs_slow_stuff();
 }
 
 void Debugger::doConsole()
@@ -351,8 +351,8 @@ void Debugger::doConsole()
     ASSERT(isActive());
 
     printf("\n");
-    cpu().dumpAll();
-    printf(">>> Entering Computron debugger @ %04x:%08x\n", cpu().getBaseCS(), cpu().currentBaseInstructionPointer());
+    cpu().dump_all();
+    printf(">>> Entering Computron debugger @ %04x:%08x\n", cpu().get_base_cs(), cpu().current_base_instruction_pointer());
 
     while (isActive()) {
         QString rawCommand = doPrompt(cpu());
@@ -367,12 +367,12 @@ void Debugger::handleQuit()
 
 void Debugger::handleDumpRegisters()
 {
-    cpu().dumpAll();
+    cpu().dump_all();
 }
 
 void Debugger::handleDumpIVT()
 {
-    cpu().dumpIVT();
+    cpu().dump_ivt();
 }
 
 void Debugger::handleReconfigure()
@@ -382,11 +382,11 @@ void Debugger::handleReconfigure()
 
 void Debugger::handleStep()
 {
-    cpu().executeOneInstruction();
-    cpu().dumpAll();
-    cpu().dumpWatches();
+    cpu().execute_one_instruction();
+    cpu().dump_all();
+    cpu().dump_watches();
     vlog(LogDump, "Next instruction:");
-    cpu().dumpDisassembled(cpu().cachedDescriptor(SegmentRegisterIndex::CS), cpu().getEIP());
+    cpu().dump_disassembled(cpu().cached_descriptor(SegmentRegisterIndex::CS), cpu().get_eip());
 }
 
 void Debugger::handleContinue()
@@ -401,19 +401,19 @@ void Debugger::handleSelector(const QStringList& arguments)
         return;
     }
     u16 select = arguments.at(0).toUInt(0, 16);
-    cpu().dumpDescriptor(cpu().getDescriptor(select));
+    cpu().dump_descriptor(cpu().get_descriptor(select));
 }
 
 void Debugger::handleStack(const QStringList& arguments)
 {
     UNUSED_PARAM(arguments);
-    cpu().dumpStack(DWordSize, 16);
+    cpu().dump_stack(DWordSize, 16);
 }
 
 void Debugger::handleDumpMemory(const QStringList& arguments)
 {
-    u16 selector = cpu().getCS();
-    u32 offset = cpu().getEIP();
+    u16 selector = cpu().get_cs();
+    u32 offset = cpu().get_eip();
 
     if (arguments.size() == 1)
         offset = arguments.at(0).toUInt(0, 16);
@@ -422,13 +422,13 @@ void Debugger::handleDumpMemory(const QStringList& arguments)
         offset = arguments.at(1).toUInt(0, 16);
     }
 
-    cpu().dumpMemory(LogicalAddress(selector, offset), 16);
+    cpu().dump_memory(LogicalAddress(selector, offset), 16);
 }
 
 void Debugger::handleDumpUnassembled(const QStringList& arguments)
 {
-    u16 selector = cpu().getCS();
-    u32 offset = cpu().getEIP();
+    u16 selector = cpu().get_cs();
+    u32 offset = cpu().get_eip();
 
     if (arguments.size() == 1)
         offset = arguments.at(0).toUInt(0, 16);
@@ -437,28 +437,28 @@ void Debugger::handleDumpUnassembled(const QStringList& arguments)
         offset = arguments.at(1).toUInt(0, 16);
     }
 
-    u32 bytesDisassembled = cpu().dumpDisassembled(LogicalAddress(selector, offset), 20);
+    u32 bytesDisassembled = cpu().dump_disassembled(LogicalAddress(selector, offset), 20);
     vlog(LogDump, "Next offset: %08x", offset + bytesDisassembled);
 }
 
 void Debugger::handleDumpSegment(const QStringList& arguments)
 {
-    u16 segment = cpu().getCS();
+    u16 segment = cpu().get_cs();
 
     if (arguments.size() >= 1)
         segment = arguments.at(0).toUInt(0, 16);
 
-    cpu().dumpSegment(segment);
+    cpu().dump_segment(segment);
 }
 
 void Debugger::handleDumpFlatMemory(const QStringList& arguments)
 {
-    u32 address = cpu().getEIP();
+    u32 address = cpu().get_eip();
 
     if (arguments.size() == 1)
         address = arguments.at(0).toUInt(0, 16);
 
-    cpu().dumpFlatMemory(address);
+    cpu().dump_flat_memory(address);
 }
 
 void Debugger::handleTracing(const QStringList& arguments)
@@ -466,7 +466,7 @@ void Debugger::handleTracing(const QStringList& arguments)
     if (arguments.size() == 1) {
         unsigned value = arguments.at(0).toUInt(0, 16);
         options.trace = value != 0;
-        cpu().recomputeMainLoopNeedsSlowStuff();
+        cpu().recompute_main_loop_needs_slow_stuff();
         return;
     }
 

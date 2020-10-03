@@ -24,171 +24,171 @@
 
 #include "CPU.h"
 
-bool CPU::getPF() const
+bool CPU::get_pf() const
 {
-    if (m_dirtyFlags & Flag::PF) {
-        PF = 0x9669 << 2 >> ((m_lastResult ^ m_lastResult >> 4) & 0xf) & Flag::PF;
-        m_dirtyFlags &= ~Flag::PF;
+    if (m_dirty_flags & Flag::PF) {
+        m_pf = 0x9669 << 2 >> ((m_last_result ^ m_last_result >> 4) & 0xf) & Flag::PF;
+        m_dirty_flags &= ~Flag::PF;
     }
-    return PF;
+    return m_pf;
 }
 
-bool CPU::getZF() const
+bool CPU::get_zf() const
 {
-    if (m_dirtyFlags & Flag::ZF) {
-        ZF = (~m_lastResult & (m_lastResult - 1)) >> (m_lastOpSize - 1) & 1;
-        m_dirtyFlags &= ~Flag::ZF;
+    if (m_dirty_flags & Flag::ZF) {
+        m_zf = (~m_last_result & (m_last_result - 1)) >> (m_last_op_size - 1) & 1;
+        m_dirty_flags &= ~Flag::ZF;
     }
-    return ZF;
+    return m_zf;
 }
 
-bool CPU::getSF() const
+bool CPU::get_sf() const
 {
-    if (m_dirtyFlags & Flag::SF) {
-        SF = (m_lastResult >> (m_lastOpSize - 1)) & 1;
-        m_dirtyFlags &= ~Flag::SF;
+    if (m_dirty_flags & Flag::SF) {
+        m_sf = (m_last_result >> (m_last_op_size - 1)) & 1;
+        m_dirty_flags &= ~Flag::SF;
     }
-    return SF;
+    return m_sf;
 }
 
-void CPU::updateFlags32(u32 data)
+void CPU::update_flags32(u32 data)
 {
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = data;
-    m_lastOpSize = DWordSize;
+    m_dirty_flags |= Flag::PF | Flag::ZF | Flag::SF;
+    m_last_result = data;
+    m_last_op_size = DWordSize;
 }
 
-void CPU::updateFlags16(u16 data)
+void CPU::update_flags16(u16 data)
 {
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = data;
-    m_lastOpSize = WordSize;
+    m_dirty_flags |= Flag::PF | Flag::ZF | Flag::SF;
+    m_last_result = data;
+    m_last_op_size = WordSize;
 }
 
-void CPU::updateFlags8(u8 data)
+void CPU::update_flags8(u8 data)
 {
-    m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
-    m_lastResult = data;
-    m_lastOpSize = ByteSize;
+    m_dirty_flags |= Flag::PF | Flag::ZF | Flag::SF;
+    m_last_result = data;
+    m_last_op_size = ByteSize;
 }
 
 void CPU::_STC(Instruction&)
 {
-    setCF(1);
+    set_cf(1);
 }
 
 void CPU::_STD(Instruction&)
 {
-    setDF(1);
+    set_df(1);
 }
 
 void CPU::_STI(Instruction&)
 {
-    if (!getPE() || getIOPL() >= getCPL()) {
-        if (getIF())
-            makeNextInstructionUninterruptible();
-        setIF(1);
+    if (!get_pe() || get_iopl() >= get_cpl()) {
+        if (get_if())
+            make_next_instruction_uninterruptible();
+        set_if(1);
         return;
     }
 
-    if (!getVME() && !getPVI())
+    if (!get_vme() && !get_pvi())
         throw GeneralProtectionFault(0, "STI with VME=0 && PVI=0");
 
-    if (getVIP())
+    if (get_vip())
         throw GeneralProtectionFault(0, "STI with VIP=1");
 
-    setVIF(1);
+    set_vif(1);
 }
 
 void CPU::_CLI(Instruction&)
 {
-    if (!getPE() || getIOPL() >= getCPL()) {
-        setIF(0);
+    if (!get_pe() || get_iopl() >= get_cpl()) {
+        set_if(0);
         return;
     }
 
-    if (!getVME() && !getPVI())
+    if (!get_vme() && !get_pvi())
         throw GeneralProtectionFault(0, "CLI with VME=0 && PVI=0");
 
-    setVIF(0);
+    set_vif(0);
 }
 
 void CPU::_CLC(Instruction&)
 {
-    setCF(0);
+    set_cf(0);
 }
 
 void CPU::_CLD(Instruction&)
 {
-    setDF(0);
+    set_df(0);
 }
 
 void CPU::_CMC(Instruction&)
 {
-    setCF(!getCF());
+    set_cf(!get_cf());
 }
 
 void CPU::_LAHF(Instruction&)
 {
-    setAH(getCF() | (getPF() * Flag::PF) | (getAF() * Flag::AF) | (getZF() * Flag::ZF) | (getSF() * Flag::SF) | 2);
+    set_ah(get_cf() | (get_pf() * Flag::PF) | (get_af() * Flag::AF) | (get_zf() * Flag::ZF) | (get_sf() * Flag::SF) | 2);
 }
 
 void CPU::_SAHF(Instruction&)
 {
-    setCF(getAH() & Flag::CF);
-    setPF(getAH() & Flag::PF);
-    setAF(getAH() & Flag::AF);
-    setZF(getAH() & Flag::ZF);
-    setSF(getAH() & Flag::SF);
+    set_cf(get_ah() & Flag::CF);
+    set_pf(get_ah() & Flag::PF);
+    set_af(get_ah() & Flag::AF);
+    set_zf(get_ah() & Flag::ZF);
+    set_sf(get_ah() & Flag::SF);
 }
 
-void CPU::setFlags(u16 flags)
+void CPU::set_flags(u16 flags)
 {
-    setCF(flags & Flag::CF);
-    setPF(flags & Flag::PF);
-    setAF(flags & Flag::AF);
-    setZF(flags & Flag::ZF);
-    setSF(flags & Flag::SF);
-    setTF(flags & Flag::TF);
-    setIF(flags & Flag::IF);
-    setDF(flags & Flag::DF);
-    setOF(flags & Flag::OF);
-    setIOPL((flags & Flag::IOPL) >> 12);
-    setNT(flags & Flag::NT);
+    set_cf(flags & Flag::CF);
+    set_pf(flags & Flag::PF);
+    set_af(flags & Flag::AF);
+    set_zf(flags & Flag::ZF);
+    set_sf(flags & Flag::SF);
+    set_tf(flags & Flag::TF);
+    set_if(flags & Flag::IF);
+    set_df(flags & Flag::DF);
+    set_of(flags & Flag::OF);
+    set_iopl((flags & Flag::IOPL) >> 12);
+    set_nt(flags & Flag::NT);
 }
 
-u16 CPU::getFlags() const
+u16 CPU::get_flags() const
 {
     return 0x0002
-        | (getCF() * Flag::CF)
-        | (getPF() * Flag::PF)
-        | (getAF() * Flag::AF)
-        | (getZF() * Flag::ZF)
-        | (getSF() * Flag::SF)
-        | (getTF() * Flag::TF)
-        | (getIF() * Flag::IF)
-        | (getDF() * Flag::DF)
-        | (getOF() * Flag::OF)
-        | (getIOPL() << 12)
-        | (getNT() * Flag::NT);
+        | (get_cf() * Flag::CF)
+        | (get_pf() * Flag::PF)
+        | (get_af() * Flag::AF)
+        | (get_zf() * Flag::ZF)
+        | (get_sf() * Flag::SF)
+        | (get_tf() * Flag::TF)
+        | (get_if() * Flag::IF)
+        | (get_df() * Flag::DF)
+        | (get_of() * Flag::OF)
+        | (get_iopl() << 12)
+        | (get_nt() * Flag::NT);
 }
 
-void CPU::setEFlags(u32 eflags)
+void CPU::set_eflags(u32 eflags)
 {
-    setFlags(eflags & 0xffff);
-    setRF(eflags & Flag::RF);
-    setVM(eflags & Flag::VM);
+    set_flags(eflags & 0xffff);
+    set_rf(eflags & Flag::RF);
+    set_vm(eflags & Flag::VM);
     //    this->AC = (eflags & 0x40000) != 0;
     //    this->VIF = (eflags & 0x80000) != 0;
     //    this->VIP = (eflags & 0x100000) != 0;
     //    this->ID = (eflags & 0x200000) != 0;
 }
 
-u32 CPU::getEFlags() const
+u32 CPU::get_eflags() const
 {
-    u32 eflags = getFlags()
-        | (this->RF * Flag::RF)
-        | (this->VM * Flag::VM)
+    u32 eflags = get_flags()
+        | (this->m_rf * Flag::RF)
+        | (this->m_vm * Flag::VM)
         //         | (this->AC << 18)
         //         | (this->VIF << 19)
         //         | (this->VIP << 20)

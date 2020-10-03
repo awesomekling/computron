@@ -29,7 +29,8 @@
 #include "ThreadedTimer.h"
 #include "iodevice.h"
 
-class CMOS final : public IODevice
+class CMOS final
+    : public IODevice
     , public ThreadedTimer::Listener {
 public:
     enum RegisterIndex {
@@ -60,20 +61,20 @@ public:
     void out8(u16 port, u8 data) override;
     u8 in8(u16 port) override;
 
-    void updateClock();
+    void update_clock();
 
     void set(RegisterIndex, u8);
     u8 get(RegisterIndex) const;
 
 private:
-    virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
+    virtual void threaded_timer_fired(Badge<ThreadedTimer>) override;
 
-    u8 m_registerIndex { 0 };
+    u8 m_register_index { 0 };
     u8 m_ram[80];
 
-    bool inBinaryClockMode() const;
-    bool in24HourMode() const;
-    u8 toCurrentClockFormat(u8) const;
+    bool in_binary_clock_mode() const;
+    bool in_24_hour_mode() const;
+    u8 to_current_clock_format(u8) const;
 
-    OwnPtr<ThreadedTimer> m_rtcTimer;
+    OwnPtr<ThreadedTimer> m_rtc_timer;
 };

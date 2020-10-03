@@ -29,14 +29,14 @@
 #include "debugger.h"
 #include <stdio.h>
 
-unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, u32 offset)
+unsigned CPU::dump_disassembled_internal(SegmentDescriptor& descriptor, u32 offset)
 {
     char buf[512];
     char* p = buf;
     const u8* data = nullptr;
 
     try {
-        data = memoryPointer(descriptor, offset);
+        data = memory_pointer(descriptor, offset);
     } catch (...) {
         data = nullptr;
     }
@@ -47,7 +47,7 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, u32 offset
     }
 
     SimpleInstructionStream stream(data);
-    auto insn = Instruction::fromStream(stream, m_operandSize32, m_addressSize32);
+    auto insn = Instruction::fromStream(stream, m_operand_size32, m_address_size32);
 
     if (x32())
         p += sprintf(p, "%04x:%08x ", descriptor.index(), offset);
@@ -60,7 +60,7 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, u32 offset
     for (unsigned i = 0; i < (32 - (insn.length() * 2)); ++i)
         p += sprintf(p, " ");
 
-    if (insn.isValid())
+    if (insn.is_valid())
         p += sprintf(p, " %s", qPrintable(insn.toString(offset, x32())));
     else
         p += sprintf(p, " <invalid instruction>");
@@ -69,23 +69,23 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, u32 offset
     return insn.length();
 }
 
-unsigned CPU::dumpDisassembled(SegmentDescriptor& descriptor, u32 offset, unsigned count)
+unsigned CPU::dump_disassembled(SegmentDescriptor& descriptor, u32 offset, unsigned count)
 {
     unsigned bytes = 0;
     for (unsigned i = 0; i < count; ++i) {
-        bytes += dumpDisassembledInternal(descriptor, offset + bytes);
+        bytes += dump_disassembled_internal(descriptor, offset + bytes);
     }
     return bytes;
 }
 
-unsigned CPU::dumpDisassembled(LogicalAddress address, unsigned count)
+unsigned CPU::dump_disassembled(LogicalAddress address, unsigned count)
 {
-    auto descriptor = getSegmentDescriptor(address.selector());
-    return dumpDisassembled(descriptor, address.offset(), count);
+    auto descriptor = get_segment_descriptor(address.selector());
+    return dump_disassembled(descriptor, address.offset(), count);
 }
 
 #ifdef CT_TRACE
-void CPU::dumpTrace()
+void CPU::dump_trace()
 {
 #    if 0
     fprintf(stderr,
@@ -96,7 +96,7 @@ void CPU::dumpTrace()
         "DS=%04X ES=%04X SS=%04X FS=%04X GS=%04X "
         "C=%u P=%u A=%u Z=%u S=%u I=%u D=%u O=%u\n",
         getCS(), getEIP(),
-        getEAX(), getEBX(), getECX(), getEDX(), getESP(), getEBP(), getESI(), getEDI(),
+        get_eax(), get_ebx(), get_ecx(), get_edx(), get_esp(), get_ebp(), get_esi(), get_edi(),
         getCR0(), getCR1(), getCR2(), getCR3(), getCR4(), getCR5(), getCR6(), getCR7(),
         getDR0(), getDR1(), getDR2(), getDR3(), getDR4(), getDR5(), getDR6(), getDR7(),
         getDS(), getES(), getSS(), getFS(), getGS(),
@@ -112,15 +112,15 @@ void CPU::dumpTrace()
         "C=%u P=%u A=%u Z=%u S=%u I=%u D=%u O=%u "
         "NT=%u VM=%u "
         "A%u O%u X%u S%u\n",
-        getCS(), getEIP(),
-        readMemory8(SegmentRegisterIndex::CS, getEIP()),
-        getEAX(), getEBX(), getECX(), getEDX(), getESP(), getEBP(), getESI(), getEDI(),
-        getCR0(), getCR3(), getCPL(), getIOPL(),
-        isA20Enabled(),
-        getDS(), getES(), getSS(), getFS(), getGS(),
-        getCF(), getPF(), getAF(), getZF(),
-        getSF(), getIF(), getDF(), getOF(),
-        getNT(), getVM(),
+        get_cs(), get_eip(),
+        read_memory8(SegmentRegisterIndex::CS, get_eip()),
+        get_eax(), get_ebx(), get_ecx(), get_edx(), get_esp(), get_ebp(), get_esi(), get_edi(),
+        get_cr0(), get_cr3(), get_cpl(), get_iopl(),
+        is_a20_enabled(),
+        get_ds(), get_es(), get_ss(), get_fs(), get_gs(),
+        get_cf(), get_pf(), get_af(), get_zf(),
+        get_sf(), get_if(), get_df(), get_of(),
+        get_nt(), get_vm(),
         a16() ? 16 : 32,
         o16() ? 16 : 32,
         x16() ? 16 : 32,
@@ -129,16 +129,16 @@ void CPU::dumpTrace()
 }
 #endif
 
-void CPU::dumpSelector(const char* prefix, SegmentRegisterIndex segreg)
+void CPU::dump_selector(const char* prefix, SegmentRegisterIndex segreg)
 {
-    auto& descriptor = cachedDescriptor(segreg);
+    auto& descriptor = cached_descriptor(segreg);
     if (descriptor.isNull())
-        vlog(LogDump, "%s: %04x: (null descriptor)", prefix, readSegmentRegister(segreg));
+        vlog(LogDump, "%s: %04x: (null descriptor)", prefix, read_segment_register(segreg));
     else
-        dumpDescriptor(descriptor, prefix);
+        dump_descriptor(descriptor, prefix);
 }
 
-const char* CPU::registerName(SegmentRegisterIndex index)
+const char* CPU::register_name(SegmentRegisterIndex index)
 {
     switch (index) {
     case SegmentRegisterIndex::CS:
@@ -159,9 +159,9 @@ const char* CPU::registerName(SegmentRegisterIndex index)
     }
 }
 
-const char* CPU::registerName(CPU::RegisterIndex8 registerIndex)
+const char* CPU::register_name(CPU::RegisterIndex8 register_index)
 {
-    switch (registerIndex) {
+    switch (register_index) {
     case CPU::RegisterAL:
         return "al";
     case CPU::RegisterBL:
@@ -183,9 +183,9 @@ const char* CPU::registerName(CPU::RegisterIndex8 registerIndex)
     return nullptr;
 }
 
-const char* CPU::registerName(CPU::RegisterIndex16 registerIndex)
+const char* CPU::register_name(CPU::RegisterIndex16 register_index)
 {
-    switch (registerIndex) {
+    switch (register_index) {
     case CPU::RegisterAX:
         return "ax";
     case CPU::RegisterBX:
@@ -207,9 +207,9 @@ const char* CPU::registerName(CPU::RegisterIndex16 registerIndex)
     return nullptr;
 }
 
-const char* CPU::registerName(CPU::RegisterIndex32 registerIndex)
+const char* CPU::register_name(CPU::RegisterIndex32 register_index)
 {
-    switch (registerIndex) {
+    switch (register_index) {
     case CPU::RegisterEAX:
         return "eax";
     case CPU::RegisterEBX:
@@ -231,11 +231,11 @@ const char* CPU::registerName(CPU::RegisterIndex32 registerIndex)
     return nullptr;
 }
 
-void CPU::dumpWatches()
+void CPU::dump_watches()
 {
     for (WatchedAddress& watch : m_watches) {
         if (watch.size == ByteSize) {
-            auto data = readPhysicalMemory<u8>(watch.address);
+            auto data = read_physical_memory<u8>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %02X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -243,7 +243,7 @@ void CPU::dumpWatches()
                     debugger().enter();
             }
         } else if (watch.size == WordSize) {
-            auto data = readPhysicalMemory<u16>(watch.address);
+            auto data = read_physical_memory<u16>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %04X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -251,7 +251,7 @@ void CPU::dumpWatches()
                     debugger().enter();
             }
         } else if (watch.size == DWordSize) {
-            auto data = readPhysicalMemory<u32>(watch.address);
+            auto data = read_physical_memory<u32>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %08X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -262,50 +262,50 @@ void CPU::dumpWatches()
     }
 }
 
-void CPU::dumpAll()
+void CPU::dump_all()
 {
-    if (getPE() && TR.selector != 0) {
-        auto descriptor = getDescriptor(TR.selector);
+    if (get_pe() && m_tr.selector != 0) {
+        auto descriptor = get_descriptor(m_tr.selector);
         if (descriptor.isTSS()) {
             auto& tssDescriptor = descriptor.asTSSDescriptor();
             TSS tss(*this, tssDescriptor.base(), tssDescriptor.is32Bit());
-            dumpTSS(tss);
+            dump_tss(tss);
         }
     }
 
-    vlog(LogDump, "eax: %08x  ebx: %08x  ecx: %08x  edx: %08x", getEAX(), getEBX(), getECX(), getEDX());
-    vlog(LogDump, "ebp: %08x  esp: %08x  esi: %08x  edi: %08x", getEBP(), getESP(), getESI(), getEDI());
+    vlog(LogDump, "eax: %08x  ebx: %08x  ecx: %08x  edx: %08x", get_eax(), get_ebx(), get_ecx(), get_edx());
+    vlog(LogDump, "ebp: %08x  esp: %08x  esi: %08x  edi: %08x", get_ebp(), get_esp(), get_esi(), get_edi());
 
-    if (!getPE()) {
-        vlog(LogDump, "ds: %04x  es: %04x ss: %04x  fs: %04x  gs: %04x", getDS(), getES(), getSS(), getFS(), getGS());
-        vlog(LogDump, "cs: %04x eip: %08x", getCS(), getEIP());
+    if (!get_pe()) {
+        vlog(LogDump, "ds: %04x  es: %04x ss: %04x  fs: %04x  gs: %04x", get_ds(), get_es(), get_ss(), get_fs(), get_gs());
+        vlog(LogDump, "cs: %04x eip: %08x", get_cs(), get_eip());
     } else {
-        dumpSelector("ds: ", SegmentRegisterIndex::DS);
-        dumpSelector("es: ", SegmentRegisterIndex::ES);
-        dumpSelector("ss: ", SegmentRegisterIndex::SS);
-        dumpSelector("fs: ", SegmentRegisterIndex::FS);
-        dumpSelector("gs: ", SegmentRegisterIndex::GS);
-        dumpSelector("cs: ", SegmentRegisterIndex::CS);
-        vlog(LogDump, "eip: %08x", getEIP());
+        dump_selector("ds: ", SegmentRegisterIndex::DS);
+        dump_selector("es: ", SegmentRegisterIndex::ES);
+        dump_selector("ss: ", SegmentRegisterIndex::SS);
+        dump_selector("fs: ", SegmentRegisterIndex::FS);
+        dump_selector("gs: ", SegmentRegisterIndex::GS);
+        dump_selector("cs: ", SegmentRegisterIndex::CS);
+        vlog(LogDump, "eip: %08x", get_eip());
     }
-    vlog(LogDump, "cpl: %u  iopl: %u  a20: %u", getCPL(), getIOPL(), isA20Enabled());
+    vlog(LogDump, "cpl: %u  iopl: %u  a20: %u", get_cpl(), get_iopl(), is_a20_enabled());
     vlog(LogDump, "a%u[%u] o%u[%u] s%u x%u",
-        m_effectiveAddressSize32 ? 32 : 16,
-        m_addressSize32 ? 32 : 16,
-        m_effectiveOperandSize32 ? 32 : 16,
-        m_operandSize32 ? 32 : 16,
+        m_effective_address_size32 ? 32 : 16,
+        m_address_size32 ? 32 : 16,
+        m_effective_operand_size32 ? 32 : 16,
+        m_operand_size32 ? 32 : 16,
         s16() ? 16 : 32,
         x16() ? 16 : 32);
 
-    vlog(LogDump, "cr0: %08x  cr3: %08x", getCR0(), getCR3());
-    vlog(LogDump, "idtr: {base=%08x, limit=%04x}", m_IDTR.base().get(), m_IDTR.limit());
-    vlog(LogDump, "gdtr: {base=%08x, limit=%04x}", m_GDTR.base().get(), m_GDTR.limit());
-    vlog(LogDump, "ldtr: {base=%08x, limit=%04x, (selector=%04x)}", m_LDTR.base().get(), m_LDTR.limit(), m_LDTR.selector());
-    vlog(LogDump, "  tr: {base=%08x, limit=%04x, (selector=%04x, %u-bit)}", TR.base.get(), TR.limit, TR.selector, TR.is32Bit ? 32 : 16);
+    vlog(LogDump, "cr0: %08x  cr3: %08x", get_cr0(), get_cr3());
+    vlog(LogDump, "idtr: {base=%08x, limit=%04x}", m_idtr.base().get(), m_idtr.limit());
+    vlog(LogDump, "gdtr: {base=%08x, limit=%04x}", m_gdtr.base().get(), m_gdtr.limit());
+    vlog(LogDump, "ldtr: {base=%08x, limit=%04x, (selector=%04x)}", m_ldtr.base().get(), m_ldtr.limit(), m_ldtr.selector());
+    vlog(LogDump, "  tr: {base=%08x, limit=%04x, (selector=%04x, %u-bit)}", m_tr.base.get(), m_tr.limit, m_tr.selector, m_tr.is_32bit ? 32 : 16);
 
-    vlog(LogDump, "cf=%u pf=%u af=%u zf=%u sf=%u if=%u df=%u of=%u tf=%u nt=%u vm=%u", getCF(), getPF(), getAF(), getZF(), getSF(), getIF(), getDF(), getOF(), getTF(), getNT(), getVM());
+    vlog(LogDump, "cf=%u pf=%u af=%u zf=%u sf=%u if=%u df=%u of=%u tf=%u nt=%u vm=%u", get_cf(), get_pf(), get_af(), get_zf(), get_sf(), get_if(), get_df(), get_of(), get_tf(), get_nt(), get_vm());
 
-    dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), currentBaseInstructionPointer());
+    dump_disassembled(cached_descriptor(SegmentRegisterIndex::CS), current_base_instruction_pointer());
 }
 
 static inline u8 n(u8 b)
@@ -315,7 +315,7 @@ static inline u8 n(u8 b)
     return b;
 }
 
-void CPU::dumpFlatMemory(u32 address)
+void CPU::dump_flat_memory(u32 address)
 {
     address &= 0xFFFFFFF0;
 
@@ -343,7 +343,7 @@ void CPU::dumpFlatMemory(u32 address)
     }
 }
 
-void CPU::dumpRawMemory(u8* p)
+void CPU::dump_raw_memory(u8* p)
 {
     int rows = 16;
     vlog(LogDump, "Raw dump %p", p);
@@ -356,13 +356,13 @@ void CPU::dumpRawMemory(u8* p)
     }
 }
 
-void CPU::dumpMemory(SegmentDescriptor& descriptor, u32 offset, int rows)
+void CPU::dump_memory(SegmentDescriptor& descriptor, u32 offset, int rows)
 {
     offset &= 0xFFFFFFF0;
     const u8* p;
 
     try {
-        p = memoryPointer(descriptor, offset);
+        p = memory_pointer(descriptor, offset);
     } catch (...) {
         p = nullptr;
     }
@@ -383,7 +383,7 @@ void CPU::dumpMemory(SegmentDescriptor& descriptor, u32 offset, int rows)
         p += 16;
     }
 
-    p = memoryPointer(descriptor, offset);
+    p = memory_pointer(descriptor, offset);
     for (int i = 0; i < rows; ++i) {
         fprintf(stderr,
             "db 0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X\n",
@@ -393,23 +393,23 @@ void CPU::dumpMemory(SegmentDescriptor& descriptor, u32 offset, int rows)
     }
 }
 
-void CPU::dumpMemory(LogicalAddress address, int rows)
+void CPU::dump_memory(LogicalAddress address, int rows)
 {
-    auto descriptor = getSegmentDescriptor(address.selector());
-    return dumpMemory(descriptor, address.offset(), rows);
+    auto descriptor = get_segment_descriptor(address.selector());
+    return dump_memory(descriptor, address.offset(), rows);
 }
 
 static inline u16 isrSegment(CPU& cpu, u8 isr)
 {
-    return cpu.getRealModeInterruptVector(isr).selector();
+    return cpu.get_real_mode_interrupt_vector(isr).selector();
 }
 
 static inline u16 isrOffset(CPU& cpu, u8 isr)
 {
-    return cpu.getRealModeInterruptVector(isr).offset();
+    return cpu.get_real_mode_interrupt_vector(isr).offset();
 }
 
-void CPU::dumpIVT()
+void CPU::dump_ivt()
 {
     // XXX: For alignment reasons, we're skipping INT FF
     for (int i = 0; i < 0xFF; i += 4) {
@@ -422,27 +422,27 @@ void CPU::dumpIVT()
     }
 }
 
-void CPU::dumpDescriptor(const Descriptor& descriptor, const char* prefix)
+void CPU::dump_descriptor(const Descriptor& descriptor, const char* prefix)
 {
     if (descriptor.isNull())
         vlog(LogCPU, "%s%04x (null descriptor)", prefix, descriptor.index());
     else if (descriptor.isSegmentDescriptor())
-        dumpDescriptor(descriptor.asSegmentDescriptor(), prefix);
+        dump_descriptor(descriptor.asSegmentDescriptor(), prefix);
     else
-        dumpDescriptor(descriptor.asSystemDescriptor(), prefix);
+        dump_descriptor(descriptor.asSystemDescriptor(), prefix);
 }
 
-void CPU::dumpDescriptor(const SegmentDescriptor& descriptor, const char* prefix)
+void CPU::dump_descriptor(const SegmentDescriptor& descriptor, const char* prefix)
 {
     if (descriptor.isNull())
         vlog(LogCPU, "%s%04x (null descriptor)", prefix, descriptor.index());
     else if (descriptor.isCode())
-        dumpDescriptor(descriptor.asCodeSegmentDescriptor(), prefix);
+        dump_descriptor(descriptor.asCodeSegmentDescriptor(), prefix);
     else
-        dumpDescriptor(descriptor.asDataSegmentDescriptor(), prefix);
+        dump_descriptor(descriptor.asDataSegmentDescriptor(), prefix);
 }
 
-void CPU::dumpDescriptor(const Gate& gate, const char* prefix)
+void CPU::dump_descriptor(const Gate& gate, const char* prefix)
 {
     vlog(LogCPU, "%s%04x (gate) { type: %s (%02x), entry:%04x:%06x, params:%u, bits:%u, p:%u, dpl:%u }",
         prefix,
@@ -457,14 +457,14 @@ void CPU::dumpDescriptor(const Gate& gate, const char* prefix)
         gate.DPL());
     if (gate.isCallGate()) {
         vlog(LogCPU, "Call gate points to:");
-        dumpDescriptor(getDescriptor(gate.selector()), prefix);
+        dump_descriptor(get_descriptor(gate.selector()), prefix);
     }
 }
 
-void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
+void CPU::dump_descriptor(const SystemDescriptor& descriptor, const char* prefix)
 {
     if (descriptor.isGate()) {
-        dumpDescriptor(descriptor.asGate(), prefix);
+        dump_descriptor(descriptor.asGate(), prefix);
         return;
     }
     if (descriptor.isLDT()) {
@@ -487,7 +487,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
         descriptor.DPL());
 }
 
-void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefix)
+void CPU::dump_descriptor(const CodeSegmentDescriptor& segment, const char* prefix)
 {
     vlog(LogCPU, "%s%04x (%s) { type: code, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, r:%u, c:%u }",
         prefix,
@@ -504,7 +504,7 @@ void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefi
         segment.readable());
 }
 
-void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefix)
+void CPU::dump_descriptor(const DataSegmentDescriptor& segment, const char* prefix)
 {
     vlog(LogCPU, "%s%04x (%s) { type: data, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, w:%u, ed:%u }",
         prefix,
@@ -521,18 +521,18 @@ void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefi
         segment.expandDown());
 }
 
-void CPU::dumpSegment(u16 index)
+void CPU::dump_segment(u16 index)
 {
-    dumpDescriptor(getDescriptor(index));
+    dump_descriptor(get_descriptor(index));
 }
 
-void CPU::dumpStack(ValueSize valueSize, unsigned count)
+void CPU::dump_stack(ValueSize valueSize, unsigned count)
 {
-    u32 sp = currentStackPointer();
+    u32 sp = current_stack_pointer();
     for (unsigned i = 0; i < count; ++i) {
         if (valueSize == DWordSize) {
-            u32 value = readMemory32(SegmentRegisterIndex::SS, sp);
-            vlog(LogDump, "%04x:%08x (+%04x) %08x", getSS(), sp, sp - currentStackPointer(), value);
+            u32 value = read_memory32(SegmentRegisterIndex::SS, sp);
+            vlog(LogDump, "%04x:%08x (+%04x) %08x", get_ss(), sp, sp - current_stack_pointer(), value);
             sp += 4;
         }
     }

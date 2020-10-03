@@ -31,28 +31,28 @@
 //#define IODEVICE_DEBUG
 //#define IRQ_DEBUG
 
-QSet<u16> IODevice::s_ignorePorts;
+QSet<u16> IODevice::s_ignored_ports;
 
 IODevice::IODevice(const char* name, Machine& machine, int irq)
     : m_machine(machine)
     , m_name(name)
     , m_irq(irq)
 {
-    m_machine.registerDevice(Badge<IODevice>(), *this);
+    m_machine.register_device(Badge<IODevice>(), *this);
 }
 
 IODevice::~IODevice()
 {
-    m_machine.unregisterDevice(Badge<IODevice>(), *this);
+    m_machine.unregister_device(Badge<IODevice>(), *this);
 }
 
 void IODevice::listen(u16 port, ListenMask mask)
 {
     if (mask & ReadOnly)
-        machine().registerInputDevice(Badge<IODevice>(), port, *this);
+        machine().register_input_device(Badge<IODevice>(), port, *this);
 
     if (mask & WriteOnly)
-        machine().registerOutputDevice(Badge<IODevice>(), port, *this);
+        machine().register_output_device(Badge<IODevice>(), port, *this);
 
     m_ports.append(port);
 }
@@ -77,8 +77,8 @@ void IODevice::out16(u16 port, u16 data)
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::out16(%04x) fallback to multiple out8() calls", m_name, port);
 #endif
-    out8(port, leastSignificant<u8>(data));
-    out8(port + 1, mostSignificant<u8>(data));
+    out8(port, least_significant<u8>(data));
+    out8(port + 1, most_significant<u8>(data));
 }
 
 void IODevice::out32(u16 port, u32 data)
@@ -86,10 +86,10 @@ void IODevice::out32(u16 port, u32 data)
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::out32(%04x) fallback to multiple out8() calls", m_name, port);
 #endif
-    out8(port + 0, leastSignificant<u8>(leastSignificant<u16>(data)));
-    out8(port + 1, mostSignificant<u8>(leastSignificant<u16>(data)));
-    out8(port + 2, leastSignificant<u8>(mostSignificant<u16>(data)));
-    out8(port + 3, mostSignificant<u8>(mostSignificant<u16>(data)));
+    out8(port + 0, least_significant<u8>(least_significant<u16>(data)));
+    out8(port + 1, most_significant<u8>(least_significant<u16>(data)));
+    out8(port + 2, least_significant<u8>(most_significant<u16>(data)));
+    out8(port + 3, most_significant<u8>(most_significant<u16>(data)));
 }
 
 u8 IODevice::in8(u16 port)
@@ -114,17 +114,17 @@ u32 IODevice::in32(u16 port)
     return weld<u32>(in16(port + 2), in16(port));
 }
 
-void IODevice::ignorePort(u16 port)
+void IODevice::ignore_port(u16 port)
 {
-    s_ignorePorts.insert(port);
+    s_ignored_ports.insert(port);
 }
 
-bool IODevice::shouldIgnorePort(u16 port)
+bool IODevice::should_ignore_port(u16 port)
 {
-    return s_ignorePorts.contains(port);
+    return s_ignored_ports.contains(port);
 }
 
-void IODevice::raiseIRQ()
+void IODevice::raise_irq()
 {
     ASSERT(m_irq != -1);
     ASSERT(m_irq < 256);
@@ -132,10 +132,10 @@ void IODevice::raiseIRQ()
     if (!isIRQRaised())
         vlog(LogPIC, "\033[35;1mRaise IRQ %d\033[0m", m_irq);
 #endif
-    PIC::raiseIRQ(machine(), m_irq);
+    PIC::raise_irq(machine(), m_irq);
 }
 
-void IODevice::lowerIRQ()
+void IODevice::lower_irq()
 {
     ASSERT(m_irq != -1);
     ASSERT(m_irq < 256);
@@ -143,12 +143,12 @@ void IODevice::lowerIRQ()
     if (isIRQRaised())
         vlog(LogPIC, "Lower IRQ %d", m_irq);
 #endif
-    PIC::lowerIRQ(machine(), m_irq);
+    PIC::lower_irq(machine(), m_irq);
 }
 
-bool IODevice::isIRQRaised() const
+bool IODevice::is_irq_raised() const
 {
     ASSERT(m_irq != -1);
     ASSERT(m_irq < 256);
-    return PIC::isIRQRaised(machine(), m_irq);
+    return PIC::is_irq_raised(machine(), m_irq);
 }

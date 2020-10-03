@@ -32,10 +32,10 @@
         m_segment = SegmentRegisterIndex::SS; \
     }
 
-void MemoryOrRegisterReference::writeSpecial(u32 data, bool o32)
+void MemoryOrRegisterReference::write_special(u32 data, bool o32)
 {
-    if (o32 && isRegister()) {
-        m_cpu->writeRegister<u32>(m_registerIndex, data);
+    if (o32 && is_register()) {
+        m_cpu->write_register<u32>(m_register_index, data);
         return;
     }
     return write<u16>(data & 0xffff);
@@ -53,7 +53,7 @@ FLATTEN void MemoryOrRegisterReference::resolve(CPU& cpu)
 FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a32)
 {
     m_a32 = a32;
-    m_rm = stream.readInstruction8();
+    m_rm = stream.read_instruction8();
 
     if (m_a32) {
         decode32(stream);
@@ -61,10 +61,10 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
         case 0:
             break;
         case 1:
-            m_displacement32 = signExtendedTo<u32>(stream.readInstruction8());
+            m_displacement32 = signExtendedTo<u32>(stream.read_instruction8());
             break;
         case 4:
-            m_displacement32 = stream.readInstruction32();
+            m_displacement32 = stream.read_instruction32();
             break;
         default:
             ASSERT_NOT_REACHED();
@@ -76,10 +76,10 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
         case 0:
             break;
         case 1:
-            m_displacement16 = signExtendedTo<u16>(stream.readInstruction8());
+            m_displacement16 = signExtendedTo<u16>(stream.read_instruction8());
             break;
         case 2:
-            m_displacement16 = stream.readInstruction16();
+            m_displacement16 = stream.read_instruction16();
             break;
         default:
             ASSERT_NOT_REACHED();
@@ -106,7 +106,7 @@ ALWAYS_INLINE void MemoryOrRegisterReference::decode16(InstructionStream&)
         m_displacementBytes = 2;
         break;
     case 0xc0:
-        m_registerIndex = m_rm & 7;
+        m_register_index = m_rm & 7;
         break;
     }
 }
@@ -127,13 +127,13 @@ ALWAYS_INLINE void MemoryOrRegisterReference::decode32(InstructionStream& stream
         m_displacementBytes = 4;
         break;
     case 0xc0:
-        m_registerIndex = m_rm & 7;
+        m_register_index = m_rm & 7;
         return;
     }
 
     m_hasSIB = (m_rm & 0x07) == 4;
     if (m_hasSIB) {
-        m_sib = stream.readInstruction8();
+        m_sib = stream.read_instruction8();
         if ((m_sib & 0x07) == 5) {
             switch ((m_rm >> 6) & 0x03) {
             case 0:
@@ -162,39 +162,39 @@ ALWAYS_INLINE void MemoryOrRegisterReference::resolve16()
     ASSERT(!m_a32);
     ASSERT(m_cpu->a16());
 
-    m_segment = m_cpu->currentSegment();
+    m_segment = m_cpu->current_segment();
 
     switch (m_rm & 7) {
     case 0:
-        m_offset16 = m_cpu->getBX() + m_cpu->getSI() + m_displacement16;
+        m_offset16 = m_cpu->get_bx() + m_cpu->get_si() + m_displacement16;
         break;
     case 1:
-        m_offset16 = m_cpu->getBX() + m_cpu->getDI() + m_displacement16;
+        m_offset16 = m_cpu->get_bx() + m_cpu->get_di() + m_displacement16;
         break;
     case 2:
         DEFAULT_TO_SS;
-        m_offset16 = m_cpu->getBP() + m_cpu->getSI() + m_displacement16;
+        m_offset16 = m_cpu->get_bp() + m_cpu->get_si() + m_displacement16;
         break;
     case 3:
         DEFAULT_TO_SS;
-        m_offset16 = m_cpu->getBP() + m_cpu->getDI() + m_displacement16;
+        m_offset16 = m_cpu->get_bp() + m_cpu->get_di() + m_displacement16;
         break;
     case 4:
-        m_offset16 = m_cpu->getSI() + m_displacement16;
+        m_offset16 = m_cpu->get_si() + m_displacement16;
         break;
     case 5:
-        m_offset16 = m_cpu->getDI() + m_displacement16;
+        m_offset16 = m_cpu->get_di() + m_displacement16;
         break;
     case 6:
         if ((m_rm & 0xc0) == 0)
             m_offset16 = m_displacement16;
         else {
             DEFAULT_TO_SS;
-            m_offset16 = m_cpu->getBP() + m_displacement16;
+            m_offset16 = m_cpu->get_bp() + m_displacement16;
         }
         break;
     default:
-        m_offset16 = m_cpu->getBX() + m_displacement16;
+        m_offset16 = m_cpu->get_bx() + m_displacement16;
         break;
     }
 }
@@ -205,29 +205,29 @@ ALWAYS_INLINE void MemoryOrRegisterReference::resolve32()
     ASSERT(m_a32);
     ASSERT(m_cpu->a32());
 
-    m_segment = m_cpu->currentSegment();
+    m_segment = m_cpu->current_segment();
 
     switch (m_rm & 0x07) {
     case 0:
-        m_offset32 = m_cpu->getEAX() + m_displacement32;
+        m_offset32 = m_cpu->get_eax() + m_displacement32;
         break;
     case 1:
-        m_offset32 = m_cpu->getECX() + m_displacement32;
+        m_offset32 = m_cpu->get_ecx() + m_displacement32;
         break;
     case 2:
-        m_offset32 = m_cpu->getEDX() + m_displacement32;
+        m_offset32 = m_cpu->get_edx() + m_displacement32;
         break;
     case 3:
-        m_offset32 = m_cpu->getEBX() + m_displacement32;
+        m_offset32 = m_cpu->get_ebx() + m_displacement32;
         break;
     case 4:
         m_offset32 = evaluateSIB();
         break;
     case 6:
-        m_offset32 = m_cpu->getESI() + m_displacement32;
+        m_offset32 = m_cpu->get_esi() + m_displacement32;
         break;
     case 7:
-        m_offset32 = m_cpu->getEDI() + m_displacement32;
+        m_offset32 = m_cpu->get_edi() + m_displacement32;
         break;
     default: // 5
         if ((m_rm & 0xc0) == 0x00) {
@@ -235,7 +235,7 @@ ALWAYS_INLINE void MemoryOrRegisterReference::resolve32()
             break;
         } else {
             DEFAULT_TO_SS;
-            m_offset32 = m_cpu->getEBP() + m_displacement32;
+            m_offset32 = m_cpu->get_ebp() + m_displacement32;
             break;
         }
         break;
@@ -262,54 +262,54 @@ ALWAYS_INLINE u32 MemoryOrRegisterReference::evaluateSIB()
     u32 index;
     switch ((m_sib >> 3) & 0x07) {
     case 0:
-        index = m_cpu->getEAX();
+        index = m_cpu->get_eax();
         break;
     case 1:
-        index = m_cpu->getECX();
+        index = m_cpu->get_ecx();
         break;
     case 2:
-        index = m_cpu->getEDX();
+        index = m_cpu->get_edx();
         break;
     case 3:
-        index = m_cpu->getEBX();
+        index = m_cpu->get_ebx();
         break;
     case 4:
         index = 0;
         break;
     case 5:
-        index = m_cpu->getEBP();
+        index = m_cpu->get_ebp();
         break;
     case 6:
-        index = m_cpu->getESI();
+        index = m_cpu->get_esi();
         break;
     case 7:
-        index = m_cpu->getEDI();
+        index = m_cpu->get_edi();
         break;
     }
 
     u32 base = m_displacement32;
     switch (m_sib & 0x07) {
     case 0:
-        base += m_cpu->getEAX();
+        base += m_cpu->get_eax();
         break;
     case 1:
-        base += m_cpu->getECX();
+        base += m_cpu->get_ecx();
         break;
     case 2:
-        base += m_cpu->getEDX();
+        base += m_cpu->get_edx();
         break;
     case 3:
-        base += m_cpu->getEBX();
+        base += m_cpu->get_ebx();
         break;
     case 4:
         DEFAULT_TO_SS;
-        base += m_cpu->getESP();
+        base += m_cpu->get_esp();
         break;
     case 6:
-        base += m_cpu->getESI();
+        base += m_cpu->get_esi();
         break;
     case 7:
-        base += m_cpu->getEDI();
+        base += m_cpu->get_edi();
         break;
     default: // 5
         switch ((m_rm >> 6) & 3) {
@@ -318,7 +318,7 @@ ALWAYS_INLINE u32 MemoryOrRegisterReference::evaluateSIB()
         case 1:
         case 2:
             DEFAULT_TO_SS;
-            base += m_cpu->getEBP();
+            base += m_cpu->get_ebp();
             break;
         default:
             ASSERT_NOT_REACHED();

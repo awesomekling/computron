@@ -26,15 +26,15 @@
 
 void CPU::_AAA(Instruction&)
 {
-    if (((getAL() & 0x0f) > 9) || getAF()) {
-        setAX(getAX() + 0x0106);
-        setAF(1);
-        setCF(1);
+    if (((get_al() & 0x0f) > 9) || get_af()) {
+        set_ax(get_ax() + 0x0106);
+        set_af(1);
+        set_cf(1);
     } else {
-        setAF(0);
-        setCF(0);
+        set_af(0);
+        set_cf(0);
     }
-    setAL(getAL() & 0x0f);
+    set_al(get_al() & 0x0f);
 }
 
 void CPU::_AAM(Instruction& insn)
@@ -43,84 +43,84 @@ void CPU::_AAM(Instruction& insn)
         throw DivideError("AAM with 0 immediate");
     }
 
-    u8 tempAL = getAL();
-    setAH(tempAL / insn.imm8());
-    setAL(tempAL % insn.imm8());
-    updateFlags8(getAL());
-    setAF(0);
+    u8 tempAL = get_al();
+    set_ah(tempAL / insn.imm8());
+    set_al(tempAL % insn.imm8());
+    update_flags8(get_al());
+    set_af(0);
 }
 
 void CPU::_AAD(Instruction& insn)
 {
-    u8 tempAL = getAL();
-    u8 tempAH = getAH();
+    u8 tempAL = get_al();
+    u8 tempAH = get_ah();
 
-    setAL((tempAL + (tempAH * insn.imm8())) & 0xff);
-    setAH(0x00);
-    updateFlags8(getAL());
-    setAF(0);
+    set_al((tempAL + (tempAH * insn.imm8())) & 0xff);
+    set_ah(0x00);
+    update_flags8(get_al());
+    set_af(0);
 }
 
 void CPU::_AAS(Instruction&)
 {
-    if (((getAL() & 0x0f) > 9) || getAF()) {
-        setAX(getAX() - 6);
-        setAH(getAH() - 1);
-        setAF(1);
-        setCF(1);
+    if (((get_al() & 0x0f) > 9) || get_af()) {
+        set_ax(get_ax() - 6);
+        set_ah(get_ah() - 1);
+        set_af(1);
+        set_cf(1);
     } else {
-        setAF(0);
-        setCF(0);
+        set_af(0);
+        set_cf(0);
     }
-    setAL(getAL() & 0x0f);
+    set_al(get_al() & 0x0f);
 }
 
 void CPU::_DAS(Instruction&)
 {
-    bool oldCF = getCF();
-    u8 oldAL = getAL();
+    bool oldCF = get_cf();
+    u8 oldAL = get_al();
 
-    setCF(0);
+    set_cf(0);
 
-    if (((getAL() & 0x0f) > 0x09) || getAF()) {
-        setCF(((getAL() - 6) >> 8) & 1);
-        setAL(getAL() - 0x06);
-        setCF(oldCF | getCF());
-        setAF(1);
+    if (((get_al() & 0x0f) > 0x09) || get_af()) {
+        set_cf(((get_al() - 6) >> 8) & 1);
+        set_al(get_al() - 0x06);
+        set_cf(oldCF | get_cf());
+        set_af(1);
     } else {
-        setAF(0);
+        set_af(0);
     }
 
     if (oldAL > 0x99 || oldCF == 1) {
-        setAL(getAL() - 0x60);
-        setCF(1);
+        set_al(get_al() - 0x60);
+        set_cf(1);
     }
 
-    updateFlags8(getAL());
+    update_flags8(get_al());
 }
 
 void CPU::_DAA(Instruction&)
 {
-    bool oldCF = getCF();
-    u8 oldAL = getAL();
+    bool oldCF = get_cf();
+    u8 oldAL = get_al();
 
-    setCF(0);
+    set_cf(0);
 
-    if (((getAL() & 0x0f) > 0x09) || getAF()) {
-        setCF(((getAL() + 6) >> 8) & 1);
-        setAL(getAL() + 6);
-        setCF(oldCF | getCF());
-        setAF(1);
+    if (((get_al() & 0x0f) > 0x09) || get_af()) {
+        set_cf(((get_al() + 6) >> 8) & 1);
+        set_al(get_al() + 6);
+        set_cf(oldCF | get_cf());
+        set_af(1);
     } else {
-        setAF(0);
+        set_af(0);
     }
 
     if (oldAL > 0x99 || oldCF == 1) {
-        setAL(getAL() + 0x60);
-        setCF(1);
+        set_al(get_al() + 0x60);
+        set_cf(1);
     } else {
-        setCF(0);
+        set_cf(0);
     }
 
-    updateFlags8(getAL());
+    update_flags8(get_al());
 }

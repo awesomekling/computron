@@ -119,12 +119,12 @@ void CounterInfo::check(PIT& pit)
     value();
     if (rolledOver) {
         if (mode == 0)
-            pit.raiseIRQ();
+            pit.raise_irq();
         rolledOver = false;
     }
 }
 
-void PIT::reconfigureTimer(u8 index)
+void PIT::reconfigure_timer(u8 index)
 {
     auto& counter = d->counter[index];
     counter.qtimer.start();
@@ -135,12 +135,12 @@ void PIT::boot()
     d->threadedTimer = make<ThreadedTimer>(*this, 5);
 
     // FIXME: This should be done by the BIOS instead.
-    reconfigureTimer(0);
-    reconfigureTimer(1);
-    reconfigureTimer(2);
+    reconfigure_timer(0);
+    reconfigure_timer(1);
+    reconfigure_timer(2);
 }
 
-void PIT::threadedTimerFired(Badge<ThreadedTimer>)
+void PIT::threaded_timer_fired(Badge<ThreadedTimer>)
 {
 #ifndef CT_DETERMINISTIC
     d->counter[0].check(*this);
@@ -149,38 +149,38 @@ void PIT::threadedTimerFired(Badge<ThreadedTimer>)
 #endif
 }
 
-u8 PIT::readCounter(u8 index)
+u8 PIT::read_counter(u8 index)
 {
     auto& counter = d->counter[index];
     u8 data = 0;
     switch (counter.accessState) {
     case ReadLatchedLSB:
-        data = leastSignificant<u8>(counter.latchedValue);
+        data = least_significant<u8>(counter.latchedValue);
         counter.accessState = ReadLatchedMSB;
         break;
     case ReadLatchedMSB:
-        data = mostSignificant<u8>(counter.latchedValue);
+        data = most_significant<u8>(counter.latchedValue);
         counter.accessState = ReadLatchedLSB;
         break;
     case AccessLSBOnly:
-        data = leastSignificant<u8>(counter.latchedValue);
+        data = least_significant<u8>(counter.latchedValue);
         break;
     case AccessMSBOnly:
-        data = mostSignificant<u8>(counter.latchedValue);
+        data = most_significant<u8>(counter.latchedValue);
         break;
     case AccessLSBThenMSB:
-        data = leastSignificant<u8>(counter.value());
+        data = least_significant<u8>(counter.value());
         counter.accessState = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
-        data = mostSignificant<u8>(counter.value());
+        data = most_significant<u8>(counter.value());
         counter.accessState = AccessLSBThenMSB;
         break;
     }
     return data;
 }
 
-void PIT::writeCounter(u8 index, u8 data)
+void PIT::write_counter(u8 index, u8 data)
 {
     auto& counter = d->counter[index];
     switch (counter.accessState) {
@@ -188,21 +188,21 @@ void PIT::writeCounter(u8 index, u8 data)
     case ReadLatchedMSB:
         break;
     case AccessLSBOnly:
-        counter.reload = weld<u16>(mostSignificant<u8>(counter.reload), data);
-        reconfigureTimer(index);
+        counter.reload = weld<u16>(most_significant<u8>(counter.reload), data);
+        reconfigure_timer(index);
         break;
     case AccessMSBOnly:
-        counter.reload = weld<u16>(data, leastSignificant<u8>(counter.reload));
-        reconfigureTimer(index);
+        counter.reload = weld<u16>(data, least_significant<u8>(counter.reload));
+        reconfigure_timer(index);
         break;
     case AccessLSBThenMSB:
-        counter.reload = weld<u16>(mostSignificant<u8>(counter.reload), data);
+        counter.reload = weld<u16>(most_significant<u8>(counter.reload), data);
         counter.accessState = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
-        counter.reload = weld<u16>(data, leastSignificant<u8>(counter.reload));
+        counter.reload = weld<u16>(data, least_significant<u8>(counter.reload));
         counter.accessState = AccessLSBThenMSB;
-        reconfigureTimer(index);
+        reconfigure_timer(index);
         break;
     }
 }
@@ -214,7 +214,7 @@ u8 PIT::in8(u16 port)
     case 0x40:
     case 0x41:
     case 0x42:
-        data = readCounter(port - 0x40);
+        data = read_counter(port - 0x40);
         break;
     case 0x43:
         ASSERT_NOT_REACHED();
@@ -236,15 +236,15 @@ void PIT::out8(u16 port, u8 data)
     case 0x40:
     case 0x41:
     case 0x42:
-        writeCounter(port - 0x40, data);
+        write_counter(port - 0x40, data);
         break;
     case 0x43:
-        modeControl(0, data);
+        mode_control(0, data);
         break;
     }
 }
 
-void PIT::modeControl(int timerIndex, u8 data)
+void PIT::mode_control(int timerIndex, u8 data)
 {
     ASSERT(timerIndex == 0 || timerIndex == 1);
 
@@ -286,5 +286,5 @@ void PIT::modeControl(int timerIndex, u8 data)
         counter.format);
 #endif
 
-    reconfigureTimer(counterIndex);
+    reconfigure_timer(counterIndex);
 }

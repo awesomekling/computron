@@ -38,11 +38,11 @@ Worker::~Worker()
 
 void Worker::run()
 {
-    m_machine.makeCPU(Badge<Worker>());
-    m_machine.makeDevices(Badge<Worker>());
-    m_machine.didInitializeWorker(Badge<Worker>());
+    m_machine.make_cpu(Badge<Worker>());
+    m_machine.make_devices(Badge<Worker>());
+    m_machine.did_initialize_worker(Badge<Worker>());
     while (true) {
-        m_machine.cpu().mainLoop();
+        m_machine.cpu().main_loop();
         msleep(50);
     }
 }
@@ -55,15 +55,15 @@ void Worker::shutdown()
 
 void Worker::exitDebugger()
 {
-    m_machine.cpu().queueCommand(CPU::ExitDebugger);
+    m_machine.cpu().queue_command(CPU::ExitDebugger);
 }
 
 void Worker::enterDebugger()
 {
-    m_machine.cpu().queueCommand(CPU::EnterDebugger);
+    m_machine.cpu().queue_command(CPU::EnterDebugger);
 }
 
 void Worker::rebootMachine()
 {
-    m_machine.cpu().queueCommand(CPU::HardReboot);
+    m_machine.cpu().queue_command(CPU::HardReboot);
 }

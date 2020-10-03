@@ -44,9 +44,9 @@ void ThreadedTimer::run()
     eventLoop.exec();
 }
 
-void ThreadedTimer::helperTimerFired()
+void ThreadedTimer::helper_timer_fired()
 {
-    m_listener.threadedTimerFired(Badge<ThreadedTimer>());
+    m_listener.threaded_timer_fired(Badge<ThreadedTimer>());
 }
 
 ThreadedTimer::Listener::~Listener()

@@ -37,7 +37,7 @@ public:
     virtual u8 in8(u16 port) override;
 
 private:
-    u8 m_registerIndex;
+    u8 m_register_index;
 
     struct Private;
     OwnPtr<Private> d;

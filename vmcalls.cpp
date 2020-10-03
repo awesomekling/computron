@@ -50,13 +50,13 @@ static void vm_handleE6(CPU& cpu);
 
 void vm_call8(CPU& cpu, u16 port, u8 data)
 {
-    if (cpu.getPE() && !cpu.getVM())
+    if (cpu.get_pe() && !cpu.get_vm())
         return;
     switch (port) {
     case 0xE0:
-        vlog(LogAlert, "Interrupt %02X, function %04X requested", cpu.getBL(), cpu.getAX());
-        if (cpu.getBL() == 0x15 && cpu.getAH() == 0x87) {
-            vlog(LogAlert, "MoveBlock GDT{ %04X:%04X } x %04X", cpu.getES(), cpu.getSI(), cpu.getCX());
+        vlog(LogAlert, "Interrupt %02X, function %04X requested", cpu.get_bl(), cpu.get_ax());
+        if (cpu.get_bl() == 0x15 && cpu.get_ah() == 0x87) {
+            vlog(LogAlert, "MoveBlock GDT{ %04X:%04X } x %04X", cpu.get_es(), cpu.get_si(), cpu.get_cx());
         }
         break;
     case 0xE6:
@@ -108,19 +108,19 @@ void vm_handleE6(CPU& cpu)
     u32 tick_count;
     DiskDrive* drive;
 
-    switch (cpu.getAX()) {
+    switch (cpu.get_ax()) {
     case 0x1601:
         if (kbd_hit()) {
-            cpu.setAX(kbd_hit());
-            cpu.setZF(0);
+            cpu.set_ax(kbd_hit());
+            cpu.set_zf(0);
         } else {
-            cpu.setAX(0);
-            cpu.setZF(1);
+            cpu.set_ax(0);
+            cpu.set_zf(1);
         }
         break;
     case 0x1A00:
         // Interrupt 1A, 00: Get RTC tick count
-        cpu.setAL(0); // Midnight flag.
+        cpu.set_al(0); // Midnight flag.
         curtime = time(nullptr);
         t = localtime(&curtime);
         tick_count = ((t->tm_hour * 3600) + (t->tm_min * 60) + (t->tm_sec)) * 18.206; // yuck..
@@ -129,113 +129,113 @@ void vm_handleE6(CPU& cpu)
 #ifdef CT_DETERMINISTIC
         tick_count = 0x12345678;
 #endif
-        cpu.setCX(mostSignificant<u16>(tick_count));
-        cpu.setDX(leastSignificant<u16>(tick_count));
-        cpu.writePhysicalMemory<u32>(PhysicalAddress(0x046c), tick_count);
+        cpu.set_cx(most_significant<u16>(tick_count));
+        cpu.set_dx(least_significant<u16>(tick_count));
+        cpu.write_physical_memory<u32>(PhysicalAddress(0x046c), tick_count);
         break;
     case 0x1300:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
+        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
-            cpu.setAH(FD_NO_ERROR);
-            cpu.setCF(0);
+            cpu.set_ah(FD_NO_ERROR);
+            cpu.set_cf(0);
         } else {
-            cpu.setAH(FD_CHANGED_OR_REMOVED);
-            cpu.setCF(1);
+            cpu.set_ah(FD_CHANGED_OR_REMOVED);
+            cpu.set_cf(1);
         }
-        cpu.writePhysicalMemory<u8>(PhysicalAddress(cpu.getDL() < 2 ? 0x0441 : 0x0474), cpu.getAH());
+        cpu.write_physical_memory<u8>(PhysicalAddress(cpu.get_dl() < 2 ? 0x0441 : 0x0474), cpu.get_ah());
         break;
     case 0x1308:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
+        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
-            bool isFloppy = cpu.getDL() < 2;
+            bool isFloppy = cpu.get_dl() < 2;
             u32 trax = drive->cylinders() - 1;
-            cpu.setAL(0);
-            cpu.setAH(FD_NO_ERROR);
-            cpu.setBL(drive->floppyTypeForCMOS());
-            cpu.setBH(0);
-            cpu.setCH(trax & 0xFF);                                              // Tracks.
-            cpu.setCL(((trax >> 2) & 0xC0) | (drive->sectorsPerTrack() & 0x3F)); // Sectors per track.
-            cpu.setDH(drive->heads() - 1);                                       // Sides.
+            cpu.set_al(0);
+            cpu.set_ah(FD_NO_ERROR);
+            cpu.set_bl(drive->floppyTypeForCMOS());
+            cpu.set_bh(0);
+            cpu.set_ch(trax & 0xFF);                                              // Tracks.
+            cpu.set_cl(((trax >> 2) & 0xC0) | (drive->sectorsPerTrack() & 0x3F)); // Sectors per track.
+            cpu.set_dh(drive->heads() - 1);                                       // Sides.
 
             if (isFloppy) {
-                cpu.setDL(cpu.machine().floppy0().present() + cpu.machine().floppy1().present());
+                cpu.set_dl(cpu.machine().floppy0().present() + cpu.machine().floppy1().present());
             } else {
-                cpu.setDL(cpu.machine().fixed0().present() + cpu.machine().fixed1().present());
+                cpu.set_dl(cpu.machine().fixed0().present() + cpu.machine().fixed1().present());
             }
 
             vlog(LogDisk, "Reporting %s geometry: %u tracks, %u spt, %u heads", qPrintable(drive->name()), drive->cylinders(), drive->sectorsPerTrack(), drive->heads());
 
             // FIXME: ES:DI should points to some wacky Disk Base Table.
             if (isFloppy) {
-                cpu.setES(0);
-                cpu.setDI(0);
+                cpu.set_es(0);
+                cpu.set_di(0);
             }
-            cpu.setCF(0);
+            cpu.set_cf(0);
         } else {
-            if (cpu.getDL() < 2)
-                cpu.setAH(FD_CHANGED_OR_REMOVED);
-            else if (cpu.getDL() > 1)
-                cpu.setAH(FD_FIXED_NOT_READY);
-            cpu.setCF(1);
+            if (cpu.get_dl() < 2)
+                cpu.set_ah(FD_CHANGED_OR_REMOVED);
+            else if (cpu.get_dl() > 1)
+                cpu.set_ah(FD_FIXED_NOT_READY);
+            cpu.set_cf(1);
         }
 
         break;
     case 0x1315:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
+        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
-            cpu.setAH(0x01); // Diskette, no change detection present.
-            if (cpu.getDL() > 1) {
-                cpu.setAH(0x03); // FIXED DISK :-)
+            cpu.set_ah(0x01); // Diskette, no change detection present.
+            if (cpu.get_dl() > 1) {
+                cpu.set_ah(0x03); // FIXED DISK :-)
                 // If fixed disk, CX:DX = sectors.
-                cpu.setDX(drive->sectors());
-                cpu.setCX(drive->sectors() >> 16);
+                cpu.set_dx(drive->sectors());
+                cpu.set_cx(drive->sectors() >> 16);
             }
-            cpu.setCF(0);
+            cpu.set_cf(0);
         } else {
             // Drive not present.
-            cpu.setAH(0);
-            cpu.setCF(1);
+            cpu.set_ah(0);
+            cpu.set_cf(1);
         }
         break;
     case 0x1318:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
+        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             vlog(LogDisk, "Setting media type for %s:", qPrintable(drive->name()));
-            vlog(LogDisk, "%d sectors per track", cpu.getCL());
-            vlog(LogDisk, "%d tracks", cpu.getCH());
+            vlog(LogDisk, "%d sectors per track", cpu.get_cl());
+            vlog(LogDisk, "%d tracks", cpu.get_ch());
 
             // FIXME: ES:DI should point to a Wacky DBT
-            cpu.setAH(0);
-            cpu.setCF(0);
+            cpu.set_ah(0);
+            cpu.set_cf(0);
         } else {
-            cpu.setCF(1);
-            cpu.setAH(0x80); // No media in drive
+            cpu.set_cf(1);
+            cpu.set_ah(0x80); // No media in drive
         }
         break;
 
     case 0x1600:
-        cpu.setAX(kbd_getc());
+        cpu.set_ax(kbd_getc());
         break;
 
     case 0x1700:
         // Interrupt 17, 00: Print character on LPT
         {
             char tmp[80];
-            sprintf(tmp, "prn%d.txt", cpu.getDX());
+            sprintf(tmp, "prn%d.txt", cpu.get_dx());
             FILE* fpdrv = fopen(tmp, "a");
-            fputc(cpu.getCL(), fpdrv);
+            fputc(cpu.get_cl(), fpdrv);
             fclose(fpdrv);
         }
         break;
 
     case 0x1A01:
         // Interrupt 1A, 01: Set RTC tick count
-        vlog(LogAlert, "INT 1A,01: Attempt to set tick counter to %lu", (u32)(cpu.getCX() << 16) | cpu.getDX());
+        vlog(LogAlert, "INT 1A,01: Attempt to set tick counter to %lu", (u32)(cpu.get_cx() << 16) | cpu.get_dx());
         break;
 
     case 0x1A05:
         // Interrupt 1A, 05: Set BIOS date
-        vlog(LogAlert, "INT 1A,05: Attempt to set BIOS date to %02X-%02X-%04X", cpu.getDH(), cpu.getDL(), cpu.getCX());
+        vlog(LogAlert, "INT 1A,05: Attempt to set BIOS date to %02X-%02X-%04X", cpu.get_dh(), cpu.get_dl(), cpu.get_cx());
         break;
 
     /* 0x3333: Is Drive Present?
@@ -248,18 +248,18 @@ void vm_handleE6(CPU& cpu)
      * CF = !AL
      */
     case 0x3333:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
+        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
-            cpu.setAL(1);
-            cpu.setCF(0);
+            cpu.set_al(1);
+            cpu.set_cf(0);
         } else {
-            cpu.setAL(0);
-            cpu.setCF(1);
+            cpu.set_al(0);
+            cpu.set_cf(1);
         }
         break;
 
     default:
-        vlog(LogAlert, "Unknown VM call %04X received!!", cpu.getAX());
+        vlog(LogAlert, "Unknown VM call %04X received!!", cpu.get_ax());
         //hard_exit(0);
         break;
     }
@@ -276,7 +276,7 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u
     fread(data.data(), drive.bytesPerSector(), count, fp);
     LinearAddress dest((segment << 4) + offset);
     for (int i = 0; i < data.size(); ++i)
-        cpu.writeMemory<u8>(dest.offset(i), data[i]);
+        cpu.write_memory<u8>(dest.offset(i), data[i]);
 }
 
 static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
@@ -286,7 +286,7 @@ static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, 
     if (options.disklog)
         vlog(LogDisk, "%s writing %u sectors at %u/%u/%u (LBA %u) from %04x:%04x", qPrintable(drive.name()), count, cylinder, head, sector, lba, segment, offset);
 
-    const void* source = cpu.memoryPointer(LogicalAddress(segment, offset));
+    const void* source = cpu.memory_pointer(LogicalAddress(segment, offset));
     fwrite(source, drive.bytesPerSector(), count, fp);
 }
 
@@ -310,13 +310,13 @@ static void bios_disk_verify(CPU&, FILE* fp, DiskDrive& drive, u16 cylinder, u16
 void bios_disk_call(CPU& cpu, DiskCallFunction function)
 {
     // This is a hack to support the custom Computron BIOS. We should not be here in (PE=1 && VM=0) mode.
-    ASSERT(!cpu.getPE() || cpu.getVM());
+    ASSERT(!cpu.get_pe() || cpu.get_vm());
 
-    u16 cylinder = cpu.getCH() | (((u16)cpu.getCL() << 2) & 0x300);
-    u16 sector = cpu.getCL() & 0x3f;
-    u8 driveIndex = cpu.getDL();
-    u8 head = cpu.getDH();
-    u16 sectorCount = cpu.getAL();
+    u16 cylinder = cpu.get_ch() | (((u16)cpu.get_cl() << 2) & 0x300);
+    u16 sector = cpu.get_cl() & 0x3f;
+    u8 driveIndex = cpu.get_dl();
+    u8 head = cpu.get_dh();
+    u16 sectorCount = cpu.get_al();
     FILE* fp;
     u32 lba;
 
@@ -358,13 +358,13 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
 
     switch (function) {
     case ReadSectors:
-        bios_disk_read(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.getES(), cpu.getBX());
+        bios_disk_read(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
         break;
     case WriteSectors:
-        bios_disk_write(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.getES(), cpu.getBX());
+        bios_disk_write(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
         break;
     case VerifySectors:
-        bios_disk_verify(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.getES(), cpu.getBX());
+        bios_disk_verify(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
         break;
     }
 
@@ -373,13 +373,13 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
 
 epilogue:
     if (error == FD_NO_ERROR) {
-        cpu.setCF(0);
-        cpu.setAL(sectorCount);
+        cpu.set_cf(0);
+        cpu.set_al(sectorCount);
     } else {
-        cpu.setCF(1);
-        cpu.setAL(0);
+        cpu.set_cf(1);
+        cpu.set_al(0);
     }
 
-    cpu.setAH(error);
-    cpu.writePhysicalMemory<u8>(PhysicalAddress(0x441), error);
+    cpu.set_ah(error);
+    cpu.write_physical_memory<u8>(PhysicalAddress(0x441), error);
 }

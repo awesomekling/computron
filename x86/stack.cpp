@@ -25,58 +25,58 @@
 #include "CPU.h"
 #include "debug.h"
 
-void CPU::pushSegmentRegisterValue(u16 value)
+void CPU::push_segment_register_value(u16 value)
 {
     if (o16()) {
         push16(value);
         return;
     }
-    u32 new_esp = currentStackPointer() - 4;
+    u32 new_esp = current_stack_pointer() - 4;
     if (s16())
         new_esp &= 0xffff;
-    writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
-    adjustStackPointer(-4);
+    write_memory16(SegmentRegisterIndex::SS, new_esp, value);
+    adjust_stack_pointer(-4);
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "push32: %04x (at esp=%08x, special 16-bit write for segment registers)", value, getESP());
+        vlog(LogCPU, "push32: %04x (at esp=%08x, special 16-bit write for segment registers)", value, get_esp());
 }
 
 void CPU::push32(u32 value)
 {
-    u32 new_esp = currentStackPointer() - 4;
+    u32 new_esp = current_stack_pointer() - 4;
     if (s16())
         new_esp &= 0xffff;
-    writeMemory32(SegmentRegisterIndex::SS, new_esp, value);
-    adjustStackPointer(-4);
+    write_memory32(SegmentRegisterIndex::SS, new_esp, value);
+    adjust_stack_pointer(-4);
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "push32: %08x (at esp=%08x)", value, currentStackPointer());
+        vlog(LogCPU, "push32: %08x (at esp=%08x)", value, current_stack_pointer());
 }
 
 void CPU::push16(u16 value)
 {
-    u32 new_esp = currentStackPointer() - 2;
+    u32 new_esp = current_stack_pointer() - 2;
     if (s16())
         new_esp &= 0xffff;
-    writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
-    adjustStackPointer(-2);
+    write_memory16(SegmentRegisterIndex::SS, new_esp, value);
+    adjust_stack_pointer(-2);
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "push16: %04x (at esp=%08x)", value, currentStackPointer());
+        vlog(LogCPU, "push16: %04x (at esp=%08x)", value, current_stack_pointer());
 }
 
 u32 CPU::pop32()
 {
-    u32 data = readMemory32(SegmentRegisterIndex::SS, currentStackPointer());
+    u32 data = read_memory32(SegmentRegisterIndex::SS, current_stack_pointer());
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "pop32: %08x (from esp=%08x)", data, currentStackPointer());
-    adjustStackPointer(4);
+        vlog(LogCPU, "pop32: %08x (from esp=%08x)", data, current_stack_pointer());
+    adjust_stack_pointer(4);
     return data;
 }
 
 u16 CPU::pop16()
 {
-    u16 data = readMemory16(SegmentRegisterIndex::SS, currentStackPointer());
+    u16 data = read_memory16(SegmentRegisterIndex::SS, current_stack_pointer());
     if (UNLIKELY(options.stacklog))
-        vlog(LogCPU, "pop16: %04x (from esp=%08x)", data, currentStackPointer());
-    adjustStackPointer(2);
+        vlog(LogCPU, "pop16: %04x (from esp=%08x)", data, current_stack_pointer());
+    adjust_stack_pointer(2);
     return data;
 }
 
@@ -132,65 +132,65 @@ void CPU::_POP_RM32(Instruction& insn)
 
 void CPU::_PUSH_CS(Instruction&)
 {
-    pushSegmentRegisterValue(getCS());
+    push_segment_register_value(get_cs());
 }
 
 void CPU::_PUSH_DS(Instruction&)
 {
-    pushSegmentRegisterValue(getDS());
+    push_segment_register_value(get_ds());
 }
 
 void CPU::_PUSH_ES(Instruction&)
 {
-    pushSegmentRegisterValue(getES());
+    push_segment_register_value(get_es());
 }
 
 void CPU::_PUSH_SS(Instruction&)
 {
-    pushSegmentRegisterValue(getSS());
+    push_segment_register_value(get_ss());
 }
 
 void CPU::_PUSH_FS(Instruction&)
 {
-    pushSegmentRegisterValue(getFS());
+    push_segment_register_value(get_fs());
 }
 
 void CPU::_PUSH_GS(Instruction&)
 {
-    pushSegmentRegisterValue(getGS());
+    push_segment_register_value(get_gs());
 }
 
 void CPU::_POP_DS(Instruction&)
 {
-    setDS(popOperandSizedValue());
+    set_ds(pop_operand_sized_value());
 }
 
 void CPU::_POP_ES(Instruction&)
 {
-    setES(popOperandSizedValue());
+    set_es(pop_operand_sized_value());
 }
 
 void CPU::_POP_SS(Instruction&)
 {
-    setSS(popOperandSizedValue());
-    makeNextInstructionUninterruptible();
+    set_ss(pop_operand_sized_value());
+    make_next_instruction_uninterruptible();
 }
 
 void CPU::_POP_FS(Instruction&)
 {
-    setFS(popOperandSizedValue());
+    set_fs(pop_operand_sized_value());
 }
 
 void CPU::_POP_GS(Instruction&)
 {
-    setGS(popOperandSizedValue());
+    set_gs(pop_operand_sized_value());
 }
 
 void CPU::_PUSHFD(Instruction&)
 {
-    if (getPE() && getVM() && getIOPL() < 3)
+    if (get_pe() && get_vm() && get_iopl() < 3)
         throw GeneralProtectionFault(0, "PUSHFD in VM86 mode with IOPL < 3");
-    push32(getEFlags() & 0x00fcffff);
+    push32(get_eflags() & 0x00fcffff);
 }
 
 void CPU::_PUSH_imm32(Instruction& insn)
@@ -200,43 +200,43 @@ void CPU::_PUSH_imm32(Instruction& insn)
 
 void CPU::_PUSHF(Instruction&)
 {
-    if (getPE() && getVM() && getIOPL() < 3)
+    if (get_pe() && get_vm() && get_iopl() < 3)
         throw GeneralProtectionFault(0, "PUSHF in VM86 mode with IOPL < 3");
-    push16(getFlags());
+    push16(get_flags());
 }
 
 void CPU::_POPF(Instruction&)
 {
-    if (getPE() && getVM() && getIOPL() < 3)
+    if (get_pe() && get_vm() && get_iopl() < 3)
         throw GeneralProtectionFault(0, "POPF in VM86 mode with IOPL < 3");
-    setEFlagsRespectfully(pop16(), getCPL());
+    set_eflags_respectfully(pop16(), get_cpl());
 }
 
 void CPU::_POPFD(Instruction&)
 {
-    if (getPE() && getVM() && getIOPL() < 3)
+    if (get_pe() && get_vm() && get_iopl() < 3)
         throw GeneralProtectionFault(0, "POPFD in VM86 mode with IOPL < 3");
-    setEFlagsRespectfully(pop32(), getCPL());
+    set_eflags_respectfully(pop32(), get_cpl());
 }
 
-void CPU::setEFlagsRespectfully(u32 newFlags, u8 effectiveCPL)
+void CPU::set_eflags_respectfully(u32 newFlags, u8 effectiveCPL)
 {
-    u32 oldFlags = getEFlags();
+    u32 oldFlags = get_eflags();
     u32 flagsToKeep = Flag::VIP | Flag::VIF | Flag::RF;
     if (o16())
         flagsToKeep |= 0xffff0000;
-    if (getVM())
+    if (get_vm())
         flagsToKeep |= Flag::IOPL;
-    if (getPE() && effectiveCPL != 0) {
+    if (get_pe() && effectiveCPL != 0) {
         flagsToKeep |= Flag::IOPL;
-        if (effectiveCPL > getIOPL()) {
+        if (effectiveCPL > get_iopl()) {
             flagsToKeep |= Flag::IF;
         }
     }
     newFlags &= ~flagsToKeep;
     newFlags |= oldFlags & flagsToKeep;
     newFlags &= ~Flag::RF;
-    setEFlags(newFlags);
+    set_eflags(newFlags);
 }
 
 void CPU::_PUSH_imm8(Instruction& insn)
@@ -257,20 +257,20 @@ void CPU::doENTER(Instruction& insn)
 {
     u16 size = insn.imm16_2();
     u8 nestingLevel = insn.imm8_1() & 31;
-    push<T>(readRegister<T>(RegisterBP));
-    T frameTemp = readRegister<T>(RegisterSP);
+    push<T>(read_register<T>(RegisterBP));
+    T frameTemp = read_register<T>(RegisterSP);
 
     if (nestingLevel > 0) {
-        u32 tempBasePointer = currentBasePointer();
+        u32 tempBasePointer = current_base_pointer();
         for (u8 i = 1; i < nestingLevel; ++i) {
             tempBasePointer -= sizeof(T);
-            push<T>(readMemory<T>(SegmentRegisterIndex::SS, tempBasePointer));
+            push<T>(read_memory<T>(SegmentRegisterIndex::SS, tempBasePointer));
         }
         push<T>(frameTemp);
     }
-    writeRegister<T>(RegisterBP, frameTemp);
-    adjustStackPointer(-size);
-    snoop(SegmentRegisterIndex::SS, currentStackPointer(), MemoryAccessType::Write);
+    write_register<T>(RegisterBP, frameTemp);
+    adjust_stack_pointer(-size);
+    snoop(SegmentRegisterIndex::SS, current_stack_pointer(), MemoryAccessType::Write);
 }
 
 void CPU::_ENTER16(Instruction& insn)
@@ -286,12 +286,12 @@ void CPU::_ENTER32(Instruction& insn)
 template<typename T>
 void CPU::doLEAVE()
 {
-    T newBasePointer = readMemory<T>(SegmentRegisterIndex::SS, currentBasePointer());
-    setCurrentStackPointer(currentBasePointer() + sizeof(T));
+    T newBasePointer = read_memory<T>(SegmentRegisterIndex::SS, current_base_pointer());
+    set_current_stack_pointer(current_base_pointer() + sizeof(T));
     if constexpr (sizeof(T) == 2)
-        setBP(newBasePointer);
+        set_bp(newBasePointer);
     else
-        setEBP(newBasePointer);
+        set_ebp(newBasePointer);
 }
 
 void CPU::_LEAVE16(Instruction&)
@@ -307,22 +307,22 @@ void CPU::_LEAVE32(Instruction&)
 template<typename T>
 void CPU::doPUSHA()
 {
-    u32 new_esp = currentStackPointer() - sizeof(T) * 8;
+    u32 new_esp = current_stack_pointer() - sizeof(T) * 8;
     if (s16())
         new_esp &= 0xffff;
 
-    snoop(SegmentRegisterIndex::SS, currentStackPointer(), MemoryAccessType::Write);
+    snoop(SegmentRegisterIndex::SS, current_stack_pointer(), MemoryAccessType::Write);
     snoop(SegmentRegisterIndex::SS, new_esp, MemoryAccessType::Write);
 
-    T oldStackPointer = readRegister<T>(RegisterSP);
-    push<T>(readRegister<T>(RegisterAX));
-    push<T>(readRegister<T>(RegisterCX));
-    push<T>(readRegister<T>(RegisterDX));
-    push<T>(readRegister<T>(RegisterBX));
+    T oldStackPointer = read_register<T>(RegisterSP);
+    push<T>(read_register<T>(RegisterAX));
+    push<T>(read_register<T>(RegisterCX));
+    push<T>(read_register<T>(RegisterDX));
+    push<T>(read_register<T>(RegisterBX));
     push<T>(oldStackPointer);
-    push<T>(readRegister<T>(RegisterBP));
-    push<T>(readRegister<T>(RegisterSI));
-    push<T>(readRegister<T>(RegisterDI));
+    push<T>(read_register<T>(RegisterBP));
+    push<T>(read_register<T>(RegisterSI));
+    push<T>(read_register<T>(RegisterDI));
 }
 
 void CPU::_PUSHA(Instruction&)
@@ -338,21 +338,21 @@ void CPU::_PUSHAD(Instruction&)
 template<typename T>
 void CPU::doPOPA()
 {
-    u32 new_esp = currentStackPointer() + sizeof(T) * 8;
+    u32 new_esp = current_stack_pointer() + sizeof(T) * 8;
     if (s16())
         new_esp &= 0xffff;
 
-    snoop(SegmentRegisterIndex::SS, currentStackPointer(), MemoryAccessType::Read);
+    snoop(SegmentRegisterIndex::SS, current_stack_pointer(), MemoryAccessType::Read);
     snoop(SegmentRegisterIndex::SS, new_esp, MemoryAccessType::Read);
 
-    writeRegister<T>(RegisterDI, pop<T>());
-    writeRegister<T>(RegisterSI, pop<T>());
-    writeRegister<T>(RegisterBP, pop<T>());
+    write_register<T>(RegisterDI, pop<T>());
+    write_register<T>(RegisterSI, pop<T>());
+    write_register<T>(RegisterBP, pop<T>());
     pop<T>();
-    writeRegister<T>(RegisterBX, pop<T>());
-    writeRegister<T>(RegisterDX, pop<T>());
-    writeRegister<T>(RegisterCX, pop<T>());
-    writeRegister<T>(RegisterAX, pop<T>());
+    write_register<T>(RegisterBX, pop<T>());
+    write_register<T>(RegisterDX, pop<T>());
+    write_register<T>(RegisterCX, pop<T>());
+    write_register<T>(RegisterAX, pop<T>());
 }
 
 void CPU::_POPA(Instruction&)

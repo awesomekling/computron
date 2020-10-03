@@ -36,6 +36,6 @@ void CPU::_ESCAPE(Instruction& insn)
     vlog(LogFPU, "FPU escape via %02X %02X (or %02X /%u)",
         insn.op(), insn.rm(), insn.op(), insn.slash());
 
-    if (getCR0() & CR0::EM || getCR0() & CR0::TS)
+    if (get_cr0() & CR0::EM || get_cr0() & CR0::TS)
         throw Exception(7, "No FPU");
 }

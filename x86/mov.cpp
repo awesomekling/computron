@@ -42,19 +42,19 @@ void CPU::_MOV_RM32_imm32(Instruction& insn)
 
 void CPU::_MOV_RM16_seg(Instruction& insn)
 {
-    if (insn.registerIndex() >= 6) {
+    if (insn.register_index() >= 6) {
         throw InvalidOpcode("MOV_RM16_seg with invalid segment register index");
     }
-    insn.modrm().writeSpecial(insn.segreg(), o32());
+    insn.modrm().write_special(insn.segreg(), o32());
 }
 
 void CPU::_MOV_seg_RM16(Instruction& insn)
 {
     if (insn.segmentRegisterIndex() == SegmentRegisterIndex::CS)
         throw InvalidOpcode("MOV CS");
-    writeSegmentRegister(insn.segmentRegisterIndex(), insn.modrm().read16());
+    write_segment_register(insn.segmentRegisterIndex(), insn.modrm().read16());
     if (insn.segmentRegisterIndex() == SegmentRegisterIndex::SS) {
-        makeNextInstructionUninterruptible();
+        make_next_instruction_uninterruptible();
     }
 }
 
@@ -62,9 +62,9 @@ void CPU::_MOV_seg_RM32(Instruction& insn)
 {
     if (insn.segmentRegisterIndex() == SegmentRegisterIndex::CS)
         throw InvalidOpcode("MOV CS");
-    writeSegmentRegister(insn.segmentRegisterIndex(), insn.modrm().read32());
+    write_segment_register(insn.segmentRegisterIndex(), insn.modrm().read32());
     if (insn.segmentRegisterIndex() == SegmentRegisterIndex::SS) {
-        makeNextInstructionUninterruptible();
+        make_next_instruction_uninterruptible();
     }
 }
 
@@ -105,16 +105,16 @@ static bool isValidControlRegisterIndex(int index)
 
 void CPU::_MOV_reg32_CR(Instruction& insn)
 {
-    int crIndex = insn.registerIndex();
+    int crIndex = insn.register_index();
 
     if (!isValidControlRegisterIndex(crIndex))
         throw InvalidOpcode("MOV_reg32_CR with invalid control register");
 
-    if (getVM()) {
+    if (get_vm()) {
         throw GeneralProtectionFault(0, "MOV reg32, CRx with VM=1");
     }
 
-    if (getPE()) {
+    if (get_pe()) {
         // FIXME: Other GP(0) conditions:
         // If an attempt is made to write invalid bit combinations in CR0
         // (such as setting the PG flag to 1 when the PE flag is set to 0, or
@@ -124,8 +124,8 @@ void CPU::_MOV_reg32_CR(Instruction& insn)
         // If any of the reserved bits are set in the page-directory pointers
         // table (PDPT) and the loading of a control register causes the
         // PDPT to be loaded into the processor.
-        if (getCPL() != 0) {
-            throw GeneralProtectionFault(0, QString("MOV reg32, CRx with CPL!=0(%1)").arg(getCPL()));
+        if (get_cpl() != 0) {
+            throw GeneralProtectionFault(0, QString("MOV reg32, CRx with CPL!=0(%1)").arg(get_cpl()));
         }
     } else {
         // FIXME: GP(0) conditions:
@@ -135,21 +135,21 @@ void CPU::_MOV_reg32_CR(Instruction& insn)
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
     }
 
-    writeRegister<u32>(insn.rm() & 7, getControlRegister(crIndex));
+    write_register<u32>(insn.rm() & 7, get_control_register(crIndex));
 }
 
 void CPU::_MOV_CR_reg32(Instruction& insn)
 {
-    int crIndex = insn.registerIndex();
+    int crIndex = insn.register_index();
 
     if (!isValidControlRegisterIndex(crIndex))
         throw InvalidOpcode("MOV_CR_reg32 with invalid control register");
 
-    if (getVM()) {
+    if (get_vm()) {
         throw GeneralProtectionFault(0, "MOV CRx, reg32 with VM=1");
     }
 
-    if (getPE()) {
+    if (get_pe()) {
         // FIXME: Other GP(0) conditions:
         // If an attempt is made to write invalid bit combinations in CR0
         // (such as setting the PG flag to 1 when the PE flag is set to 0, or
@@ -159,8 +159,8 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
         // If any of the reserved bits are set in the page-directory pointers
         // table (PDPT) and the loading of a control register causes the
         // PDPT to be loaded into the processor.
-        if (getCPL() != 0) {
-            throw GeneralProtectionFault(0, QString("MOV CRx, reg32 with CPL!=0(%1)").arg(getCPL()));
+        if (get_cpl() != 0) {
+            throw GeneralProtectionFault(0, QString("MOV CRx, reg32 with CPL!=0(%1)").arg(get_cpl()));
         }
     } else {
         // FIXME: GP(0) conditions:
@@ -170,15 +170,15 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
     }
 
-    auto value = readRegister<u32>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7));
+    auto value = read_register<u32>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7));
 
     if (crIndex == 4) {
         vlog(LogCPU, "CR4 written (%08x) but not supported!", value);
     }
-    setControlRegister(crIndex, value);
+    set_control_register(crIndex, value);
 
     if (crIndex == 0 || crIndex == 3)
-        updateCodeSegmentCache();
+        update_code_segment_cache();
 
 #ifdef VERBOSE_DEBUG
     vlog(LogCPU, "MOV CR%u <- %08X", crIndex, getControlRegister(crIndex));
@@ -187,61 +187,61 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
 
 void CPU::_MOV_reg32_DR(Instruction& insn)
 {
-    int drIndex = insn.registerIndex();
-    auto registerIndex = static_cast<CPU::RegisterIndex32>(insn.rm() & 7);
+    int drIndex = insn.register_index();
+    auto register_index = static_cast<CPU::RegisterIndex32>(insn.rm() & 7);
 
-    if (getVM()) {
+    if (get_vm()) {
         throw GeneralProtectionFault(0, "MOV reg32, DRx with VM=1");
     }
 
-    if (getPE()) {
-        if (getCPL() != 0) {
-            throw GeneralProtectionFault(0, QString("MOV reg32, DRx with CPL!=0(%1)").arg(getCPL()));
+    if (get_pe()) {
+        if (get_cpl() != 0) {
+            throw GeneralProtectionFault(0, QString("MOV reg32, DRx with CPL!=0(%1)").arg(get_cpl()));
         }
     }
 
-    writeRegister(registerIndex, getDebugRegister(drIndex));
-    vlog(LogCPU, "MOV %s <- DR%u (%08X)", registerName(registerIndex), drIndex, getDebugRegister(drIndex));
+    write_register(register_index, get_debug_register(drIndex));
+    vlog(LogCPU, "MOV %s <- DR%u (%08X)", register_name(register_index), drIndex, get_debug_register(drIndex));
 }
 
 void CPU::_MOV_DR_reg32(Instruction& insn)
 {
-    int drIndex = insn.registerIndex();
-    auto registerIndex = static_cast<CPU::RegisterIndex32>(insn.rm() & 7);
+    int drIndex = insn.register_index();
+    auto register_index = static_cast<CPU::RegisterIndex32>(insn.rm() & 7);
 
-    if (getVM()) {
+    if (get_vm()) {
         throw GeneralProtectionFault(0, "MOV DRx, reg32 with VM=1");
     }
 
-    if (getPE()) {
-        if (getCPL() != 0) {
-            throw GeneralProtectionFault(0, QString("MOV DRx, reg32 with CPL!=0(%1)").arg(getCPL()));
+    if (get_pe()) {
+        if (get_cpl() != 0) {
+            throw GeneralProtectionFault(0, QString("MOV DRx, reg32 with CPL!=0(%1)").arg(get_cpl()));
         }
     }
 
-    setDebugRegister(drIndex, readRegister<u32>(registerIndex));
+    set_debug_register(drIndex, read_register<u32>(register_index));
     //vlog(LogCPU, "MOV DR%u <- %08X", drIndex, getDebugRegister(drIndex));
 }
 
 void CPU::_MOV_reg8_imm8(Instruction& insn)
 {
-    writeRegister<u8>(insn.registerIndex(), insn.imm8());
+    write_register<u8>(insn.register_index(), insn.imm8());
 }
 
 void CPU::_MOV_reg16_imm16(Instruction& insn)
 {
-    writeRegister<u16>(insn.registerIndex(), insn.imm16());
+    write_register<u16>(insn.register_index(), insn.imm16());
 }
 
 void CPU::_MOV_reg32_imm32(Instruction& insn)
 {
-    writeRegister<u32>(insn.registerIndex(), insn.imm32());
+    write_register<u32>(insn.register_index(), insn.imm32());
 }
 
 template<typename T>
 void CPU::doMOV_Areg_moff(Instruction& insn)
 {
-    writeRegister<T>(RegisterAL, readMemory<T>(currentSegment(), insn.immAddress()));
+    write_register<T>(RegisterAL, read_memory<T>(current_segment(), insn.immAddress()));
 }
 
 void CPU::_MOV_AL_moff8(Instruction& insn)
@@ -262,7 +262,7 @@ void CPU::_MOV_EAX_moff32(Instruction& insn)
 template<typename T>
 void CPU::doMOV_moff_Areg(Instruction& insn)
 {
-    writeMemory<T>(currentSegment(), insn.immAddress(), readRegister<T>(RegisterAL));
+    write_memory<T>(current_segment(), insn.immAddress(), read_register<T>(RegisterAL));
 }
 
 void CPU::_MOV_moff8_AL(Instruction& insn)
@@ -313,23 +313,23 @@ void CPU::_MOVSX_reg32_RM16(Instruction& insn)
 void CPU::_CMPXCHG_RM32_reg32(Instruction& insn)
 {
     auto current = insn.modrm().read32();
-    if (current == getEAX()) {
-        setZF(1);
+    if (current == get_eax()) {
+        set_zf(1);
         insn.modrm().write32(insn.reg32());
     } else {
-        setZF(0);
-        setEAX(current);
+        set_zf(0);
+        set_eax(current);
     }
 }
 
 void CPU::_CMPXCHG_RM16_reg16(Instruction& insn)
 {
     auto current = insn.modrm().read16();
-    if (current == getAX()) {
-        setZF(1);
+    if (current == get_ax()) {
+        set_zf(1);
         insn.modrm().write16(insn.reg16());
     } else {
-        setZF(0);
-        setAX(current);
+        set_zf(0);
+        set_ax(current);
     }
 }

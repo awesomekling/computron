@@ -28,21 +28,21 @@
 template<typename F>
 void CPU::doOnceOrRepeatedly(Instruction& insn, bool careAboutZF, F func)
 {
-    if (!insn.hasRepPrefix()) {
+    if (!insn.has_rep_prefix()) {
         func();
         return;
     }
-    while (readRegisterForAddressSize(RegisterCX)) {
-        if (getIF() && PIC::hasPendingIRQ() && !PIC::isIgnoringAllIRQs()) {
+    while (read_register_for_address_size(RegisterCX)) {
+        if (get_if() && PIC::has_pending_irq() && !PIC::is_ignoring_all_irqs()) {
             throw HardwareInterruptDuringREP();
         }
         func();
         ++m_cycle;
-        decrementCXForAddressSize();
+        decrement_cx_for_address_size();
         if (careAboutZF) {
-            if (insn.repPrefix() == Prefix::REPZ && !getZF())
+            if (insn.rep_prefix() == Prefix::REPZ && !get_zf())
                 break;
-            if (insn.repPrefix() == Prefix::REPNZ && getZF())
+            if (insn.rep_prefix() == Prefix::REPNZ && get_zf())
                 break;
         }
     }
@@ -52,8 +52,8 @@ template<typename T>
 void CPU::doLODS(Instruction& insn)
 {
     doOnceOrRepeatedly(insn, false, [this]() {
-        writeRegister<T>(RegisterAL, readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI)));
-        stepRegisterForAddressSize(RegisterSI, sizeof(T));
+        write_register<T>(RegisterAL, read_memory<T>(current_segment(), read_register_for_address_size(RegisterSI)));
+        step_register_for_address_size(RegisterSI, sizeof(T));
     });
 }
 
@@ -61,8 +61,8 @@ template<typename T>
 void CPU::doSTOS(Instruction& insn)
 {
     doOnceOrRepeatedly(insn, false, [this]() {
-        writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), readRegister<T>(RegisterAL));
-        stepRegisterForAddressSize(RegisterDI, sizeof(T));
+        write_memory<T>(SegmentRegisterIndex::ES, read_register_for_address_size(RegisterDI), read_register<T>(RegisterAL));
+        step_register_for_address_size(RegisterDI, sizeof(T));
     });
 }
 
@@ -71,11 +71,11 @@ void CPU::doCMPS(Instruction& insn)
 {
     typedef typename TypeDoubler<T>::type DT;
     doOnceOrRepeatedly(insn, true, [this]() {
-        DT src = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
-        DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
-        stepRegisterForAddressSize(RegisterSI, sizeof(T));
-        stepRegisterForAddressSize(RegisterDI, sizeof(T));
-        cmpFlags<T>(src - dest, src, dest);
+        DT src = read_memory<T>(current_segment(), read_register_for_address_size(RegisterSI));
+        DT dest = read_memory<T>(SegmentRegisterIndex::ES, read_register_for_address_size(RegisterDI));
+        step_register_for_address_size(RegisterSI, sizeof(T));
+        step_register_for_address_size(RegisterDI, sizeof(T));
+        cmp_flags<T>(src - dest, src, dest);
     });
 }
 
@@ -84,9 +84,9 @@ void CPU::doSCAS(Instruction& insn)
 {
     typedef typename TypeDoubler<T>::type DT;
     doOnceOrRepeatedly(insn, true, [this]() {
-        DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
-        stepRegisterForAddressSize(RegisterDI, sizeof(T));
-        cmpFlags<T>(readRegister<T>(RegisterAL) - dest, readRegister<T>(RegisterAL), dest);
+        DT dest = read_memory<T>(SegmentRegisterIndex::ES, read_register_for_address_size(RegisterDI));
+        step_register_for_address_size(RegisterDI, sizeof(T));
+        cmp_flags<T>(read_register<T>(RegisterAL) - dest, read_register<T>(RegisterAL), dest);
     });
 }
 
@@ -94,10 +94,10 @@ template<typename T>
 void CPU::doMOVS(Instruction& insn)
 {
     doOnceOrRepeatedly(insn, false, [this]() {
-        T tmp = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
-        writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), tmp);
-        stepRegisterForAddressSize(RegisterSI, sizeof(T));
-        stepRegisterForAddressSize(RegisterDI, sizeof(T));
+        T tmp = read_memory<T>(current_segment(), read_register_for_address_size(RegisterSI));
+        write_memory<T>(SegmentRegisterIndex::ES, read_register_for_address_size(RegisterDI), tmp);
+        step_register_for_address_size(RegisterSI, sizeof(T));
+        step_register_for_address_size(RegisterDI, sizeof(T));
     });
 }
 
@@ -105,9 +105,9 @@ template<typename T>
 void CPU::doOUTS(Instruction& insn)
 {
     doOnceOrRepeatedly(insn, false, [this]() {
-        T data = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
-        out<T>(getDX(), data);
-        stepRegisterForAddressSize(RegisterSI, sizeof(T));
+        T data = read_memory<T>(current_segment(), read_register_for_address_size(RegisterSI));
+        out<T>(get_dx(), data);
+        step_register_for_address_size(RegisterSI, sizeof(T));
     });
 }
 
@@ -116,9 +116,9 @@ void CPU::doINS(Instruction& insn)
 {
     doOnceOrRepeatedly(insn, false, [this]() {
         // FIXME: Should this really read the port without knowing that the destination memory is writable?
-        T data = in<T>(getDX());
-        writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), data);
-        stepRegisterForAddressSize(RegisterDI, sizeof(T));
+        T data = in<T>(get_dx());
+        write_memory<T>(SegmentRegisterIndex::ES, read_register_for_address_size(RegisterDI), data);
+        step_register_for_address_size(RegisterDI, sizeof(T));
     });
 }
 

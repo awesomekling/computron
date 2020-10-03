@@ -35,7 +35,7 @@
 CMOS::CMOS(Machine& machine)
     : IODevice("CMOS", machine)
 {
-    m_rtcTimer = make<ThreadedTimer>(*this, 250);
+    m_rtc_timer = make<ThreadedTimer>(*this, 250);
     listen(0x70, IODevice::WriteOnly);
     listen(0x71, IODevice::ReadWrite);
     reset();
@@ -50,32 +50,32 @@ void CMOS::reset()
     auto& cpu = machine().cpu();
 
     memset(m_ram, 0, sizeof(m_ram));
-    m_registerIndex = 0;
+    m_register_index = 0;
 
     // FIXME: This thing needs more work, 0x26 is just an initial value.
     m_ram[StatusRegisterA] = 0x26;
 
     m_ram[StatusRegisterB] = 0x02;
 
-    m_ram[BaseMemoryInKilobytesLSB] = leastSignificant<u8>(cpu.baseMemorySize() / 1024);
-    m_ram[BaseMemoryInKilobytesMSB] = mostSignificant<u8>(cpu.baseMemorySize() / 1024);
-    m_ram[ExtendedMemoryInKilobytesLSB] = leastSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesMSB] = mostSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesAltLSB] = leastSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesAltMSB] = mostSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
+    m_ram[BaseMemoryInKilobytesLSB] = least_significant<u8>(cpu.base_memory_size() / 1024);
+    m_ram[BaseMemoryInKilobytesMSB] = most_significant<u8>(cpu.base_memory_size() / 1024);
+    m_ram[ExtendedMemoryInKilobytesLSB] = least_significant<u8>(cpu.extended_memory_size() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesMSB] = most_significant<u8>(cpu.extended_memory_size() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesAltLSB] = least_significant<u8>(cpu.extended_memory_size() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesAltMSB] = most_significant<u8>(cpu.extended_memory_size() / 1024 - 1024);
 
     // FIXME: This clearly belongs elsewhere.
     m_ram[FloppyDriveTypes] = (machine().floppy0().floppyTypeForCMOS() << 4) | machine().floppy1().floppyTypeForCMOS();
 
-    updateClock();
+    update_clock();
 }
 
-bool CMOS::inBinaryClockMode() const
+bool CMOS::in_binary_clock_mode() const
 {
     return m_ram[StatusRegisterB] & 0x04;
 }
 
-bool CMOS::in24HourMode() const
+bool CMOS::in_24_hour_mode() const
 {
     return m_ram[StatusRegisterB] & 0x02;
 }
@@ -88,37 +88,37 @@ static QDateTime currentDateTimeForCMOS()
     return QDateTime::currentDateTime();
 }
 
-u8 CMOS::toCurrentClockFormat(u8 value) const
+u8 CMOS::to_current_clock_format(u8 value) const
 {
-    if (inBinaryClockMode())
+    if (in_binary_clock_mode())
         return value;
     return (value / 10 << 4) | (value - (value / 10) * 10);
 }
 
-void CMOS::updateClock()
+void CMOS::update_clock()
 {
     // FIXME: Support 12-hour clock mode for RTCHour!
-    ASSERT(in24HourMode());
+    ASSERT(in_24_hour_mode());
 
     m_ram[StatusRegisterA] |= 0x80; // RTC update in progress
     auto now = currentDateTimeForCMOS();
-    m_ram[RTCSecond] = toCurrentClockFormat(now.time().second());
-    m_ram[RTCMinute] = toCurrentClockFormat(now.time().minute());
-    m_ram[RTCHour] = toCurrentClockFormat(now.time().hour());
-    m_ram[RTCDayOfWeek] = toCurrentClockFormat(now.date().dayOfWeek());
-    m_ram[RTCDay] = toCurrentClockFormat(now.date().day());
-    m_ram[RTCMonth] = toCurrentClockFormat(now.date().month());
-    m_ram[RTCYear] = toCurrentClockFormat(now.date().year() % 100);
-    m_ram[RTCCentury] = toCurrentClockFormat(now.date().year() / 100);
-    m_ram[RTCCenturyPS2] = toCurrentClockFormat(now.date().year() / 100);
+    m_ram[RTCSecond] = to_current_clock_format(now.time().second());
+    m_ram[RTCMinute] = to_current_clock_format(now.time().minute());
+    m_ram[RTCHour] = to_current_clock_format(now.time().hour());
+    m_ram[RTCDayOfWeek] = to_current_clock_format(now.date().dayOfWeek());
+    m_ram[RTCDay] = to_current_clock_format(now.date().day());
+    m_ram[RTCMonth] = to_current_clock_format(now.date().month());
+    m_ram[RTCYear] = to_current_clock_format(now.date().year() % 100);
+    m_ram[RTCCentury] = to_current_clock_format(now.date().year() / 100);
+    m_ram[RTCCenturyPS2] = to_current_clock_format(now.date().year() / 100);
     m_ram[StatusRegisterA] &= ~0x80; // RTC update finished
 }
 
 u8 CMOS::in8(u16)
 {
-    u8 value = m_ram[m_registerIndex];
+    u8 value = m_ram[m_register_index];
 #ifdef CMOS_DEBUG
-    vlog(LogCMOS, "Read register %02x (%02x)", m_registerIndex, value);
+    vlog(LogCMOS, "Read register %02x (%02x)", m_register_index, value);
 #endif
     return value;
 }
@@ -126,17 +126,17 @@ u8 CMOS::in8(u16)
 void CMOS::out8(u16 port, u8 data)
 {
     if (port == 0x70) {
-        m_registerIndex = data & 0x7f;
+        m_register_index = data & 0x7f;
 #ifdef CMOS_DEBUG
-        vlog(LogCMOS, "Select register %02x", m_registerIndex);
+        vlog(LogCMOS, "Select register %02x", m_register_index);
 #endif
         return;
     }
 
 #ifdef CMOS_DEBUG
-    vlog(LogCMOS, "Write register %02x <- %02x", m_registerIndex, data);
+    vlog(LogCMOS, "Write register %02x <- %02x", m_register_index, data);
 #endif
-    m_ram[m_registerIndex] = data;
+    m_ram[m_register_index] = data;
 }
 
 void CMOS::set(RegisterIndex index, u8 data)
@@ -151,7 +151,7 @@ u8 CMOS::get(RegisterIndex index) const
     return m_ram[index];
 }
 
-void CMOS::threadedTimerFired(Badge<ThreadedTimer>)
+void CMOS::threaded_timer_fired(Badge<ThreadedTimer>)
 {
-    updateClock();
+    update_clock();
 }

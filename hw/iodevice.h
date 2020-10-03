@@ -38,9 +38,9 @@ public:
     const char* name() const;
     Machine& machine() const { return m_machine; }
 
-    void raiseIRQ();
-    void lowerIRQ();
-    bool isIRQRaised() const;
+    void raise_irq();
+    void lower_irq();
+    bool is_irq_raised() const;
 
     virtual void reset() = 0;
 
@@ -56,8 +56,8 @@ public:
     virtual void out16(u16 port, u16 data);
     virtual void out32(u16 port, u32 data);
 
-    static bool shouldIgnorePort(u16 port);
-    static void ignorePort(u16 port);
+    static bool should_ignore_port(u16 port);
+    static void ignore_port(u16 port);
 
     QList<u16> ports() const;
 
@@ -77,7 +77,7 @@ private:
     int m_irq { 0 };
     QList<u16> m_ports;
 
-    static QSet<u16> s_ignorePorts;
+    static QSet<u16> s_ignored_ports;
 };
 
 template<typename T>

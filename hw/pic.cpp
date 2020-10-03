@@ -31,24 +31,24 @@
 //#define PIC_DEBUG
 
 // FIXME: This should not be global.
-std::atomic<u16> PIC::s_pendingRequests;
+std::atomic<u16> PIC::s_pending_requests;
 static bool s_ignoringIRQs = false;
 
-bool PIC::isIgnoringAllIRQs()
+bool PIC::is_ignoring_all_irqs()
 {
     return s_ignoringIRQs;
 }
 
-void PIC::setIgnoreAllIRQs(bool b)
+void PIC::set_ignore_all_irqs(bool b)
 {
     s_ignoringIRQs = b;
 }
 
-void PIC::updatePendingRequests(Machine& machine)
+void PIC::update_pending_requests(Machine& machine)
 {
-    u16 masterRequests = (machine.masterPIC().getIRR() & ~machine.masterPIC().getIMR());
-    u16 slaveRequests = (machine.slavePIC().getIRR() & ~machine.slavePIC().getIMR());
-    s_pendingRequests = masterRequests | (slaveRequests << 8);
+    u16 masterRequests = (machine.master_pic().get_irr() & ~machine.master_pic().get_imr());
+    u16 slaveRequests = (machine.slave_pic().get_irr() & ~machine.slave_pic().get_imr());
+    s_pending_requests = masterRequests | (slaveRequests << 8);
 #ifdef PIC_DEBUG
     if (machine.cpu().state() != CPU::Halted)
         vlog(LogPIC, "Pending requests: %04x", (WORD)s_pendingRequests);
@@ -57,13 +57,13 @@ void PIC::updatePendingRequests(Machine& machine)
 
 PIC::PIC(bool isMaster, Machine& machine)
     : IODevice("PIC", machine)
-    , m_baseAddress(isMaster ? 0x20 : 0xA0)
-    , m_isrBase(isMaster ? 0x08 : 0x70)
-    , m_irqBase(isMaster ? 0 : 8)
-    , m_isMaster(isMaster)
+    , m_base_address(isMaster ? 0x20 : 0xA0)
+    , m_isr_base(isMaster ? 0x08 : 0x70)
+    , m_irq_base(isMaster ? 0 : 8)
+    , m_is_master(isMaster)
 {
-    listen(m_baseAddress, IODevice::ReadWrite);
-    listen(m_baseAddress + 1, IODevice::ReadWrite);
+    listen(m_base_address, IODevice::ReadWrite);
+    listen(m_base_address + 1, IODevice::ReadWrite);
 
     reset();
 }
@@ -77,26 +77,26 @@ void PIC::reset()
     m_isr = 0x00;
     m_irr = 0x00;
     m_imr = 0xff;
-    m_icw2Expected = false;
-    m_icw4Expected = false;
-    m_readISR = false;
-    m_specialMaskMode = false;
-    s_pendingRequests = 0;
+    m_icw2_expected = false;
+    m_icw4_expected = false;
+    m_read_isr = false;
+    m_special_mask_mode = false;
+    s_pending_requests = 0;
 }
 
-void PIC::dumpMask()
+void PIC::dump_mask()
 {
     const char* green = "\033[32;1m";
     const char* red = "\033[31;1m";
     for (int i = 0; i < 8; ++i)
         vlog(LogPIC, " - IRQ %2u: %smask\033[0m %srequest\033[0m %sservice\033[0m",
-            m_irqBase + i,
+            m_irq_base + i,
             (m_imr & (1 << i)) ? green : red,
             (m_irr & (1 << i)) ? green : red,
             (m_isr & (1 << i)) ? green : red);
 }
 
-void PIC::unmaskAll()
+void PIC::unmask_all()
 {
     m_imr = 0;
 }
@@ -114,11 +114,11 @@ void PIC::writePort0(u8 data)
         m_imr = 0;
         m_isr = 0;
         m_irr = 0;
-        m_readISR = false;
-        m_specialMaskMode = false;
-        m_icw2Expected = true;
-        m_icw4Expected = data & 0x01;
-        updatePendingRequests(machine());
+        m_read_isr = false;
+        m_special_mask_mode = false;
+        m_icw2_expected = true;
+        m_icw4_expected = data & 0x01;
+        update_pending_requests(machine());
         return;
     }
 
@@ -127,13 +127,13 @@ void PIC::writePort0(u8 data)
         vlog(LogPIC, "Got OCW3 %02X on port %02X", data, m_baseAddress + 0);
 #endif
         if (data & 0x02)
-            m_readISR = data & 0x01;
+            m_read_isr = data & 0x01;
         if (data & 0x04) {
             vlog(LogPIC, "PIC polling mode is not supported");
             ASSERT_NOT_REACHED();
         }
         if (data & 0x40)
-            m_specialMaskMode = data & 0x20;
+            m_special_mask_mode = data & 0x20;
         return;
     }
 
@@ -158,17 +158,17 @@ void PIC::writePort0(u8 data)
         return;
     }
 
-    vlog(LogPIC, "Unhandled OCW2 %02X on port %02X", data, m_baseAddress + 0);
+    vlog(LogPIC, "Unhandled OCW2 %02X on port %02X", data, m_base_address + 0);
     ASSERT_NOT_REACHED();
 }
 void PIC::writePort1(u8 data)
 {
-    if (((data & 0x07) == 0x00) && m_icw2Expected) {
+    if (((data & 0x07) == 0x00) && m_icw2_expected) {
 #ifdef PIC_DEBUG
         vlog(LogPIC, "Got ICW2 %02X on port %02X", data, m_baseAddress + 0);
 #endif
-        m_isrBase = data & 0xF8;
-        m_icw2Expected = false;
+        m_isr_base = data & 0xF8;
+        m_icw2_expected = false;
         return;
     }
 
@@ -179,7 +179,7 @@ void PIC::writePort1(u8 data)
         vlog(LogPIC, " - IRQ %u: %s", m_irqBase + i, (data & (1 << i)) ? "masked" : "service");
 #endif
     m_imr = data;
-    updatePendingRequests(machine());
+    update_pending_requests(machine());
 }
 
 void PIC::out8(u16 port, u8 data)
@@ -192,7 +192,7 @@ void PIC::out8(u16 port, u8 data)
 u8 PIC::in8(u16 port)
 {
     if ((port & 1) == 0) {
-        if (m_readISR) {
+        if (m_read_isr) {
 #ifdef PIC_DEBUG
             vlog(LogPIC, "Read ISR (%02x)", m_isr);
 #endif
@@ -219,42 +219,42 @@ void PIC::lower(u8 num)
     m_irr &= 1 << num;
 }
 
-void PIC::raiseIRQ(Machine& machine, u8 num)
+void PIC::raise_irq(Machine& machine, u8 num)
 {
     if (num < 8) {
-        machine.masterPIC().raise(num);
+        machine.master_pic().raise(num);
     } else {
-        machine.slavePIC().raise(num - 8);
-        machine.masterPIC().raise(2);
+        machine.slave_pic().raise(num - 8);
+        machine.master_pic().raise(2);
     }
 
-    updatePendingRequests(machine);
+    update_pending_requests(machine);
 }
 
-void PIC::lowerIRQ(Machine& machine, u8 num)
+void PIC::lower_irq(Machine& machine, u8 num)
 {
     if (num < 8)
-        machine.masterPIC().lower(num);
+        machine.master_pic().lower(num);
     else
-        machine.slavePIC().lower(num - 8);
+        machine.slave_pic().lower(num - 8);
 
-    updatePendingRequests(machine);
+    update_pending_requests(machine);
 }
 
-bool PIC::isIRQRaised(Machine& machine, u8 num)
+bool PIC::is_irq_raised(Machine& machine, u8 num)
 {
     if (num < 8)
-        return machine.masterPIC().m_irr & (1 << num);
+        return machine.master_pic().m_irr & (1 << num);
     else
-        return machine.slavePIC().m_irr & (1 << (num - 8));
+        return machine.slave_pic().m_irr & (1 << (num - 8));
 }
 
-void PIC::serviceIRQ(CPU& cpu)
+void PIC::service_irq(CPU& cpu)
 {
     if (s_ignoringIRQs)
         return;
 
-    u16 pendingRequestsCopy = s_pendingRequests;
+    u16 pendingRequestsCopy = s_pending_requests;
     if (!pendingRequestsCopy)
         return;
 
@@ -275,33 +275,33 @@ void PIC::serviceIRQ(CPU& cpu)
         return;
 
     if (irqToService < 8) {
-        machine.masterPIC().m_irr &= ~(1 << irqToService);
-        machine.masterPIC().m_isr |= (1 << irqToService);
+        machine.master_pic().m_irr &= ~(1 << irqToService);
+        machine.master_pic().m_isr |= (1 << irqToService);
 
-        cpu.interrupt(machine.masterPIC().m_isrBase | irqToService, CPU::InterruptSource::External);
+        cpu.interrupt(machine.master_pic().m_isr_base | irqToService, CPU::InterruptSource::External);
     } else {
-        machine.slavePIC().m_irr &= ~(1 << (irqToService - 8));
-        machine.slavePIC().m_isr |= (1 << (irqToService - 8));
+        machine.slave_pic().m_irr &= ~(1 << (irqToService - 8));
+        machine.slave_pic().m_isr |= (1 << (irqToService - 8));
 
-        machine.masterPIC().m_irr &= ~(1 << 2);
-        machine.masterPIC().m_isr |= (1 << 2);
+        machine.master_pic().m_irr &= ~(1 << 2);
+        machine.master_pic().m_isr |= (1 << 2);
 
-        cpu.interrupt(machine.slavePIC().m_isrBase | (irqToService - 8), CPU::InterruptSource::External);
+        cpu.interrupt(machine.slave_pic().m_isr_base | (irqToService - 8), CPU::InterruptSource::External);
     }
 
-    updatePendingRequests(machine);
+    update_pending_requests(machine);
 
-    cpu.setState(CPU::Alive);
+    cpu.set_state(CPU::Alive);
 }
 
 PIC& PIC::master() const
 {
-    ASSERT(!m_isMaster);
-    return machine().masterPIC();
+    ASSERT(!m_is_master);
+    return machine().master_pic();
 }
 
 PIC& PIC::slave() const
 {
-    ASSERT(m_isMaster);
-    return machine().slavePIC();
+    ASSERT(m_is_master);
+    return machine().slave_pic();
 }

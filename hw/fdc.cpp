@@ -212,7 +212,7 @@ void FDC::resetController(ResetSource resetSource)
         d->precompensationStartNumber = 0;
     }
 
-    lowerIRQ();
+    lower_irq();
 }
 
 void FDC::reset()
@@ -229,7 +229,7 @@ u8 FDC::in8(u16 port)
             /* Second drive installed */
             data |= 0x40;
         }
-        if (isIRQRaised()) {
+        if (is_irq_raised()) {
             data |= 0x80;
         }
         vlog(LogFDC, "Read status register A: %02X", data);
@@ -476,7 +476,7 @@ void FDC::executeCommandInternal()
             d->statusRegister[0] &= 0xf8;
             d->statusRegister[0] |= (d->drive[driveIndex].head << 2) | driveIndex;
             --d->expectedSenseInterruptCount;
-        } else if (!isIRQRaised()) {
+        } else if (!is_irq_raised()) {
             d->statusRegister[0] = 0x80;
         }
         break;
@@ -564,5 +564,5 @@ void FDC::generateFDCInterrupt(bool seekCompleted)
 {
     updateStatus(seekCompleted);
     vlog(LogFDC, "Raise IRQ%s", seekCompleted ? " (seek completed)" : "");
-    raiseIRQ();
+    raise_irq();
 }

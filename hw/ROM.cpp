@@ -55,7 +55,7 @@ u8 ROM::readMemory8(u32 address)
     return m_data.data()[address - baseAddress().get()];
 }
 
-void ROM::writeMemory8(u32 address, u8 data)
+void ROM::write_memory8(u32 address, u8 data)
 {
     vlog(LogAlert, "Write to ROM address %08x, data %02x", address, data);
 #ifdef DEBUG_SERENITY

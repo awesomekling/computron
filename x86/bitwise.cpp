@@ -40,45 +40,45 @@ DEFINE_INSTRUCTION_HANDLERS_GRP3(RCR)
 
 void CPU::_CBW(Instruction&)
 {
-    if (getAL() & 0x80)
-        setAH(0xFF);
+    if (get_al() & 0x80)
+        set_ah(0xFF);
     else
-        setAH(0x00);
+        set_ah(0x00);
 }
 
 void CPU::_CWD(Instruction&)
 {
-    if (getAX() & 0x8000)
-        setDX(0xFFFF);
+    if (get_ax() & 0x8000)
+        set_dx(0xFFFF);
     else
-        setDX(0x0000);
+        set_dx(0x0000);
 }
 
 void CPU::_CWDE(Instruction&)
 {
-    setEAX(signExtendedTo<u32>(getAX()));
+    set_eax(signExtendedTo<u32>(get_ax()));
 }
 
 void CPU::_CDQ(Instruction&)
 {
-    if (getEAX() & 0x80000000)
-        setEDX(0xFFFFFFFF);
+    if (get_eax() & 0x80000000)
+        set_edx(0xFFFFFFFF);
     else
-        setEDX(0x00000000);
+        set_edx(0x00000000);
 }
 
 void CPU::_SALC(Instruction&)
 {
-    setAL(getCF() ? 0xFF : 0);
+    set_al(get_cf() ? 0xFF : 0);
 }
 
 template<typename T>
 T CPU::doOR(T dest, T src)
 {
     T result = dest | src;
-    updateFlags<T>(result);
-    setOF(0);
-    setCF(0);
+    update_flags<T>(result);
+    set_of(0);
+    set_cf(0);
     return result;
 }
 
@@ -86,9 +86,9 @@ template<typename T>
 T CPU::doXOR(T dest, T src)
 {
     T result = dest ^ src;
-    updateFlags<T>(result);
-    setOF(0);
-    setCF(0);
+    update_flags<T>(result);
+    set_of(0);
+    set_cf(0);
     return result;
 }
 
@@ -96,9 +96,9 @@ template<typename T>
 T CPU::doAND(T dest, T src)
 {
     T result = dest & src;
-    updateFlags<T>(result);
-    setOF(0);
-    setCF(0);
+    update_flags<T>(result);
+    set_of(0);
+    set_cf(0);
     return result;
 }
 
@@ -112,8 +112,8 @@ T CPU::doROL(T data, unsigned steps)
 
     steps &= TypeTrivia<T>::bits - 1;
     result = (data << steps) | (data >> (TypeTrivia<T>::bits - steps));
-    setCF(result & 1);
-    setOF(((result >> (TypeTrivia<T>::bits - 1)) & 1) ^ getCF());
+    set_cf(result & 1);
+    set_of(((result >> (TypeTrivia<T>::bits - 1)) & 1) ^ get_cf());
 
     return result;
 }
@@ -128,8 +128,8 @@ T CPU::doROR(T data, unsigned steps)
     T result = data;
     steps &= TypeTrivia<T>::bits - 1;
     result = (data >> steps) | (data << (TypeTrivia<T>::bits - steps));
-    setCF((result >> (TypeTrivia<T>::bits - 1)) & 1);
-    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ ((result >> (TypeTrivia<T>::bits - 2) & 1)));
+    set_cf((result >> (TypeTrivia<T>::bits - 1)) & 1);
+    set_of((result >> (TypeTrivia<T>::bits - 1)) ^ ((result >> (TypeTrivia<T>::bits - 2) & 1)));
     return result;
 }
 
@@ -142,11 +142,11 @@ T CPU::doSHL(T data, unsigned steps)
         return data;
 
     if (steps <= TypeTrivia<T>::bits) {
-        setCF(result >> (TypeTrivia<T>::bits - steps) & 1);
+        set_cf(result >> (TypeTrivia<T>::bits - steps) & 1);
     }
     result <<= steps;
-    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ getCF());
-    updateFlags<T>(result);
+    set_of((result >> (TypeTrivia<T>::bits - 1)) ^ get_cf());
+    update_flags<T>(result);
     return result;
 }
 
@@ -159,12 +159,12 @@ T CPU::doSHR(T data, unsigned steps)
         return data;
 
     if (steps <= TypeTrivia<T>::bits) {
-        setCF((result >> (steps - 1)) & 1);
-        setOF((data >> (TypeTrivia<T>::bits - 1)) & 1);
+        set_cf((result >> (steps - 1)) & 1);
+        set_of((data >> (TypeTrivia<T>::bits - 1)) & 1);
     }
     result >>= steps;
 
-    updateFlags<T>(result);
+    update_flags<T>(result);
     return result;
 }
 
@@ -182,10 +182,10 @@ T CPU::doSAR(T data, unsigned steps)
     for (unsigned i = 0; i < steps; ++i) {
         T n = result;
         result = (result >> 1) | (n & mask);
-        setCF(n & 1);
+        set_cf(n & 1);
     }
-    setOF(0);
-    updateFlags<T>(result);
+    set_of(0);
+    update_flags<T>(result);
     return result;
 }
 
@@ -212,10 +212,10 @@ T CPU::doRCL(T data, unsigned steps)
 
     for (unsigned i = 0; i < steps; ++i) {
         T n = result;
-        result = ((result << 1) & mask) | getCF();
-        setCF((n >> (TypeTrivia<T>::bits - 1)) & 1);
+        result = ((result << 1) & mask) | get_cf();
+        set_cf((n >> (TypeTrivia<T>::bits - 1)) & 1);
     }
-    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ getCF());
+    set_of((result >> (TypeTrivia<T>::bits - 1)) ^ get_cf());
     return result;
 }
 
@@ -230,10 +230,10 @@ T CPU::doRCR(T data, unsigned steps)
 
     for (unsigned i = 0; i < steps; ++i) {
         T n = result;
-        result = (result >> 1) | (getCF() << (TypeTrivia<T>::bits - 1));
-        setCF(n & 1);
+        result = (result >> 1) | (get_cf() << (TypeTrivia<T>::bits - 1));
+        set_cf(n & 1);
     }
-    setOF((result >> (TypeTrivia<T>::bits - 1)) ^ ((result >> (TypeTrivia<T>::bits - 2) & 1)));
+    set_of((result >> (TypeTrivia<T>::bits - 1)) ^ ((result >> (TypeTrivia<T>::bits - 2) & 1)));
     return result;
 }
 
@@ -287,7 +287,7 @@ void CPU::_BTx_RM_imm8(Instruction& insn)
     T original = modrm.read<T>();
     T bit_mask = 1 << bit_index;
     T result = BTx_Op::op(original, bit_mask);
-    setCF((original & bit_mask) != 0);
+    set_cf((original & bit_mask) != 0);
     if (BTx_Op::should_update())
         modrm.write(result);
 }
@@ -343,12 +343,12 @@ DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTS)
                 void CPU::_BTx_RM_reg(Instruction& insn)
 {
     auto& modrm = insn.modrm();
-    if (modrm.isRegister()) {
+    if (modrm.is_register()) {
         unsigned bit_index = insn.reg<T>() & (TypeTrivia<T>::bits - 1);
         T original = modrm.read<T>();
         T bit_mask = 1 << bit_index;
         T result = BTx_Op::op(original, bit_mask);
-        setCF((original & bit_mask) != 0);
+        set_cf((original & bit_mask) != 0);
         if (BTx_Op::should_update())
             modrm.write(result);
         return;
@@ -357,18 +357,18 @@ DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTS)
     unsigned bit_offset_in_array = insn.reg<T>() / 8;
     unsigned bit_offset_in_byte = insn.reg<T>() & 7;
     LinearAddress laddr(modrm.offset() + bit_offset_in_array);
-    u8 dest = readMemory8(laddr);
+    u8 dest = read_memory8(laddr);
     u8 bit_mask = 1 << bit_offset_in_byte;
     u8 result = BTx_Op::op(dest, bit_mask);
-    setCF((dest & bit_mask) != 0);
+    set_cf((dest & bit_mask) != 0);
     if (BTx_Op::should_update())
-        writeMemory8(laddr, result);
+        write_memory8(laddr, result);
 }
 
 template<typename T>
 T CPU::doBSF(T src)
 {
-    setZF(src == 0);
+    set_zf(src == 0);
     if (!src)
         return 0;
     for (unsigned i = 0; i < TypeTrivia<T>::bits; ++i) {
@@ -383,7 +383,7 @@ T CPU::doBSF(T src)
 template<typename T>
 T CPU::doBSR(T src)
 {
-    setZF(src == 0);
+    set_zf(src == 0);
     if (!src)
         return 0;
     for (int i = TypeTrivia<T>::bits - 1; i >= 0; --i) {
@@ -426,14 +426,14 @@ T CPU::doSHLD(T leftData, T rightData, unsigned steps)
 
     if (steps > TypeTrivia<T>::bits) {
         result = (leftData >> ((TypeTrivia<T>::bits * 2) - steps) | (rightData << (steps - TypeTrivia<T>::bits)));
-        setCF((rightData >> ((TypeTrivia<T>::bits * 2) - steps)) & 1);
+        set_cf((rightData >> ((TypeTrivia<T>::bits * 2) - steps)) & 1);
     } else {
         result = (leftData << steps) | (rightData >> (TypeTrivia<T>::bits - steps));
-        setCF((leftData >> (TypeTrivia<T>::bits - steps)) & 1);
+        set_cf((leftData >> (TypeTrivia<T>::bits - steps)) & 1);
     }
 
-    setOF(getCF() ^ (result >> (TypeTrivia<T>::bits - 1) & 1));
-    updateFlags<T>(result);
+    set_of(get_cf() ^ (result >> (TypeTrivia<T>::bits - 1) & 1));
+    update_flags<T>(result);
     return result;
 }
 
@@ -449,12 +449,12 @@ void CPU::_SHLD_RM32_reg32_imm8(Instruction& insn)
 
 void CPU::_SHLD_RM16_reg16_CL(Instruction& insn)
 {
-    insn.modrm().write16(doSHLD(insn.modrm().read16(), insn.reg16(), getCL()));
+    insn.modrm().write16(doSHLD(insn.modrm().read16(), insn.reg16(), get_cl()));
 }
 
 void CPU::_SHLD_RM32_reg32_CL(Instruction& insn)
 {
-    insn.modrm().write32(doSHLD(insn.modrm().read32(), insn.reg32(), getCL()));
+    insn.modrm().write32(doSHLD(insn.modrm().read32(), insn.reg32(), get_cl()));
 }
 
 template<typename T>
@@ -467,14 +467,14 @@ T CPU::doSHRD(T leftData, T rightData, unsigned steps)
     T result;
     if (steps > TypeTrivia<T>::bits) {
         result = (rightData << (32 - steps)) | (leftData >> (steps - TypeTrivia<T>::bits));
-        setCF((leftData >> (steps - (TypeTrivia<T>::bits + 1))) & 1);
+        set_cf((leftData >> (steps - (TypeTrivia<T>::bits + 1))) & 1);
     } else {
         result = (rightData >> steps) | (leftData << (TypeTrivia<T>::bits - steps));
-        setCF((rightData >> (steps - 1)) & 1);
+        set_cf((rightData >> (steps - 1)) & 1);
     }
 
-    setOF((result ^ rightData) >> (TypeTrivia<T>::bits - 1) & 1);
-    updateFlags<T>(result);
+    set_of((result ^ rightData) >> (TypeTrivia<T>::bits - 1) & 1);
+    update_flags<T>(result);
     return result;
 }
 
@@ -490,10 +490,10 @@ void CPU::_SHRD_RM32_reg32_imm8(Instruction& insn)
 
 void CPU::_SHRD_RM16_reg16_CL(Instruction& insn)
 {
-    insn.modrm().write16(doSHRD(insn.reg16(), insn.modrm().read16(), getCL()));
+    insn.modrm().write16(doSHRD(insn.reg16(), insn.modrm().read16(), get_cl()));
 }
 
 void CPU::_SHRD_RM32_reg32_CL(Instruction& insn)
 {
-    insn.modrm().write32(doSHRD(insn.reg32(), insn.modrm().read32(), getCL()));
+    insn.modrm().write32(doSHRD(insn.reg32(), insn.modrm().read32(), get_cl()));
 }

@@ -60,12 +60,12 @@ StateWidget::~StateWidget()
 {
 }
 
-#define DO_LABEL(name, fmt) d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get##name()));
+#define DO_LABEL(name, getter_name, fmt) d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get_##getter_name()));
 
-#define DO_LABEL_N(name, getterName, title, fmt)                         \
-    do {                                                                 \
-        d->ui.lblTitle##name->setText(title);                            \
-        d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get##getterName())); \
+#define DO_LABEL_N(name, getter_name, title, fmt)                          \
+    do {                                                                   \
+        d->ui.lblTitle##name->setText(title);                              \
+        d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get_##getter_name())); \
     } while (0);
 
 void StateWidget::sync()
@@ -74,47 +74,47 @@ void StateWidget::sync()
     auto& cpu = machine().cpu();
 
     if (cpu.x32()) {
-        DO_LABEL_N(EBX, EBX, "ebx", "%08x");
-        DO_LABEL_N(EAX, EAX, "eax", "%08x");
-        DO_LABEL_N(ECX, ECX, "ecx", "%08x");
-        DO_LABEL_N(EDX, EDX, "edx", "%08x");
-        DO_LABEL_N(EBP, EBP, "ebp", "%08x");
-        DO_LABEL_N(ESP, ESP, "esp", "%08x");
-        DO_LABEL_N(ESI, ESI, "esi", "%08x");
-        DO_LABEL_N(EDI, EDI, "edi", "%08x");
-        d->ui.lblPC->setText(s.sprintf("%04X:%08X", cpu.getBaseCS(), cpu.currentBaseInstructionPointer()));
+        DO_LABEL_N(EBX, ebx, "ebx", "%08x");
+        DO_LABEL_N(EAX, eax, "eax", "%08x");
+        DO_LABEL_N(ECX, ecx, "ecx", "%08x");
+        DO_LABEL_N(EDX, edx, "edx", "%08x");
+        DO_LABEL_N(EBP, ebp, "ebp", "%08x");
+        DO_LABEL_N(ESP, esp, "esp", "%08x");
+        DO_LABEL_N(ESI, esi, "esi", "%08x");
+        DO_LABEL_N(EDI, edi, "edi", "%08x");
+        d->ui.lblPC->setText(s.sprintf("%04X:%08X", cpu.get_base_cs(), cpu.current_base_instruction_pointer()));
     } else {
-        DO_LABEL_N(EBX, BX, "bx", "%04x");
-        DO_LABEL_N(EAX, AX, "ax", "%04x");
-        DO_LABEL_N(ECX, CX, "cx", "%04x");
-        DO_LABEL_N(EDX, DX, "dx", "%04x");
-        DO_LABEL_N(EBP, BP, "bp", "%04x");
-        DO_LABEL_N(ESP, SP, "sp", "%04x");
-        DO_LABEL_N(ESI, SI, "si", "%04x");
-        DO_LABEL_N(EDI, DI, "di", "%04x");
-        d->ui.lblPC->setText(s.sprintf("%04X:%04X", cpu.getBaseCS(), cpu.getBaseIP()));
+        DO_LABEL_N(EBX, bx, "bx", "%04x");
+        DO_LABEL_N(EAX, ax, "ax", "%04x");
+        DO_LABEL_N(ECX, cx, "cx", "%04x");
+        DO_LABEL_N(EDX, dx, "dx", "%04x");
+        DO_LABEL_N(EBP, bp, "bp", "%04x");
+        DO_LABEL_N(ESP, sp, "sp", "%04x");
+        DO_LABEL_N(ESI, si, "si", "%04x");
+        DO_LABEL_N(EDI, di, "di", "%04x");
+        d->ui.lblPC->setText(s.sprintf("%04X:%04X", cpu.get_base_cs(), cpu.get_base_ip()));
     }
-    DO_LABEL(CS, "%04x");
-    DO_LABEL(DS, "%04x");
-    DO_LABEL(ES, "%04x");
-    DO_LABEL(SS, "%04x");
-    DO_LABEL(FS, "%04x");
-    DO_LABEL(GS, "%04x");
-    DO_LABEL(CR0, "%08x");
-    DO_LABEL(CR3, "%08x");
+    DO_LABEL(CS, cs, "%04x");
+    DO_LABEL(DS, ds, "%04x");
+    DO_LABEL(ES, es, "%04x");
+    DO_LABEL(SS, ss, "%04x");
+    DO_LABEL(FS, fs, "%04x");
+    DO_LABEL(GS, gs, "%04x");
+    DO_LABEL(CR0, cr0, "%08x");
+    DO_LABEL(CR3, cr3, "%08x");
 
-#define DO_FLAG(getterName, name) flagString += QString("<font color='%1'>%2</font> ").arg(cpu.get##getterName() ? "black" : "#ccc").arg(name);
+#define DO_FLAG(getter_name, name) flagString += QString("<font color='%1'>%2</font> ").arg(cpu.get_##getter_name() ? "black" : "#ccc").arg(name);
 
     QString flagString;
-    DO_FLAG(OF, "of");
-    DO_FLAG(SF, "sf");
-    DO_FLAG(ZF, "zf");
-    DO_FLAG(AF, "af");
-    DO_FLAG(PF, "pf");
-    DO_FLAG(CF, "cf");
-    DO_FLAG(IF, "if");
-    DO_FLAG(TF, "tf");
-    DO_FLAG(NT, "nt");
+    DO_FLAG(of, "of");
+    DO_FLAG(sf, "sf");
+    DO_FLAG(zf, "zf");
+    DO_FLAG(af, "af");
+    DO_FLAG(pf, "pf");
+    DO_FLAG(cf, "cf");
+    DO_FLAG(if, "if");
+    DO_FLAG(tf, "tf");
+    DO_FLAG(nt, "nt");
 
     d->ui.lblFlags->setText(flagString);
 

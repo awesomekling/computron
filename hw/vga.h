@@ -44,7 +44,7 @@ public:
     virtual void out8(u16 port, u8 data) override;
 
     // MemoryProvider
-    virtual void writeMemory8(u32 address, u8 value) override;
+    virtual void write_memory8(u32 address, u8 value) override;
     virtual u8 readMemory8(u32 address) override;
 
     const u8* plane(int index) const;
@@ -53,7 +53,7 @@ public:
     void setPaletteDirty(bool);
     bool isPaletteDirty();
 
-    u8 readRegister(u8 index) const;
+    u8 read_register(u8 index) const;
 
     u16 cursor_location() const;
     u8 cursor_start_scanline() const;

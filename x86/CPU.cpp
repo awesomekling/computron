@@ -75,51 +75,51 @@ static bool shouldLogMemoryRead(PhysicalAddress address)
 
 CPU* g_cpu = 0;
 
-u32 CPU::readRegisterForAddressSize(int registerIndex)
+u32 CPU::read_register_for_address_size(int register_index)
 {
     if (a32())
-        return m_generalPurposeRegister[registerIndex].fullDWORD;
-    return m_generalPurposeRegister[registerIndex].lowWORD;
+        return m_gpr[register_index].fullDWORD;
+    return m_gpr[register_index].lowWORD;
 }
 
-void CPU::writeRegisterForAddressSize(int registerIndex, u32 data)
+void CPU::write_register_for_address_size(int register_index, u32 data)
 {
     if (a32())
-        m_generalPurposeRegister[registerIndex].fullDWORD = data;
+        m_gpr[register_index].fullDWORD = data;
     else
-        m_generalPurposeRegister[registerIndex].lowWORD = data;
+        m_gpr[register_index].lowWORD = data;
 }
 
-void CPU::stepRegisterForAddressSize(int registerIndex, u32 stepSize)
+void CPU::step_register_for_address_size(int register_index, u32 stepSize)
 {
     if (a32())
-        m_generalPurposeRegister[registerIndex].fullDWORD += getDF() ? -stepSize : stepSize;
+        m_gpr[register_index].fullDWORD += get_df() ? -stepSize : stepSize;
     else
-        m_generalPurposeRegister[registerIndex].lowWORD += getDF() ? -stepSize : stepSize;
+        m_gpr[register_index].lowWORD += get_df() ? -stepSize : stepSize;
 }
 
-bool CPU::decrementCXForAddressSize()
+bool CPU::decrement_cx_for_address_size()
 {
     if (a32()) {
-        setECX(getECX() - 1);
-        return getECX() == 0;
+        set_ecx(get_ecx() - 1);
+        return get_ecx() == 0;
     }
-    setCX(getCX() - 1);
-    return getCX() == 0;
+    set_cx(get_cx() - 1);
+    return get_cx() == 0;
 }
 
-template u8 CPU::readRegister<u8>(int) const;
-template u16 CPU::readRegister<u16>(int) const;
-template u32 CPU::readRegister<u32>(int) const;
-template void CPU::writeRegister<u8>(int, u8);
-template void CPU::writeRegister<u16>(int, u16);
-template void CPU::writeRegister<u32>(int, u32);
+template u8 CPU::read_register<u8>(int) const;
+template u16 CPU::read_register<u16>(int) const;
+template u32 CPU::read_register<u32>(int) const;
+template void CPU::write_register<u8>(int, u8);
+template void CPU::write_register<u16>(int, u16);
+template void CPU::write_register<u32>(int, u32);
 
 FLATTEN void CPU::decodeNext()
 {
 #ifdef CT_TRACE
-    if (UNLIKELY(m_isForAutotest))
-        dumpTrace();
+    if (UNLIKELY(m_is_for_autotest))
+        dump_trace();
 #endif
 
 #ifdef CRASH_ON_EXECUTE_00000000
@@ -131,17 +131,17 @@ FLATTEN void CPU::decodeNext()
 #endif
 
 #ifdef CRASH_ON_VME
-    if (UNLIKELY(getVME()))
+    if (UNLIKELY(get_vme()))
         ASSERT_NOT_REACHED();
 #endif
 
 #ifdef CRASH_ON_PVI
-    if (UNLIKELY(getPVI()))
+    if (UNLIKELY(get_pvi()))
         ASSERT_NOT_REACHED();
 #endif
 
-    auto insn = Instruction::fromStream(*this, m_operandSize32, m_addressSize32);
-    if (!insn.isValid())
+    auto insn = Instruction::fromStream(*this, m_operand_size32, m_address_size32);
+    if (!insn.is_valid())
         throw InvalidOpcode();
     execute(insn);
 }
@@ -150,7 +150,7 @@ FLATTEN void CPU::execute(Instruction& insn)
 {
 #ifdef CRASH_ON_OPCODE_00_00
     if (UNLIKELY(insn.op() == 0 && insn.rm() == 0)) {
-        dumpTrace();
+        dump_trace();
         ASSERT_NOT_REACHED();
     }
 #endif
@@ -166,23 +166,23 @@ FLATTEN void CPU::execute(Instruction& insn)
 
 void CPU::_RDTSC(Instruction&)
 {
-    if (getTSD() && getPE() && getCPL() != 0) {
+    if (get_tsd() && get_pe() && get_cpl() != 0) {
         throw GeneralProtectionFault(0, "RDTSC");
     }
-    setEDX(m_cycle >> 32);
-    setEAX(m_cycle);
+    set_edx(m_cycle >> 32);
+    set_eax(m_cycle);
 }
 
 void CPU::_WBINVD(Instruction&)
 {
-    if (getPE() && getCPL() != 0) {
+    if (get_pe() && get_cpl() != 0) {
         throw GeneralProtectionFault(0, "WBINVD");
     }
 }
 
 void CPU::_INVLPG(Instruction&)
 {
-    if (getPE() && getCPL() != 0) {
+    if (get_pe() && get_cpl() != 0) {
         throw GeneralProtectionFault(0, "INVLPG");
     }
 }
@@ -190,7 +190,7 @@ void CPU::_INVLPG(Instruction&)
 void CPU::_VKILL(Instruction&)
 {
     // FIXME: Maybe (0xf1) is a bad choice of opcode here, since that's also INT1 / ICEBP.
-    if (!machine().isForAutotest()) {
+    if (!machine().is_for_autotest()) {
         throw InvalidOpcode("VKILL (0xf1) is an invalid opcode outside of auto-test mode!");
     }
     vlog(LogCPU, "0xF1: Secret shutdown command received!");
@@ -198,18 +198,18 @@ void CPU::_VKILL(Instruction&)
     hard_exit(0);
 }
 
-void CPU::setMemorySizeAndReallocateIfNeeded(u32 size)
+void CPU::set_memory_size_and_reallocate_if_needed(u32 size)
 {
-    if (m_memorySize == size)
+    if (m_memory_size == size)
         return;
     delete[] m_memory;
-    m_memorySize = size;
-    m_memory = new u8[m_memorySize];
+    m_memory_size = size;
+    m_memory = new u8[m_memory_size];
     if (!m_memory) {
         vlog(LogInit, "Insufficient memory available.");
         hard_exit(1);
     }
-    memset(m_memory, 0x0, m_memorySize);
+    memset(m_memory, 0x0, m_memory_size);
 }
 
 CPU::CPU(Machine& m)
@@ -236,131 +236,131 @@ CPU::CPU(Machine& m)
         m_vmm_names.append(line.trimmed());
     }
 #endif
-    m_isForAutotest = machine().isForAutotest();
+    m_is_for_autotest = machine().is_for_autotest();
 
-    buildOpcodeTablesIfNeeded();
+    build_opcode_tables_if_needed();
 
     ASSERT(!g_cpu);
     g_cpu = this;
 
-    setMemorySizeAndReallocateIfNeeded(8192 * 1024);
+    set_memory_size_and_reallocate_if_needed(8192 * 1024);
 
-    memset(m_memoryProviders, 0, sizeof(m_memoryProviders));
+    memset(m_memory_providers, 0, sizeof(m_memory_providers));
 
     m_debugger = make<Debugger>(*this);
 
-    m_controlRegisterMap[0] = &m_CR0;
-    m_controlRegisterMap[1] = nullptr;
-    m_controlRegisterMap[2] = &m_CR2;
-    m_controlRegisterMap[3] = &m_CR3;
-    m_controlRegisterMap[4] = &m_CR4;
-    m_controlRegisterMap[5] = nullptr;
-    m_controlRegisterMap[6] = nullptr;
-    m_controlRegisterMap[7] = nullptr;
+    m_control_register_map[0] = &m_cr0;
+    m_control_register_map[1] = nullptr;
+    m_control_register_map[2] = &m_cr2;
+    m_control_register_map[3] = &m_cr3;
+    m_control_register_map[4] = &m_cr4;
+    m_control_register_map[5] = nullptr;
+    m_control_register_map[6] = nullptr;
+    m_control_register_map[7] = nullptr;
 
-    m_debugRegisterMap[0] = &m_DR0;
-    m_debugRegisterMap[1] = &m_DR1;
-    m_debugRegisterMap[2] = &m_DR2;
-    m_debugRegisterMap[3] = &m_DR3;
-    m_debugRegisterMap[4] = &m_DR4;
-    m_debugRegisterMap[5] = &m_DR5;
-    m_debugRegisterMap[6] = &m_DR6;
-    m_debugRegisterMap[7] = &m_DR7;
+    m_debug_register_map[0] = &m_dr0;
+    m_debug_register_map[1] = &m_dr1;
+    m_debug_register_map[2] = &m_dr2;
+    m_debug_register_map[3] = &m_dr3;
+    m_debug_register_map[4] = &m_dr4;
+    m_debug_register_map[5] = &m_dr5;
+    m_debug_register_map[6] = &m_dr6;
+    m_debug_register_map[7] = &m_dr7;
 
-    m_byteRegisters[RegisterAH] = &m_generalPurposeRegister[RegisterEAX].highBYTE;
-    m_byteRegisters[RegisterBH] = &m_generalPurposeRegister[RegisterEBX].highBYTE;
-    m_byteRegisters[RegisterCH] = &m_generalPurposeRegister[RegisterECX].highBYTE;
-    m_byteRegisters[RegisterDH] = &m_generalPurposeRegister[RegisterEDX].highBYTE;
-    m_byteRegisters[RegisterAL] = &m_generalPurposeRegister[RegisterEAX].lowBYTE;
-    m_byteRegisters[RegisterBL] = &m_generalPurposeRegister[RegisterEBX].lowBYTE;
-    m_byteRegisters[RegisterCL] = &m_generalPurposeRegister[RegisterECX].lowBYTE;
-    m_byteRegisters[RegisterDL] = &m_generalPurposeRegister[RegisterEDX].lowBYTE;
+    m_byte_registers[RegisterAH] = &m_gpr[RegisterEAX].highBYTE;
+    m_byte_registers[RegisterBH] = &m_gpr[RegisterEBX].highBYTE;
+    m_byte_registers[RegisterCH] = &m_gpr[RegisterECX].highBYTE;
+    m_byte_registers[RegisterDH] = &m_gpr[RegisterEDX].highBYTE;
+    m_byte_registers[RegisterAL] = &m_gpr[RegisterEAX].lowBYTE;
+    m_byte_registers[RegisterBL] = &m_gpr[RegisterEBX].lowBYTE;
+    m_byte_registers[RegisterCL] = &m_gpr[RegisterECX].lowBYTE;
+    m_byte_registers[RegisterDL] = &m_gpr[RegisterEDX].lowBYTE;
 
-    m_segmentMap[(int)SegmentRegisterIndex::CS] = &this->CS;
-    m_segmentMap[(int)SegmentRegisterIndex::DS] = &this->DS;
-    m_segmentMap[(int)SegmentRegisterIndex::ES] = &this->ES;
-    m_segmentMap[(int)SegmentRegisterIndex::SS] = &this->SS;
-    m_segmentMap[(int)SegmentRegisterIndex::FS] = &this->FS;
-    m_segmentMap[(int)SegmentRegisterIndex::GS] = &this->GS;
-    m_segmentMap[6] = nullptr;
-    m_segmentMap[7] = nullptr;
+    m_segment_map[(int)SegmentRegisterIndex::CS] = &this->m_cs;
+    m_segment_map[(int)SegmentRegisterIndex::DS] = &this->m_ds;
+    m_segment_map[(int)SegmentRegisterIndex::ES] = &this->m_es;
+    m_segment_map[(int)SegmentRegisterIndex::SS] = &this->m_ss;
+    m_segment_map[(int)SegmentRegisterIndex::FS] = &this->m_fs;
+    m_segment_map[(int)SegmentRegisterIndex::GS] = &this->m_gs;
+    m_segment_map[6] = nullptr;
+    m_segment_map[7] = nullptr;
 
     reset();
 }
 
 void CPU::reset()
 {
-    m_a20Enabled = false;
-    m_nextInstructionIsUninterruptible = false;
+    m_a20_enabled = false;
+    m_next_instruction_is_uninterruptible = false;
 
-    memset(&m_generalPurposeRegister, 0, sizeof(m_generalPurposeRegister));
-    m_CR0 = 0;
-    m_CR2 = 0;
-    m_CR3 = 0;
-    m_CR4 = 0;
-    m_DR0 = 0;
-    m_DR1 = 0;
-    m_DR2 = 0;
-    m_DR3 = 0;
-    m_DR4 = 0;
-    m_DR5 = 0;
-    m_DR6 = 0;
-    m_DR7 = 0;
+    memset(&m_gpr, 0, sizeof(m_gpr));
+    m_cr0 = 0;
+    m_cr2 = 0;
+    m_cr3 = 0;
+    m_cr4 = 0;
+    m_dr0 = 0;
+    m_dr1 = 0;
+    m_dr2 = 0;
+    m_dr3 = 0;
+    m_dr4 = 0;
+    m_dr5 = 0;
+    m_dr6 = 0;
+    m_dr7 = 0;
 
-    this->IOPL = 0;
-    this->VM = 0;
-    this->VIP = 0;
-    this->VIF = 0;
-    this->NT = 0;
-    this->RF = 0;
-    this->AC = 0;
-    this->ID = 0;
+    this->m_iopl = 0;
+    this->m_vm = 0;
+    this->m_vip = 0;
+    this->m_vif = 0;
+    this->m_nt = 0;
+    this->m_rf = 0;
+    this->m_ac = 0;
+    this->m_id = 0;
 
-    m_GDTR.clear();
-    m_IDTR.clear();
-    m_LDTR.clear();
+    m_gdtr.clear();
+    m_idtr.clear();
+    m_ldtr.clear();
 
-    this->TR.selector = 0;
-    this->TR.limit = 0xffff;
-    this->TR.base = LinearAddress();
-    this->TR.is32Bit = false;
+    this->m_tr.selector = 0;
+    this->m_tr.limit = 0xffff;
+    this->m_tr.base = LinearAddress();
+    this->m_tr.is_32bit = false;
 
     memset(m_descriptor, 0, sizeof(m_descriptor));
 
-    m_segmentPrefix = SegmentRegisterIndex::None;
+    m_segment_prefix = SegmentRegisterIndex::None;
 
-    setCS(0);
-    setDS(0);
-    setES(0);
-    setSS(0);
-    setFS(0);
-    setGS(0);
+    set_cs(0);
+    set_ds(0);
+    set_es(0);
+    set_ss(0);
+    set_fs(0);
+    set_gs(0);
 
-    if (m_isForAutotest)
-        farJump(LogicalAddress(machine().settings().entryCS(), machine().settings().entryIP()), JumpType::Internal);
+    if (m_is_for_autotest)
+        far_jump(LogicalAddress(machine().settings().entry_cs(), machine().settings().entry_ip()), JumpType::Internal);
     else
-        farJump(LogicalAddress(0xf000, 0x0000), JumpType::Internal);
+        far_jump(LogicalAddress(0xf000, 0x0000), JumpType::Internal);
 
-    setFlags(0x0200);
+    set_flags(0x0200);
 
-    setIOPL(3);
+    set_iopl(3);
 
     m_state = Alive;
 
-    m_addressSize32 = false;
-    m_operandSize32 = false;
-    m_effectiveAddressSize32 = false;
-    m_effectiveOperandSize32 = false;
+    m_address_size32 = false;
+    m_operand_size32 = false;
+    m_effective_address_size32 = false;
+    m_effective_operand_size32 = false;
 
-    m_dirtyFlags = 0;
-    m_lastResult = 0;
-    m_lastOpSize = ByteSize;
+    m_dirty_flags = 0;
+    m_last_result = 0;
+    m_last_op_size = ByteSize;
 
     m_cycle = 0;
 
-    initWatches();
+    init_watches();
 
-    recomputeMainLoopNeedsSlowStuff();
+    recompute_main_loop_needs_slow_stuff();
 }
 
 CPU::~CPU()
@@ -374,7 +374,7 @@ public:
     InstructionExecutionContext(CPU& cpu)
         : m_cpu(cpu)
     {
-        cpu.saveBaseAddress();
+        cpu.save_base_address();
     }
     ~InstructionExecutionContext() { m_cpu.clearPrefix(); }
 
@@ -382,7 +382,7 @@ private:
     CPU& m_cpu;
 };
 
-FLATTEN void CPU::executeOneInstruction()
+FLATTEN void CPU::execute_one_instruction()
 {
     try {
         InstructionExecutionContext context(*this);
@@ -395,124 +395,124 @@ FLATTEN void CPU::executeOneInstruction()
         decodeNext();
     } catch (Exception e) {
         if (options.log_exceptions)
-            dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), m_baseEIP, 3);
-        raiseException(e);
+            dump_disassembled(cached_descriptor(SegmentRegisterIndex::CS), m_base_eip, 3);
+        raise_exception(e);
     } catch (HardwareInterruptDuringREP) {
-        setEIP(currentBaseInstructionPointer());
+        set_eip(current_base_instruction_pointer());
     }
 }
 
-void CPU::haltedLoop()
+void CPU::halted_loop()
 {
     while (state() == CPU::Halted) {
 #ifdef HAVE_USLEEP
         usleep(100);
 #endif
-        if (m_shouldHardReboot) {
-            hardReboot();
+        if (m_should_hard_reboot) {
+            hard_reboot();
             return;
         }
         if (debugger().isActive()) {
-            saveBaseAddress();
+            save_base_address();
             debugger().doConsole();
         }
-        if (PIC::hasPendingIRQ() && getIF())
-            PIC::serviceIRQ(*this);
+        if (PIC::has_pending_irq() && get_if())
+            PIC::service_irq(*this);
     }
 }
 
-void CPU::queueCommand(Command command)
+void CPU::queue_command(Command command)
 {
     switch (command) {
     case EnterDebugger:
-        m_debuggerRequest = PleaseEnterDebugger;
+        m_debugger_request = PleaseEnterDebugger;
         break;
     case ExitDebugger:
-        m_debuggerRequest = PleaseExitDebugger;
+        m_debugger_request = PleaseExitDebugger;
         break;
     case HardReboot:
-        m_shouldHardReboot = true;
+        m_should_hard_reboot = true;
         break;
     }
-    recomputeMainLoopNeedsSlowStuff();
+    recompute_main_loop_needs_slow_stuff();
 }
 
-void CPU::hardReboot()
+void CPU::hard_reboot()
 {
-    machine().resetAllIODevices();
+    machine().reset_all_io_devices();
     reset();
-    m_shouldHardReboot = false;
+    m_should_hard_reboot = false;
 }
 
-void CPU::makeNextInstructionUninterruptible()
+void CPU::make_next_instruction_uninterruptible()
 {
-    m_nextInstructionIsUninterruptible = true;
+    m_next_instruction_is_uninterruptible = true;
 }
 
-void CPU::recomputeMainLoopNeedsSlowStuff()
+void CPU::recompute_main_loop_needs_slow_stuff()
 {
-    m_mainLoopNeedsSlowStuff = m_debuggerRequest != NoDebuggerRequest || m_shouldHardReboot || options.trace || !m_breakpoints.empty() || debugger().isActive() || !m_watches.isEmpty();
+    m_main_loop_needs_slow_stuff = m_debugger_request != NoDebuggerRequest || m_should_hard_reboot || options.trace || !m_breakpoints.empty() || debugger().isActive() || !m_watches.isEmpty();
 }
 
-NEVER_INLINE bool CPU::mainLoopSlowStuff()
+NEVER_INLINE bool CPU::main_loop_slow_stuff()
 {
-    if (m_shouldHardReboot) {
-        hardReboot();
+    if (m_should_hard_reboot) {
+        hard_reboot();
         return true;
     }
 
     if (!m_breakpoints.empty()) {
         for (auto& breakpoint : m_breakpoints) {
-            if (getCS() == breakpoint.selector() && getEIP() == breakpoint.offset()) {
+            if (get_cs() == breakpoint.selector() && get_eip() == breakpoint.offset()) {
                 debugger().enter();
                 break;
             }
         }
     }
 
-    if (m_debuggerRequest == PleaseEnterDebugger) {
+    if (m_debugger_request == PleaseEnterDebugger) {
         debugger().enter();
-        m_debuggerRequest = NoDebuggerRequest;
-        recomputeMainLoopNeedsSlowStuff();
-    } else if (m_debuggerRequest == PleaseExitDebugger) {
+        m_debugger_request = NoDebuggerRequest;
+        recompute_main_loop_needs_slow_stuff();
+    } else if (m_debugger_request == PleaseExitDebugger) {
         debugger().exit();
-        m_debuggerRequest = NoDebuggerRequest;
-        recomputeMainLoopNeedsSlowStuff();
+        m_debugger_request = NoDebuggerRequest;
+        recompute_main_loop_needs_slow_stuff();
     }
 
     if (debugger().isActive()) {
-        saveBaseAddress();
+        save_base_address();
         debugger().doConsole();
     }
 
     if (options.trace)
-        dumpTrace();
+        dump_trace();
 
     if (!m_watches.isEmpty())
-        dumpWatches();
+        dump_watches();
 
     return true;
 }
 
-FLATTEN void CPU::mainLoop()
+FLATTEN void CPU::main_loop()
 {
     forever
     {
-        if (UNLIKELY(m_mainLoopNeedsSlowStuff)) {
-            mainLoopSlowStuff();
+        if (UNLIKELY(m_main_loop_needs_slow_stuff)) {
+            main_loop_slow_stuff();
         }
 
-        executeOneInstruction();
+        execute_one_instruction();
 
         // FIXME: An obvious optimization here would be to dispatch next insn directly from whoever put us in this state.
         // Easy to implement: just call executeOneInstruction() in e.g "POP SS"
         // I'll do this once things feel more trustworthy in general.
-        if (UNLIKELY(m_nextInstructionIsUninterruptible)) {
-            m_nextInstructionIsUninterruptible = false;
+        if (UNLIKELY(m_next_instruction_is_uninterruptible)) {
+            m_next_instruction_is_uninterruptible = false;
             continue;
         }
 
-        if (UNLIKELY(getTF())) {
+        if (UNLIKELY(get_tf())) {
             // The Trap Flag is set, so we'll execute one instruction and
             // call ISR 1 as soon as it's finished.
             //
@@ -521,8 +521,8 @@ FLATTEN void CPU::mainLoop()
             interrupt(1, InterruptSource::Internal);
         }
 
-        if (PIC::hasPendingIRQ() && getIF())
-            PIC::serviceIRQ(*this);
+        if (PIC::has_pending_irq() && get_if())
+            PIC::service_irq(*this);
 
 #ifdef CT_DETERMINISTIC
         if (getIF() && ((cycle() + 1) % 100 == 0)) {
@@ -532,37 +532,37 @@ FLATTEN void CPU::mainLoop()
     }
 }
 
-void CPU::jumpRelative8(i8 displacement)
+void CPU::jump_relative8(i8 displacement)
 {
-    m_EIP += displacement;
+    m_eip += displacement;
 }
 
-void CPU::jumpRelative16(i16 displacement)
+void CPU::jump_relative16(i16 displacement)
 {
-    m_EIP += displacement;
+    m_eip += displacement;
 }
 
-void CPU::jumpRelative32(i32 displacement)
+void CPU::jump_relative32(i32 displacement)
 {
-    m_EIP += displacement;
+    m_eip += displacement;
 }
 
-void CPU::jumpAbsolute16(u16 address)
+void CPU::jump_absolute16(u16 address)
 {
-    m_EIP = address;
+    m_eip = address;
 }
 
-void CPU::jumpAbsolute32(u32 address)
+void CPU::jump_absolute32(u32 address)
 {
 #ifdef CRASH_ON_PE_JMP_00000000
-    if (getPE() && !address) {
-        vlog(LogCPU, "HMM! Jump to cs:00000000 in PE=1, source: %04x:%08x\n", getBaseCS(), getBaseEIP());
-        dumpAll();
+    if (get_pe() && !address) {
+        vlog(LogCPU, "HMM! Jump to cs:00000000 in PE=1, source: %04x:%08x\n", get_base_cs(), get_base_eip());
+        dump_all();
         ASSERT_NOT_REACHED();
     }
 #endif
     //    vlog(LogCPU, "[PE=%u] Abs jump to %08X", getPE(), address);
-    m_EIP = address;
+    m_eip = address;
 }
 
 static const char* toString(JumpType type)
@@ -586,42 +586,42 @@ static const char* toString(JumpType type)
     }
 }
 
-void CPU::realModeFarJump(LogicalAddress address, JumpType type)
+void CPU::real_mode_far_jump(LogicalAddress address, JumpType type)
 {
-    ASSERT(!getPE() || getVM());
+    ASSERT(!get_pe() || get_vm());
     u16 selector = address.selector();
     u32 offset = address.offset();
-    u16 originalCS = getCS();
-    u32 originalEIP = getEIP();
+    u16 originalCS = get_cs();
+    u32 originalEIP = get_eip();
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, VM=%u] %s from %04x:%08x to %04x:%08x", getPE(), getVM(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    setCS(selector);
-    setEIP(offset);
+    set_cs(selector);
+    set_eip(offset);
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, originalCS, originalEIP, getSS(), getESP());
+        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, originalCS, originalEIP, getSS(), get_esp());
 #endif
-        pushOperandSizedValue(originalCS);
-        pushOperandSizedValue(originalEIP);
+        push_operand_sized_value(originalCS);
+        push_operand_sized_value(originalEIP);
     }
 }
 
-void CPU::farJump(LogicalAddress address, JumpType type, Gate* gate)
+void CPU::far_jump(LogicalAddress address, JumpType type, Gate* gate)
 {
-    if (!getPE() || getVM()) {
-        realModeFarJump(address, type);
+    if (!get_pe() || get_vm()) {
+        real_mode_far_jump(address, type);
     } else {
-        protectedModeFarJump(address, type, gate);
+        protected_mode_far_jump(address, type, gate);
     }
 }
 
-void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate)
+void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* gate)
 {
-    ASSERT(getPE());
+    ASSERT(get_pe());
     u16 selector = address.selector();
     u32 offset = address.offset();
     ValueSize pushSize = o32() ? DWordSize : WordSize;
@@ -631,11 +631,11 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         pushSize = gate->is32Bit() ? DWordSize : WordSize;
     }
 
-    u16 originalSS = getSS();
-    u32 originalESP = getESP();
-    u16 originalCPL = getCPL();
-    u16 originalCS = getCS();
-    u32 originalEIP = getEIP();
+    u16 originalSS = get_ss();
+    u32 originalESP = get_esp();
+    u16 originalCPL = get_cpl();
+    u16 originalCS = get_cs();
+    u32 originalEIP = get_eip();
 
     u8 selectorRPL = selector & 3;
 
@@ -643,7 +643,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector);
+    auto descriptor = get_descriptor(selector);
 
     if (descriptor.isNull()) {
         throw GeneralProtectionFault(0, QString("%1 to null selector").arg(toString(type)));
@@ -656,8 +656,8 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to invalid descriptor type").arg(toString(type)));
 
     if (descriptor.isGate() && gate) {
-        dumpDescriptor(*gate);
-        dumpDescriptor(descriptor);
+        dump_descriptor(*gate);
+        dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Gate-to-gate jumps are not allowed");
     }
 
@@ -676,8 +676,8 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
             ASSERT_NOT_REACHED();
         }
 
-        if (gate.DPL() < getCPL())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.DPL()).arg(getCPL()));
+        if (gate.DPL() < get_cpl())
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.DPL()).arg(get_cpl()));
 
         if (selectorRPL > gate.DPL())
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.DPL()));
@@ -687,7 +687,7 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         }
 
         // NOTE: We recurse here, jumping to the gate entry point.
-        farJump(gate.entry(), type, &gate);
+        far_jump(gate.entry(), type, &gate);
         return;
     }
 
@@ -695,16 +695,16 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         auto& tssDescriptor = descriptor.asTSSDescriptor();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "CS is this:");
-        dumpDescriptor(cachedDescriptor(SegmentRegisterIndex::CS));
+        dump_descriptor(cachedDescriptor(SegmentRegisterIndex::CS));
         vlog(LogCPU, "%s to TSS descriptor (%s) -> %08x", toString(type), tssDescriptor.typeName(), tssDescriptor.base());
 #endif
-        if (tssDescriptor.DPL() < getCPL())
+        if (tssDescriptor.DPL() < get_cpl())
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < CPL").arg(toString(type)));
         if (tssDescriptor.DPL() < selectorRPL)
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
         if (!tssDescriptor.present())
             throw NotPresent(selector & 0xfffc, "TSS not present");
-        taskSwitch(selector, tssDescriptor, type);
+        task_switch(selector, tssDescriptor, type);
         return;
     }
 
@@ -713,15 +713,15 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
 
     if ((type == JumpType::CALL || type == JumpType::JMP) && !gate) {
         if (codeSegment.conforming()) {
-            if (codeSegment.DPL() > getCPL()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
+            if (codeSegment.DPL() > get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(get_cpl()));
             }
         } else {
             if (selectorRPL > codeSegment.DPL()) {
                 throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.DPL()));
             }
-            if (codeSegment.DPL() != getCPL()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(getCPL()));
+            if (codeSegment.DPL() != get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(get_cpl()));
             }
         }
     }
@@ -742,23 +742,23 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
 
     if (offset > codeSegment.effectiveLimit()) {
         vlog(LogCPU, "%s to eip(%08x) outside limit(%08x)", toString(type), offset, codeSegment.effectiveLimit());
-        dumpDescriptor(codeSegment);
+        dump_descriptor(codeSegment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
-    setCS(selector);
-    setEIP(offset);
+    set_cs(selector);
+    set_eip(offset);
 
     if (type == JumpType::CALL && gate) {
         if (descriptor.DPL() < originalCPL) {
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
 #endif
-            auto tss = currentTSS();
+            auto tss = current_tss();
 
-            u16 newSS = tss.getRingSS(descriptor.DPL());
-            u32 newESP = tss.getRingESP(descriptor.DPL());
-            auto newSSDescriptor = getDescriptor(newSS);
+            u16 newSS = tss.get_ring_ss(descriptor.DPL());
+            u32 newESP = tss.get_ring_esp(descriptor.DPL());
+            auto newSSDescriptor = get_descriptor(newSS);
 
             // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
@@ -783,74 +783,74 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
             }
 
             BEGIN_ASSERT_NO_EXCEPTIONS
-            setCPL(descriptor.DPL());
-            setSS(newSS);
-            setESP(newESP);
+            set_cpl(descriptor.DPL());
+            set_ss(newSS);
+            set_esp(newESP);
 
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, getSS(), getSP());
-            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, getSS(), getESP());
+            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, getSS(), get_esp());
 #endif
-            pushValueWithSize(originalSS, pushSize);
-            pushValueWithSize(originalESP, pushSize);
+            push_value_with_size(originalSS, pushSize);
+            push_value_with_size(originalESP, pushSize);
             END_ASSERT_NO_EXCEPTIONS
         } else {
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s same privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL());
 #endif
-            setCPL(originalCPL);
+            set_cpl(originalCPL);
         }
     }
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", pushSize, originalCS, originalEIP, getSS(), getESP());
+        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", pushSize, originalCS, originalEIP, getSS(), get_esp());
 #endif
         BEGIN_ASSERT_NO_EXCEPTIONS
-        pushValueWithSize(originalCS, pushSize);
-        pushValueWithSize(originalEIP, pushSize);
+        push_value_with_size(originalCS, pushSize);
+        push_value_with_size(originalEIP, pushSize);
         END_ASSERT_NO_EXCEPTIONS
     }
 
     if (!gate)
-        setCPL(originalCPL);
+        set_cpl(originalCPL);
 }
 
-void CPU::clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex segreg, JumpType type)
+void CPU::clear_segment_register_after_return_if_needed(SegmentRegisterIndex segreg, JumpType type)
 {
-    if (readSegmentRegister(segreg) == 0)
+    if (read_segment_register(segreg) == 0)
         return;
-    auto& cached = cachedDescriptor(segreg);
-    if (cached.isNull() || (cached.DPL() < getCPL() && (cached.isData() || cached.isNonconformingCode()))) {
-        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", toString(type), registerName(segreg), readSegmentRegister(segreg), cached.DPL(), getCPL());
-        writeSegmentRegister(segreg, 0);
+    auto& cached = cached_descriptor(segreg);
+    if (cached.isNull() || (cached.DPL() < get_cpl() && (cached.isData() || cached.isNonconformingCode()))) {
+        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", toString(type), register_name(segreg), read_segment_register(segreg), cached.DPL(), get_cpl());
+        write_segment_register(segreg, 0);
     }
 }
 
-void CPU::protectedFarReturn(u16 stackAdjustment)
+void CPU::protected_far_return(u16 stack_adjustment)
 {
-    ASSERT(getPE());
+    ASSERT(get_pe());
 #ifdef DEBUG_JUMPS
     u16 originalSS = getSS();
-    u32 originalESP = getESP();
+    u32 originalESP = get_esp();
     u16 originalCS = getCS();
     u32 originalEIP = getEIP();
 #endif
 
     TransactionalPopper popper(*this);
 
-    u32 offset = popper.popOperandSizedValue();
-    u16 selector = popper.popOperandSizedValue();
-    u16 originalCPL = getCPL();
+    u32 offset = popper.pop_operand_sized_value();
+    u16 selector = popper.pop_operand_sized_value();
+    u16 originalCPL = get_cpl();
     u8 selectorRPL = selector & 3;
 
-    popper.adjustStackPointer(stackAdjustment);
+    popper.adjust_stack_pointer(stack_adjustment);
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), "RETF", getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector);
+    auto descriptor = get_descriptor(selector);
 
     if (descriptor.isNull())
         throw GeneralProtectionFault(0, "RETF to null selector");
@@ -859,12 +859,12 @@ void CPU::protectedFarReturn(u16 stackAdjustment)
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to selector outside table limit");
 
     if (!descriptor.isCode()) {
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
 
-    if (selectorRPL < getCPL())
-        throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
+    if (selectorRPL < get_cpl())
+        throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(get_cpl()));
 
     auto& codeSegment = descriptor.asCodeSegmentDescriptor();
 
@@ -885,63 +885,63 @@ void CPU::protectedFarReturn(u16 stackAdjustment)
 
     if (offset > codeSegment.effectiveLimit()) {
         vlog(LogCPU, "RETF to eip(%08x) outside limit(%08x)", offset, codeSegment.effectiveLimit());
-        dumpDescriptor(codeSegment);
+        dump_descriptor(codeSegment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
     // FIXME: Validate SS before clobbering CS:EIP.
-    setCS(selector);
-    setEIP(offset);
+    set_cs(selector);
+    set_eip(offset);
 
     if (selectorRPL > originalCPL) {
         BEGIN_ASSERT_NO_EXCEPTIONS
-        u32 newESP = popper.popOperandSizedValue();
-        u16 newSS = popper.popOperandSizedValue();
+        u32 newESP = popper.pop_operand_sized_value();
+        u16 newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
         vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
 #endif
 
-        setSS(newSS);
-        setESP(newESP);
+        set_ss(newSS);
+        set_esp(newESP);
 
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::ES, JumpType::RETF);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::FS, JumpType::RETF);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::GS, JumpType::RETF);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::DS, JumpType::RETF);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::ES, JumpType::RETF);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::FS, JumpType::RETF);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::GS, JumpType::RETF);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::DS, JumpType::RETF);
         END_ASSERT_NO_EXCEPTIONS
     } else {
         popper.commit();
     }
 
-    if (getCPL() != originalCPL)
-        adjustStackPointer(stackAdjustment);
+    if (get_cpl() != originalCPL)
+        adjust_stack_pointer(stack_adjustment);
 }
 
-void CPU::realModeFarReturn(u16 stackAdjustment)
+void CPU::real_mode_far_return(u16 stack_adjustment)
 {
-    u32 offset = popOperandSizedValue();
-    u16 selector = popOperandSizedValue();
-    setCS(selector);
-    setEIP(offset);
-    adjustStackPointer(stackAdjustment);
+    u32 offset = pop_operand_sized_value();
+    u16 selector = pop_operand_sized_value();
+    set_cs(selector);
+    set_eip(offset);
+    adjust_stack_pointer(stack_adjustment);
 }
 
-void CPU::farReturn(u16 stackAdjustment)
+void CPU::far_return(u16 stack_adjustment)
 {
-    if (!getPE() || getVM()) {
-        realModeFarReturn(stackAdjustment);
+    if (!get_pe() || get_vm()) {
+        real_mode_far_return(stack_adjustment);
         return;
     }
 
-    protectedFarReturn(stackAdjustment);
+    protected_far_return(stack_adjustment);
 }
 
-void CPU::setCPL(u8 cpl)
+void CPU::set_cpl(u8 cpl)
 {
-    if (getPE() && !getVM())
-        CS = (CS & ~3) | cpl;
-    cachedDescriptor(SegmentRegisterIndex::CS).m_RPL = cpl;
+    if (get_pe() && !get_vm())
+        m_cs = (m_cs & ~3) | cpl;
+    cached_descriptor(SegmentRegisterIndex::CS).m_RPL = cpl;
 }
 
 void CPU::_NOP(Instruction&)
@@ -950,13 +950,13 @@ void CPU::_NOP(Instruction&)
 
 void CPU::_HLT(Instruction&)
 {
-    if (getCPL() != 0) {
-        throw GeneralProtectionFault(0, QString("HLT with CPL!=0(%1)").arg(getCPL()));
+    if (get_cpl() != 0) {
+        throw GeneralProtectionFault(0, QString("HLT with CPL!=0(%1)").arg(get_cpl()));
     }
 
-    setState(CPU::Halted);
+    set_state(CPU::Halted);
 
-    if (!getIF()) {
+    if (!get_if()) {
         vlog(LogCPU, "Halted with IF=0");
     } else {
 #ifdef VERBOSE_DEBUG
@@ -964,26 +964,26 @@ void CPU::_HLT(Instruction&)
 #endif
     }
 
-    haltedLoop();
+    halted_loop();
 }
 
 void CPU::_XLAT(Instruction&)
 {
-    setAL(readMemory8(currentSegment(), readRegisterForAddressSize(RegisterBX) + getAL()));
+    set_al(read_memory8(current_segment(), read_register_for_address_size(RegisterBX) + get_al()));
 }
 
 void CPU::_XCHG_AX_reg16(Instruction& insn)
 {
     auto tmp = insn.reg16();
-    insn.reg16() = getAX();
-    setAX(tmp);
+    insn.reg16() = get_ax();
+    set_ax(tmp);
 }
 
 void CPU::_XCHG_EAX_reg32(Instruction& insn)
 {
     auto tmp = insn.reg32();
-    insn.reg32() = getEAX();
-    setEAX(tmp);
+    insn.reg32() = get_eax();
+    set_eax(tmp);
 }
 
 void CPU::_XCHG_reg8_RM8(Instruction& insn)
@@ -1011,20 +1011,20 @@ template<typename T, class Accessor>
 void CPU::doDEC(Accessor accessor)
 {
     T value = accessor.get();
-    setOF(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::min());
+    set_of(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::min());
     accessor.set(--value);
-    adjustFlag(value, value + 1, 1);
-    updateFlags<T>(value);
+    adjust_flag(value, value + 1, 1);
+    update_flags<T>(value);
 }
 
 template<typename T, class Accessor>
 void CPU::doINC(Accessor accessor)
 {
     T value = accessor.get();
-    setOF(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::max());
+    set_of(value == (T)std::numeric_limits<typename std::make_signed<T>::type>::max());
     accessor.set(++value);
-    adjustFlag(value, value - 1, 1);
-    updateFlags<T>(value);
+    adjust_flag(value, value - 1, 1);
+    update_flags<T>(value);
 }
 
 void CPU::_DEC_reg16(Instruction& insn)
@@ -1080,11 +1080,11 @@ void CPU::_DEC_RM8(Instruction& insn)
 template<typename T>
 void CPU::doLxS(Instruction& insn, SegmentRegisterIndex segreg)
 {
-    if (insn.modrm().isRegister()) {
+    if (insn.modrm().is_register()) {
         throw InvalidOpcode("LxS with register operand");
     }
-    auto address = readLogicalAddress<T>(insn.modrm().segment(), insn.modrm().offset());
-    writeSegmentRegister(segreg, address.selector());
+    auto address = read_logical_address<T>(insn.modrm().segment(), insn.modrm().offset());
+    write_segment_register(segreg, address.selector());
     insn.reg<T>() = address.offset();
 }
 
@@ -1140,7 +1140,7 @@ void CPU::_LGS_reg32_mem32(Instruction& insn)
 
 void CPU::_LEA_reg32_mem32(Instruction& insn)
 {
-    if (insn.modrm().isRegister()) {
+    if (insn.modrm().is_register()) {
         throw InvalidOpcode("LEA_reg32_mem32 with register source");
     }
     insn.reg32() = insn.modrm().offset();
@@ -1148,7 +1148,7 @@ void CPU::_LEA_reg32_mem32(Instruction& insn)
 
 void CPU::_LEA_reg16_mem16(Instruction& insn)
 {
-    if (insn.modrm().isRegister()) {
+    if (insn.modrm().is_register()) {
         throw InvalidOpcode("LEA_reg16_mem16 with register source");
     }
     insn.reg16() = insn.modrm().offset();
@@ -1170,11 +1170,11 @@ static const char* toString(CPU::MemoryAccessType type)
     }
 }
 
-PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+PhysicalAddress CPU::translate_address(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
-    if (!getPE() || !getPG())
+    if (!get_pe() || !get_pg())
         return PhysicalAddress(linearAddress.get());
-    return translateAddressSlowCase(linearAddress, accessType, effectiveCPL);
+    return translate_address_slow_case(linearAddress, accessType, effectiveCPL);
 }
 
 static u16 makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
@@ -1196,13 +1196,13 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
             inUserMode ? "User" : "Supervisor",
             toString(accessType),
             linearAddress.get(),
-            getCR3(),
+            get_cr3(),
             pde,
             pte);
     }
-    m_CR2 = linearAddress.get();
+    m_cr2 = linearAddress.get();
     if (options.crashOnPF) {
-        dumpAll();
+        dump_all();
         vlog(LogAlert, "CRASH ON #PF");
         ASSERT_NOT_REACHED();
     }
@@ -1215,24 +1215,24 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
     return Exception(0xe, error, linearAddress.get(), "Page fault");
 }
 
-PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+PhysicalAddress CPU::translate_address_slow_case(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
-    ASSERT(getCR3() < m_memorySize);
+    ASSERT(get_cr3() < m_memory_size);
 
     u32 dir = (linearAddress.get() >> 22) & 0x3FF;
     u32 page = (linearAddress.get() >> 12) & 0x3FF;
     u32 offset = linearAddress.get() & 0xFFF;
 
-    ASSERT(!(getCR3() & 0x03ff));
+    ASSERT(!(get_cr3() & 0x03ff));
 
-    PhysicalAddress pdeAddress(getCR3() + dir * sizeof(u32));
-    u32 pageDirectoryEntry = readPhysicalMemory<u32>(pdeAddress);
+    PhysicalAddress pdeAddress(get_cr3() + dir * sizeof(u32));
+    u32 pageDirectoryEntry = read_physical_memory<u32>(pdeAddress);
     PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(u32));
-    u32 pageTableEntry = readPhysicalMemory<u32>(pteAddress);
+    u32 pageTableEntry = read_physical_memory<u32>(pteAddress);
 
     bool inUserMode;
     if (effectiveCPL == 0xff)
-        inUserMode = getCPL() == 3;
+        inUserMode = get_cpl() == 3;
     else
         inUserMode = effectiveCPL == 3;
 
@@ -1253,7 +1253,7 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
         }
     }
 
-    if ((inUserMode || getCR0() & CR0::WP) && accessType == MemoryAccessType::Write) {
+    if ((inUserMode || get_cr0() & CR0::WP) && accessType == MemoryAccessType::Write) {
         if (!(pageDirectoryEntry & PageTableEntryFlags::ReadWrite)) {
             throw PageFault(linearAddress, PageFaultFlags::ProtectionViolation, accessType, inUserMode, "PDE", pageDirectoryEntry);
         }
@@ -1268,8 +1268,8 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
     pageDirectoryEntry |= PageTableEntryFlags::Accessed;
     pageTableEntry |= PageTableEntryFlags::Accessed;
 
-    writePhysicalMemory(pdeAddress, pageDirectoryEntry);
-    writePhysicalMemory(pteAddress, pageTableEntry);
+    write_physical_memory(pdeAddress, pageDirectoryEntry);
+    write_physical_memory(pteAddress, pageTableEntry);
 
     PhysicalAddress physicalAddress((pageTableEntry & 0xfffff000) | offset);
 #ifdef DEBUG_PAGING
@@ -1281,22 +1281,22 @@ PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, Memor
 
 void CPU::snoop(LinearAddress linearAddress, MemoryAccessType accessType)
 {
-    translateAddress(linearAddress, accessType);
+    translate_address(linearAddress, accessType);
 }
 
 void CPU::snoop(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
     // FIXME: Support multi-byte snoops.
-    if (getPE() && !getVM())
-        validateAddress<u8>(segreg, offset, accessType);
-    auto linearAddress = cachedDescriptor(segreg).linearAddress(offset);
+    if (get_pe() && !get_vm())
+        validate_address<u8>(segreg, offset, accessType);
+    auto linearAddress = cached_descriptor(segreg).linearAddress(offset);
     snoop(linearAddress, accessType);
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
 {
-    if (!getVM()) {
+    if (!get_vm()) {
         if (accessType != MemoryAccessType::Execute) {
             if (descriptor.isNull()) {
                 vlog(LogAlert, "NULL! %s offset %08X into null selector (selector index: %04X)",
@@ -1356,7 +1356,7 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, u32
             descriptor.limit(),
             descriptor.granularity() ? "4K" : "1b");
         //ASSERT_NOT_REACHED();
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
         //dumpAll();
         //debugger().enter();
         if (descriptor.m_loaded_in_ss)
@@ -1367,31 +1367,31 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, u32
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validateAddress(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validate_address(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
-    validateAddress<T>(cachedDescriptor(segreg), offset, accessType);
+    validate_address<T>(cached_descriptor(segreg), offset, accessType);
 }
 
 template<typename T>
-ALWAYS_INLINE bool CPU::validatePhysicalAddress(PhysicalAddress physicalAddress, MemoryAccessType accessType)
+ALWAYS_INLINE bool CPU::validate_physical_address(PhysicalAddress physicalAddress, MemoryAccessType accessType)
 {
     UNUSED_PARAM(accessType);
-    if (physicalAddress.get() < m_memorySize)
+    if (physicalAddress.get() < m_memory_size)
         return true;
     return false;
 }
 
 template<typename T>
-T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
+T CPU::read_physical_memory(PhysicalAddress physicalAddress)
 {
-    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Read)) {
+    if (!validate_physical_address<T>(physicalAddress, MemoryAccessType::Read)) {
         vlog(LogCPU, "Read outside physical memory: %08x", physicalAddress.get());
 #ifdef DEBUG_PHYSICAL_OOB
         debugger().enter();
 #endif
         return 0;
     }
-    if (auto* provider = memoryProviderForAddress(physicalAddress)) {
+    if (auto* provider = memory_provider_for_address(physicalAddress)) {
         if (auto* directReadAccessPointer = provider->pointerForDirectReadAccess()) {
             return *reinterpret_cast<const T*>(&directReadAccessPointer[physicalAddress.get() - provider->baseAddress().get()]);
         }
@@ -1400,409 +1400,409 @@ T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
     return *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]);
 }
 
-template u8 CPU::readPhysicalMemory<u8>(PhysicalAddress);
-template u16 CPU::readPhysicalMemory<u16>(PhysicalAddress);
-template u32 CPU::readPhysicalMemory<u32>(PhysicalAddress);
+template u8 CPU::read_physical_memory<u8>(PhysicalAddress);
+template u16 CPU::read_physical_memory<u16>(PhysicalAddress);
+template u32 CPU::read_physical_memory<u32>(PhysicalAddress);
 
 template<typename T>
-void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
+void CPU::write_physical_memory(PhysicalAddress physicalAddress, T data)
 {
-    if (!validatePhysicalAddress<T>(physicalAddress, MemoryAccessType::Write)) {
+    if (!validate_physical_address<T>(physicalAddress, MemoryAccessType::Write)) {
         vlog(LogCPU, "Write outside physical memory: %08x", physicalAddress.get());
 #ifdef DEBUG_PHYSICAL_OOB
         debugger().enter();
 #endif
         return;
     }
-    if (auto* provider = memoryProviderForAddress(physicalAddress)) {
+    if (auto* provider = memory_provider_for_address(physicalAddress)) {
         provider->write<T>(physicalAddress.get(), data);
     } else {
         *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]) = data;
     }
 }
 
-template void CPU::writePhysicalMemory<u8>(PhysicalAddress, u8);
-template void CPU::writePhysicalMemory<u16>(PhysicalAddress, u16);
-template void CPU::writePhysicalMemory<u32>(PhysicalAddress, u32);
+template void CPU::write_physical_memory<u8>(PhysicalAddress, u8);
+template void CPU::write_physical_memory<u16>(PhysicalAddress, u16);
+template void CPU::write_physical_memory<u32>(PhysicalAddress, u32);
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+ALWAYS_INLINE T CPU::read_memory(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
-        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            u8 b1 = readMemory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
-            u8 b2 = readMemory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
-            u8 b3 = readMemory<u8>(linearAddress.offset(2), accessType, effectiveCPL);
-            u8 b4 = readMemory<u8>(linearAddress.offset(3), accessType, effectiveCPL);
+        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            u8 b1 = read_memory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
+            u8 b2 = read_memory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
+            u8 b3 = read_memory<u8>(linearAddress.offset(2), accessType, effectiveCPL);
+            u8 b4 = read_memory<u8>(linearAddress.offset(3), accessType, effectiveCPL);
             return weld<u32>(weld<u16>(b4, b3), weld<u16>(b2, b1));
         }
     } else if constexpr (sizeof(T) == 2) {
-        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            u8 b1 = readMemory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
-            u8 b2 = readMemory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
+        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            u8 b1 = read_memory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
+            u8 b2 = read_memory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
             return weld<u16>(b2, b1);
         }
     }
 
-    auto physicalAddress = translateAddress(linearAddress, accessType, effectiveCPL);
+    auto physicalAddress = translate_address(linearAddress, accessType, effectiveCPL);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20Mask());
+    physicalAddress.mask(a20_mask());
 #endif
-    T value = readPhysicalMemory<T>(physicalAddress);
+    T value = read_physical_memory<T>(physicalAddress);
 #ifdef MEMORY_DEBUGGING
     if (options.memdebug || shouldLogMemoryRead(physicalAddress)) {
         if (options.novlog)
-            printf("%04X:%08X: %zu-bit read [A20=%s] 0x%08X, value: %08X\n", getBaseCS(), currentBaseInstructionPointer(), sizeof(T) * 8, isA20Enabled() ? "on" : "off", physicalAddress.get(), value);
+            printf("%04X:%08X: %zu-bit read [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
         else
-            vlog(LogCPU, "%zu-bit read [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, isA20Enabled() ? "on" : "off", physicalAddress.get(), value);
+            vlog(LogCPU, "%zu-bit read [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
     }
 #endif
     return value;
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::read_memory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
 {
     auto linearAddress = descriptor.linearAddress(offset);
-    if (getPE() && !getVM())
-        validateAddress<T>(descriptor, offset, accessType);
-    return readMemory<T>(linearAddress, accessType);
+    if (get_pe() && !get_vm())
+        validate_address<T>(descriptor, offset, accessType);
+    return read_memory<T>(linearAddress, accessType);
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::read_memory(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
-    return readMemory<T>(cachedDescriptor(segreg), offset, accessType);
+    return read_memory<T>(cached_descriptor(segreg), offset, accessType);
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemoryMetal(LinearAddress laddr)
+ALWAYS_INLINE T CPU::read_memory_metal(LinearAddress laddr)
 {
-    return readMemory<T>(laddr, MemoryAccessType::Read, 0);
+    return read_memory<T>(laddr, MemoryAccessType::Read, 0);
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::writeMemoryMetal(LinearAddress laddr, T value)
+ALWAYS_INLINE void CPU::write_memory_metal(LinearAddress laddr, T value)
 {
-    return writeMemory<T>(laddr, value, 0);
+    return write_memory<T>(laddr, value, 0);
 }
 
-template u8 CPU::readMemory<u8>(SegmentRegisterIndex, u32, MemoryAccessType);
-template u16 CPU::readMemory<u16>(SegmentRegisterIndex, u32, MemoryAccessType);
-template u32 CPU::readMemory<u32>(SegmentRegisterIndex, u32, MemoryAccessType);
+template u8 CPU::read_memory<u8>(SegmentRegisterIndex, u32, MemoryAccessType);
+template u16 CPU::read_memory<u16>(SegmentRegisterIndex, u32, MemoryAccessType);
+template u32 CPU::read_memory<u32>(SegmentRegisterIndex, u32, MemoryAccessType);
 
-template void CPU::writeMemory<u8>(SegmentRegisterIndex, u32, u8);
-template void CPU::writeMemory<u16>(SegmentRegisterIndex, u32, u16);
-template void CPU::writeMemory<u32>(SegmentRegisterIndex, u32, u32);
+template void CPU::write_memory<u8>(SegmentRegisterIndex, u32, u8);
+template void CPU::write_memory<u16>(SegmentRegisterIndex, u32, u16);
+template void CPU::write_memory<u32>(SegmentRegisterIndex, u32, u32);
 
-template void CPU::writeMemory<u8>(LinearAddress, u8, u8);
+template void CPU::write_memory<u8>(LinearAddress, u8, u8);
 
-template u16 CPU::readMemoryMetal<u16>(LinearAddress);
-template u32 CPU::readMemoryMetal<u32>(LinearAddress);
+template u16 CPU::read_memory_metal<u16>(LinearAddress);
+template u32 CPU::read_memory_metal<u32>(LinearAddress);
 
-u8 CPU::readMemory8(LinearAddress address) { return readMemory<u8>(address); }
-u16 CPU::readMemory16(LinearAddress address) { return readMemory<u16>(address); }
-u32 CPU::readMemory32(LinearAddress address) { return readMemory<u32>(address); }
-u16 CPU::readMemoryMetal16(LinearAddress address) { return readMemoryMetal<u16>(address); }
-u32 CPU::readMemoryMetal32(LinearAddress address) { return readMemoryMetal<u32>(address); }
-u8 CPU::readMemory8(SegmentRegisterIndex segment, u32 offset) { return readMemory<u8>(segment, offset); }
-u16 CPU::readMemory16(SegmentRegisterIndex segment, u32 offset) { return readMemory<u16>(segment, offset); }
-u32 CPU::readMemory32(SegmentRegisterIndex segment, u32 offset) { return readMemory<u32>(segment, offset); }
+u8 CPU::read_memory8(LinearAddress address) { return read_memory<u8>(address); }
+u16 CPU::read_memory16(LinearAddress address) { return read_memory<u16>(address); }
+u32 CPU::read_memory32(LinearAddress address) { return read_memory<u32>(address); }
+u16 CPU::read_memory_metal16(LinearAddress address) { return read_memory_metal<u16>(address); }
+u32 CPU::read_memory_metal32(LinearAddress address) { return read_memory_metal<u32>(address); }
+u8 CPU::read_memory8(SegmentRegisterIndex segment, u32 offset) { return read_memory<u8>(segment, offset); }
+u16 CPU::read_memory16(SegmentRegisterIndex segment, u32 offset) { return read_memory<u16>(segment, offset); }
+u32 CPU::read_memory32(SegmentRegisterIndex segment, u32 offset) { return read_memory<u32>(segment, offset); }
 
 template<typename T>
-LogicalAddress CPU::readLogicalAddress(SegmentRegisterIndex segreg, u32 offset)
+LogicalAddress CPU::read_logical_address(SegmentRegisterIndex segreg, u32 offset)
 {
     LogicalAddress address;
-    address.setOffset(readMemory<T>(segreg, offset));
-    address.setSelector(readMemory16(segreg, offset + sizeof(T)));
+    address.setOffset(read_memory<T>(segreg, offset));
+    address.setSelector(read_memory16(segreg, offset + sizeof(T)));
     return address;
 }
 
-template LogicalAddress CPU::readLogicalAddress<u16>(SegmentRegisterIndex, u32);
-template LogicalAddress CPU::readLogicalAddress<u32>(SegmentRegisterIndex, u32);
+template LogicalAddress CPU::read_logical_address<u16>(SegmentRegisterIndex, u32);
+template LogicalAddress CPU::read_logical_address<u32>(SegmentRegisterIndex, u32);
 
 template<typename T>
-void CPU::writeMemory(LinearAddress linearAddress, T value, u8 effectiveCPL)
+void CPU::write_memory(LinearAddress linearAddress, T value, u8 effectiveCPL)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
-        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            writeMemory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
-            writeMemory<u8>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
-            writeMemory<u8>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
+        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            write_memory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            write_memory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
+            write_memory<u8>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
+            write_memory<u8>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
             return;
         }
     } else if constexpr (sizeof(T) == 2) {
-        if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            writeMemory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
+        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            write_memory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            write_memory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
             return;
         }
     }
 
-    auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::Write, effectiveCPL);
+    auto physicalAddress = translate_address(linearAddress, MemoryAccessType::Write, effectiveCPL);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20Mask());
+    physicalAddress.mask(a20_mask());
 #endif
 #ifdef MEMORY_DEBUGGING
     if (options.memdebug || shouldLogMemoryWrite(physicalAddress)) {
         if (options.novlog)
-            printf("%04X:%08X: %zu-bit write [A20=%s] 0x%08X, value: %08X\n", getBaseCS(), currentBaseInstructionPointer(), sizeof(T) * 8, isA20Enabled() ? "on" : "off", physicalAddress.get(), value);
+            printf("%04X:%08X: %zu-bit write [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
         else
-            vlog(LogCPU, "%zu-bit write [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, isA20Enabled() ? "on" : "off", physicalAddress.get(), value);
+            vlog(LogCPU, "%zu-bit write [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
     }
 #endif
-    writePhysicalMemory(physicalAddress, value);
+    write_physical_memory(physicalAddress, value);
 }
 
 template<typename T>
-void CPU::writeMemory(const SegmentDescriptor& descriptor, u32 offset, T value)
+void CPU::write_memory(const SegmentDescriptor& descriptor, u32 offset, T value)
 {
     auto linearAddress = descriptor.linearAddress(offset);
-    if (getPE() && !getVM())
-        validateAddress<T>(descriptor, offset, MemoryAccessType::Write);
-    writeMemory(linearAddress, value);
+    if (get_pe() && !get_vm())
+        validate_address<T>(descriptor, offset, MemoryAccessType::Write);
+    write_memory(linearAddress, value);
 }
 
 template<typename T>
-void CPU::writeMemory(SegmentRegisterIndex segreg, u32 offset, T value)
+void CPU::write_memory(SegmentRegisterIndex segreg, u32 offset, T value)
 {
-    return writeMemory<T>(cachedDescriptor(segreg), offset, value);
+    return write_memory<T>(cached_descriptor(segreg), offset, value);
 }
 
-void CPU::writeMemory8(LinearAddress address, u8 value) { writeMemory(address, value); }
-void CPU::writeMemory16(LinearAddress address, u16 value) { writeMemory(address, value); }
-void CPU::writeMemory32(LinearAddress address, u32 value) { writeMemory(address, value); }
-void CPU::writeMemoryMetal16(LinearAddress address, u16 value) { writeMemoryMetal(address, value); }
-void CPU::writeMemoryMetal32(LinearAddress address, u32 value) { writeMemoryMetal(address, value); }
-void CPU::writeMemory8(SegmentRegisterIndex segment, u32 offset, u8 value) { writeMemory(segment, offset, value); }
-void CPU::writeMemory16(SegmentRegisterIndex segment, u32 offset, u16 value) { writeMemory(segment, offset, value); }
-void CPU::writeMemory32(SegmentRegisterIndex segment, u32 offset, u32 value) { writeMemory(segment, offset, value); }
+void CPU::write_memory8(LinearAddress address, u8 value) { write_memory(address, value); }
+void CPU::write_memory16(LinearAddress address, u16 value) { write_memory(address, value); }
+void CPU::write_memory32(LinearAddress address, u32 value) { write_memory(address, value); }
+void CPU::write_memory_metal16(LinearAddress address, u16 value) { write_memory_metal(address, value); }
+void CPU::write_memory_metal32(LinearAddress address, u32 value) { write_memory_metal(address, value); }
+void CPU::write_memory8(SegmentRegisterIndex segment, u32 offset, u8 value) { write_memory(segment, offset, value); }
+void CPU::write_memory16(SegmentRegisterIndex segment, u32 offset, u16 value) { write_memory(segment, offset, value); }
+void CPU::write_memory32(SegmentRegisterIndex segment, u32 offset, u32 value) { write_memory(segment, offset, value); }
 
-void CPU::updateDefaultSizes()
+void CPU::update_default_sizes()
 {
 #ifdef VERBOSE_DEBUG
     bool oldO32 = m_operandSize32;
     bool oldA32 = m_addressSize32;
 #endif
 
-    auto& csDescriptor = cachedDescriptor(SegmentRegisterIndex::CS);
-    m_addressSize32 = csDescriptor.D();
-    m_operandSize32 = csDescriptor.D();
+    auto& csDescriptor = cached_descriptor(SegmentRegisterIndex::CS);
+    m_address_size32 = csDescriptor.D();
+    m_operand_size32 = csDescriptor.D();
 
 #ifdef VERBOSE_DEBUG
     if (oldO32 != m_operandSize32 || oldA32 != m_addressSize32) {
         vlog(LogCPU, "updateDefaultSizes PE=%u X:%u O:%u A:%u (newCS: %04X)", getPE(), x16() ? 16 : 32, o16() ? 16 : 32, a16() ? 16 : 32, getCS());
-        dumpDescriptor(csDescriptor);
+        dump_descriptor(csDescriptor);
     }
 #endif
 }
 
-void CPU::updateStackSize()
+void CPU::update_stack_size()
 {
 #ifdef VERBOSE_DEBUG
     bool oldS32 = m_stackSize32;
 #endif
 
-    auto& ssDescriptor = cachedDescriptor(SegmentRegisterIndex::SS);
+    auto& ssDescriptor = cached_descriptor(SegmentRegisterIndex::SS);
     m_stackSize32 = ssDescriptor.D();
 
 #ifdef VERBOSE_DEBUG
     if (oldS32 != m_stackSize32) {
         vlog(LogCPU, "updateStackSize PE=%u S:%u (newSS: %04x)", getPE(), s16() ? 16 : 32, getSS());
-        dumpDescriptor(ssDescriptor);
+        dump_descriptor(ssDescriptor);
     }
 #endif
 }
 
-void CPU::updateCodeSegmentCache()
+void CPU::update_code_segment_cache()
 {
     // FIXME: We need some kind of fast pointer for fetching from CS:EIP.
 }
 
-void CPU::setCS(u16 value)
+void CPU::set_cs(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::CS, value);
+    write_segment_register(SegmentRegisterIndex::CS, value);
 }
 
-void CPU::setDS(u16 value)
+void CPU::set_ds(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::DS, value);
+    write_segment_register(SegmentRegisterIndex::DS, value);
 }
 
-void CPU::setES(u16 value)
+void CPU::set_es(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::ES, value);
+    write_segment_register(SegmentRegisterIndex::ES, value);
 }
 
-void CPU::setSS(u16 value)
+void CPU::set_ss(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::SS, value);
+    write_segment_register(SegmentRegisterIndex::SS, value);
 }
 
-void CPU::setFS(u16 value)
+void CPU::set_fs(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::FS, value);
+    write_segment_register(SegmentRegisterIndex::FS, value);
 }
 
-void CPU::setGS(u16 value)
+void CPU::set_gs(u16 value)
 {
-    writeSegmentRegister(SegmentRegisterIndex::GS, value);
+    write_segment_register(SegmentRegisterIndex::GS, value);
 }
 
-const u8* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
+const u8* CPU::pointer_to_physical_memory(PhysicalAddress physicalAddress)
 {
-    if (!validatePhysicalAddress<u8>(physicalAddress, MemoryAccessType::InternalPointer))
+    if (!validate_physical_address<u8>(physicalAddress, MemoryAccessType::InternalPointer))
         return nullptr;
-    if (auto* provider = memoryProviderForAddress(physicalAddress))
+    if (auto* provider = memory_provider_for_address(physicalAddress))
         return provider->memoryPointer(physicalAddress.get());
     return &m_memory[physicalAddress.get()];
 }
 
-const u8* CPU::memoryPointer(SegmentRegisterIndex segreg, u32 offset)
+const u8* CPU::memory_pointer(SegmentRegisterIndex segreg, u32 offset)
 {
-    return memoryPointer(cachedDescriptor(segreg), offset);
+    return memory_pointer(cached_descriptor(segreg), offset);
 }
 
-const u8* CPU::memoryPointer(const SegmentDescriptor& descriptor, u32 offset)
+const u8* CPU::memory_pointer(const SegmentDescriptor& descriptor, u32 offset)
 {
     auto linearAddress = descriptor.linearAddress(offset);
-    if (getPE() && !getVM())
-        validateAddress<u8>(descriptor, offset, MemoryAccessType::InternalPointer);
-    return memoryPointer(linearAddress);
+    if (get_pe() && !get_vm())
+        validate_address<u8>(descriptor, offset, MemoryAccessType::InternalPointer);
+    return memory_pointer(linearAddress);
 }
 
-const u8* CPU::memoryPointer(LogicalAddress address)
+const u8* CPU::memory_pointer(LogicalAddress address)
 {
-    return memoryPointer(getSegmentDescriptor(address.selector()), address.offset());
+    return memory_pointer(get_segment_descriptor(address.selector()), address.offset());
 }
 
-const u8* CPU::memoryPointer(LinearAddress linearAddress)
+const u8* CPU::memory_pointer(LinearAddress linearAddress)
 {
-    auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::InternalPointer);
+    auto physicalAddress = translate_address(linearAddress, MemoryAccessType::InternalPointer);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20Mask());
+    physicalAddress.mask(a20_mask());
 #endif
-    return pointerToPhysicalMemory(physicalAddress);
+    return pointer_to_physical_memory(physicalAddress);
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readInstructionStream()
+ALWAYS_INLINE T CPU::read_instruction_stream()
 {
-    T data = readMemory<T>(SegmentRegisterIndex::CS, currentInstructionPointer(), MemoryAccessType::Execute);
-    adjustInstructionPointer(sizeof(T));
+    T data = read_memory<T>(SegmentRegisterIndex::CS, current_instruction_pointer(), MemoryAccessType::Execute);
+    adjust_instruction_pointer(sizeof(T));
     return data;
 }
 
-u8 CPU::readInstruction8()
+u8 CPU::read_instruction8()
 {
-    return readInstructionStream<u8>();
+    return read_instruction_stream<u8>();
 }
 
-u16 CPU::readInstruction16()
+u16 CPU::read_instruction16()
 {
-    return readInstructionStream<u16>();
+    return read_instruction_stream<u16>();
 }
 
-u32 CPU::readInstruction32()
+u32 CPU::read_instruction32()
 {
-    return readInstructionStream<u32>();
+    return read_instruction_stream<u32>();
 }
 
 void CPU::_CPUID(Instruction&)
 {
-    if (getEAX() == 0) {
-        setEAX(1);
-        setEBX(0x706d6f43);
-        setEDX(0x6f727475);
-        setECX(0x3638586e);
+    if (get_eax() == 0) {
+        set_eax(1);
+        set_ebx(0x706d6f43);
+        set_edx(0x6f727475);
+        set_ecx(0x3638586e);
         return;
     }
 
-    if (getEAX() == 1) {
+    if (get_eax() == 1) {
         u32 stepping = 0;
         u32 model = 1;
         u32 family = 3;
         u32 type = 0;
-        setEAX(stepping | (model << 4) | (family << 8) | (type << 12));
-        setEBX(0);
-        setEDX((1 << 4) | (1 << 15)); // RDTSC + CMOV
-        setECX(0);
+        set_eax(stepping | (model << 4) | (family << 8) | (type << 12));
+        set_ebx(0);
+        set_edx((1 << 4) | (1 << 15)); // RDTSC + CMOV
+        set_ecx(0);
         return;
     }
 
-    if (getEAX() == 0x80000000) {
-        setEAX(0x80000004);
+    if (get_eax() == 0x80000000) {
+        set_eax(0x80000004);
         return;
     }
 
-    if (getEAX() == 0x80000001) {
-        setEAX(0);
-        setEBX(0);
-        setECX(0);
-        setEDX(0);
+    if (get_eax() == 0x80000001) {
+        set_eax(0);
+        set_ebx(0);
+        set_ecx(0);
+        set_edx(0);
     }
 
-    if (getEAX() == 0x80000002) {
-        setEAX(0x61632049);
-        setEBX(0x2074276e);
-        setECX(0x696c6562);
-        setEDX(0x20657665);
+    if (get_eax() == 0x80000002) {
+        set_eax(0x61632049);
+        set_ebx(0x2074276e);
+        set_ecx(0x696c6562);
+        set_edx(0x20657665);
         return;
     }
 
-    if (getEAX() == 0x80000003) {
-        setEAX(0x73277469);
-        setEBX(0x746f6e20);
-        setECX(0x746e4920);
-        setEDX(0x00216c65);
+    if (get_eax() == 0x80000003) {
+        set_eax(0x73277469);
+        set_ebx(0x746f6e20);
+        set_ecx(0x746e4920);
+        set_edx(0x00216c65);
         return;
     }
 
-    if (getEAX() == 0x80000004) {
-        setEAX(0);
-        setEBX(0);
-        setECX(0);
-        setEDX(0);
+    if (get_eax() == 0x80000004) {
+        set_eax(0);
+        set_ebx(0);
+        set_ecx(0);
+        set_edx(0);
         return;
     }
 }
 
-void CPU::initWatches()
+void CPU::init_watches()
 {
 }
 
-void CPU::registerMemoryProvider(MemoryProvider& provider)
+void CPU::register_memory_provider(MemoryProvider& provider)
 {
     if ((provider.baseAddress().get() + provider.size()) > 1048576) {
         vlog(LogConfig, "Can't register mapper with length %u @ %08x", provider.size(), provider.baseAddress().get());
         ASSERT_NOT_REACHED();
     }
 
-    for (unsigned i = provider.baseAddress().get() / memoryProviderBlockSize; i < (provider.baseAddress().get() + provider.size()) / memoryProviderBlockSize; ++i) {
+    for (unsigned i = provider.baseAddress().get() / memory_provider_block_size; i < (provider.baseAddress().get() + provider.size()) / memory_provider_block_size; ++i) {
         vlog(LogConfig, "Register memory provider %p as mapper %u", &provider, i);
-        m_memoryProviders[i] = &provider;
+        m_memory_providers[i] = &provider;
     }
 }
 
-ALWAYS_INLINE MemoryProvider* CPU::memoryProviderForAddress(PhysicalAddress address)
+ALWAYS_INLINE MemoryProvider* CPU::memory_provider_for_address(PhysicalAddress address)
 {
     if (address.get() >= 1048576)
         return nullptr;
-    return m_memoryProviders[address.get() / memoryProviderBlockSize];
+    return m_memory_providers[address.get() / memory_provider_block_size];
 }
 
 template<typename T>
 void CPU::doBOUND(Instruction& insn)
 {
-    if (insn.modrm().isRegister()) {
+    if (insn.modrm().is_register()) {
         throw InvalidOpcode("BOUND with register operand");
     }
     T arrayIndex = insn.reg32();
-    T lowerBound = readMemory<T>(insn.modrm().segment(), insn.modrm().offset());
-    T upperBound = readMemory<T>(insn.modrm().segment(), insn.modrm().offset() + sizeof(T));
+    T lowerBound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset());
+    T upperBound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset() + sizeof(T));
     bool isWithinBounds = arrayIndex >= lowerBound && arrayIndex <= upperBound;
 #ifdef DEBUG_BOUND
     vlog(LogCPU, "BOUND<%u> checking if %d is within [%d, %d]: %s",

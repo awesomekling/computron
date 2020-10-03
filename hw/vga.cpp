@@ -183,7 +183,7 @@ VGA::VGA(Machine& m)
     , MemoryProvider(PhysicalAddress(0xa0000), 131072)
     , d(make<Private>())
 {
-    machine().cpu().registerMemoryProvider(*this);
+    machine().cpu().register_memory_provider(*this);
 
     listen(0x3B4, IODevice::ReadWrite);
     listen(0x3B5, IODevice::ReadWrite);
@@ -280,7 +280,7 @@ void VGA::reset()
 
 void VGA::out8(u16 port, u8 data)
 {
-    machine().notifyScreen();
+    machine().notify_screen();
 
     switch (port) {
     case 0x3B4:
@@ -628,7 +628,7 @@ bool VGA::cursor_enabled() const
     return (d->crtc.reg[0x0a] & 0x20) == 0;
 }
 
-u8 VGA::readRegister(u8 index) const
+u8 VGA::read_register(u8 index) const
 {
     ASSERT(index <= 0x18);
     return d->crtc.reg[index];
@@ -668,7 +668,7 @@ u8 VGA::currentVideoMode() const
 {
     // FIXME: This is not the correct way to obtain the video mode (BDA.)
     //        Need to find out how the 6845 stores this information.
-    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x449)) & 0x7f;
+    return machine().cpu().read_physical_memory<u8>(PhysicalAddress(0x449)) & 0x7f;
 }
 
 bool VGA::inChain4Mode() const
@@ -706,7 +706,7 @@ u8 VGA::read_map_select() const
     return d->graphics_ctrl.reg[4] & 3;
 }
 
-void VGA::writeMemory8(u32 address, u8 value)
+void VGA::write_memory8(u32 address, u8 value)
 {
     u32 offset;
     switch (d->graphics_ctrl.memory_map_select) {
@@ -732,7 +732,7 @@ void VGA::writeMemory8(u32 address, u8 value)
         break;
     }
 
-    machine().notifyScreen();
+    machine().notify_screen();
 
     if (inChain4Mode()) {
         d->memory[(offset & ~0x03) + (offset % 4) * 65536] = value;

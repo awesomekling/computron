@@ -107,7 +107,7 @@ Screen::~Screen()
 
 MouseObserver& Screen::mouseObserver()
 {
-    return machine().busMouse();
+    return machine().busmouse();
 }
 
 void Screen::scheduleRefresh()
@@ -223,13 +223,13 @@ u8 Screen::currentVideoMode() const
 u8 Screen::currentRowCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x484)) + 1;
+    return machine().cpu().read_physical_memory<u8>(PhysicalAddress(0x484)) + 1;
 }
 
 u8 Screen::currentColumnCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x44a));
+    return machine().cpu().read_physical_memory<u8>(PhysicalAddress(0x44a));
 }
 
 void Screen::mouseMoveEvent(QMouseEvent* e)
@@ -601,7 +601,7 @@ void Screen::flushKeyBuffer()
 {
     QMutexLocker l(&d->keyQueueLock);
 
-    if (!d->rawQueue.isEmpty() && machine().cpu().getIF())
+    if (!d->rawQueue.isEmpty() && machine().cpu().get_if())
         machine().keyboard().didEnqueueData();
 }
 

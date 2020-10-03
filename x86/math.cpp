@@ -29,8 +29,8 @@ template<typename T>
 u64 CPU::doADD(T dest, T src)
 {
     u64 result = (u64)dest + (u64)src;
-    mathFlags(result, dest, src);
-    setOF(((
+    math_flags(result, dest, src);
+    set_of(((
                ((result) ^ (dest)) & ((result) ^ (src)))
               >> (TypeTrivia<T>::bits - 1))
         & 1);
@@ -40,10 +40,10 @@ u64 CPU::doADD(T dest, T src)
 template<typename T>
 u64 CPU::doADC(T dest, T src)
 {
-    u64 result = (u64)dest + (u64)src + (u64)getCF();
+    u64 result = (u64)dest + (u64)src + (u64)get_cf();
 
-    mathFlags(result, dest, src);
-    setOF(((
+    math_flags(result, dest, src);
+    set_of(((
                ((result) ^ (dest)) & ((result) ^ (src)))
               >> (TypeTrivia<T>::bits - 1))
         & 1);
@@ -54,15 +54,15 @@ template<typename T>
 u64 CPU::doSUB(T dest, T src)
 {
     u64 result = (u64)dest - (u64)src;
-    cmpFlags<T>(result, dest, src);
+    cmp_flags<T>(result, dest, src);
     return result;
 }
 
 template<typename T>
 u64 CPU::doSBB(T dest, T src)
 {
-    u64 result = (u64)dest - (u64)src - (u64)getCF();
-    cmpFlags<T>(result, dest, src);
+    u64 result = (u64)dest - (u64)src - (u64)get_cf();
+    cmp_flags<T>(result, dest, src);
     return result;
 }
 
@@ -81,27 +81,27 @@ void CPU::doMUL(T f1, T f2, T& resultHigh, T& resultLow)
     resultHigh = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
 
     if (resultHigh == 0) {
-        setCF(0);
-        setOF(0);
+        set_cf(0);
+        set_of(0);
     } else {
-        setCF(1);
-        setOF(1);
+        set_cf(1);
+        set_of(1);
     }
 }
 
 void CPU::_MUL_RM8(Instruction& insn)
 {
-    doMUL<u8>(getAL(), insn.modrm().read8(), mutableReg8(RegisterAH), mutableReg8(RegisterAL));
+    doMUL<u8>(get_al(), insn.modrm().read8(), mutable_reg8(RegisterAH), mutable_reg8(RegisterAL));
 }
 
 void CPU::_MUL_RM16(Instruction& insn)
 {
-    doMUL<u16>(getAX(), insn.modrm().read16(), mutableReg16(RegisterDX), mutableReg16(RegisterAX));
+    doMUL<u16>(get_ax(), insn.modrm().read16(), mutable_reg16(RegisterDX), mutable_reg16(RegisterAX));
 }
 
 void CPU::_MUL_RM32(Instruction& insn)
 {
-    doMUL<u32>(getEAX(), insn.modrm().read32(), mutableReg32(RegisterEDX), mutableReg32(RegisterEAX));
+    doMUL<u32>(get_eax(), insn.modrm().read32(), mutable_reg32(RegisterEDX), mutable_reg32(RegisterEAX));
 }
 
 template<typename T>
@@ -113,17 +113,17 @@ void CPU::doIMUL(T f1, T f2, T& resultHigh, T& resultLow)
     resultHigh = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
 
     if (result > std::numeric_limits<T>::max() || result < std::numeric_limits<T>::min()) {
-        setCF(1);
-        setOF(1);
+        set_cf(1);
+        set_of(1);
     } else {
-        setCF(0);
-        setOF(0);
+        set_cf(0);
+        set_of(0);
     }
 }
 
 void CPU::_IMUL_RM8(Instruction& insn)
 {
-    doIMUL<i8>(insn.modrm().read8(), getAL(), (i8&)mutableReg8(RegisterAH), (i8&)mutableReg8(RegisterAL));
+    doIMUL<i8>(insn.modrm().read8(), get_al(), (i8&)mutable_reg8(RegisterAH), (i8&)mutable_reg8(RegisterAL));
 }
 
 void CPU::_IMUL_reg32_RM32_imm8(Instruction& insn)
@@ -164,12 +164,12 @@ void CPU::_IMUL_reg16_RM16_imm8(Instruction& insn)
 
 void CPU::_IMUL_RM16(Instruction& insn)
 {
-    doIMUL<i16>(insn.modrm().read16(), getAX(), (i16&)mutableReg16(RegisterDX), (i16&)mutableReg16(RegisterAX));
+    doIMUL<i16>(insn.modrm().read16(), get_ax(), (i16&)mutable_reg16(RegisterDX), (i16&)mutable_reg16(RegisterAX));
 }
 
 void CPU::_IMUL_RM32(Instruction& insn)
 {
-    doIMUL<i32>(insn.modrm().read32(), getEAX(), (i32&)mutableReg32(RegisterEDX), (i32&)mutableReg32(RegisterEAX));
+    doIMUL<i32>(insn.modrm().read32(), get_eax(), (i32&)mutable_reg32(RegisterEDX), (i32&)mutable_reg32(RegisterEAX));
 }
 
 template<typename T>
@@ -192,32 +192,32 @@ void CPU::doDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remain
 
 void CPU::_DIV_RM8(Instruction& insn)
 {
-    doDIV<u8>(getAH(), getAL(), insn.modrm().read8(), mutableReg8(RegisterAL), mutableReg8(RegisterAH));
+    doDIV<u8>(get_ah(), get_al(), insn.modrm().read8(), mutable_reg8(RegisterAL), mutable_reg8(RegisterAH));
 }
 
 void CPU::_DIV_RM16(Instruction& insn)
 {
-    doDIV<u16>(getDX(), getAX(), insn.modrm().read16(), mutableReg16(RegisterAX), mutableReg16(RegisterDX));
+    doDIV<u16>(get_dx(), get_ax(), insn.modrm().read16(), mutable_reg16(RegisterAX), mutable_reg16(RegisterDX));
 }
 
 void CPU::_DIV_RM32(Instruction& insn)
 {
-    doDIV<u32>(getEDX(), getEAX(), insn.modrm().read32(), mutableReg32(RegisterEAX), mutableReg32(RegisterEDX));
+    doDIV<u32>(get_edx(), get_eax(), insn.modrm().read32(), mutable_reg32(RegisterEAX), mutable_reg32(RegisterEDX));
 }
 
 void CPU::_IDIV_RM8(Instruction& insn)
 {
-    doDIV<i8>(getAH(), getAL(), insn.modrm().read8(), (i8&)mutableReg8(RegisterAL), (i8&)mutableReg8(RegisterAH));
+    doDIV<i8>(get_ah(), get_al(), insn.modrm().read8(), (i8&)mutable_reg8(RegisterAL), (i8&)mutable_reg8(RegisterAH));
 }
 
 void CPU::_IDIV_RM16(Instruction& insn)
 {
-    doDIV<i16>(getDX(), getAX(), insn.modrm().read16(), (i16&)mutableReg16(RegisterAX), (i16&)mutableReg16(RegisterDX));
+    doDIV<i16>(get_dx(), get_ax(), insn.modrm().read16(), (i16&)mutable_reg16(RegisterAX), (i16&)mutable_reg16(RegisterDX));
 }
 
 void CPU::_IDIV_RM32(Instruction& insn)
 {
-    doDIV<i32>(getEDX(), getEAX(), insn.modrm().read32(), (i32&)mutableReg32(RegisterEAX), (i32&)mutableReg32(RegisterEDX));
+    doDIV<i32>(get_edx(), get_eax(), insn.modrm().read32(), (i32&)mutable_reg32(RegisterEAX), (i32&)mutable_reg32(RegisterEDX));
 }
 
 template<typename T>

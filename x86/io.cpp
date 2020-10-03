@@ -31,89 +31,89 @@
 
 void CPU::_OUT_imm8_AL(Instruction& insn)
 {
-    out8(insn.imm8(), getAL());
+    out8(insn.imm8(), get_al());
 }
 
 void CPU::_OUT_imm8_AX(Instruction& insn)
 {
-    out16(insn.imm8(), getAX());
+    out16(insn.imm8(), get_ax());
 }
 
 void CPU::_OUT_imm8_EAX(Instruction& insn)
 {
-    out32(insn.imm8(), getEAX());
+    out32(insn.imm8(), get_eax());
 }
 
 void CPU::_OUT_DX_AL(Instruction&)
 {
-    out8(getDX(), getAL());
+    out8(get_dx(), get_al());
 }
 
 void CPU::_OUT_DX_AX(Instruction&)
 {
-    out16(getDX(), getAX());
+    out16(get_dx(), get_ax());
 }
 
 void CPU::_OUT_DX_EAX(Instruction&)
 {
-    out32(getDX(), getEAX());
+    out32(get_dx(), get_eax());
 }
 
 void CPU::_IN_AL_imm8(Instruction& insn)
 {
-    setAL(in8(insn.imm8()));
+    set_al(in8(insn.imm8()));
 }
 
 void CPU::_IN_AX_imm8(Instruction& insn)
 {
-    setAX(in16(insn.imm8()));
+    set_ax(in16(insn.imm8()));
 }
 
 void CPU::_IN_EAX_imm8(Instruction& insn)
 {
-    setEAX(in32(insn.imm8()));
+    set_eax(in32(insn.imm8()));
 }
 
 void CPU::_IN_AL_DX(Instruction&)
 {
-    setAL(in8(getDX()));
+    set_al(in8(get_dx()));
 }
 
 void CPU::_IN_AX_DX(Instruction&)
 {
-    setAX(in16(getDX()));
+    set_ax(in16(get_dx()));
 }
 
 void CPU::_IN_EAX_DX(Instruction&)
 {
-    setEAX(in32(getDX()));
+    set_eax(in32(get_dx()));
 }
 
 template<typename T>
-void CPU::validateIOAccess(u16 port)
+void CPU::validate_io_access(u16 port)
 {
-    if (!getPE())
+    if (!get_pe())
         return;
-    if (!getVM() && !(getCPL() > getIOPL()))
+    if (!get_vm() && !(get_cpl() > get_iopl()))
         return;
-    auto tss = currentTSS();
-    if (!tss.is32Bit()) {
+    auto tss = current_tss();
+    if (!tss.is_32bit()) {
         vlog(LogCPU, "validateIOAccess for 16-bit TSS, what do?");
         ASSERT_NOT_REACHED();
     }
 
-    if (TR.limit < 103)
+    if (m_tr.limit < 103)
         throw GeneralProtectionFault(0, "TSS too small, I/O map missing");
 
-    u16 iomapBase = tss.getIOMapBase();
+    u16 iomapBase = tss.get_io_map_base();
     u16 highPort = port + sizeof(T) - 1;
 
-    if (TR.limit < (iomapBase + highPort / 8))
+    if (m_tr.limit < (iomapBase + highPort / 8))
         throw GeneralProtectionFault(0, "TSS I/O map too small");
 
     u16 mask = (1 << (sizeof(T) - 1)) << (port & 7);
-    LinearAddress address = TR.base.offset(iomapBase + (port / 8));
-    u16 perm = mask & 0xff00 ? readMemory16(address) : readMemory8(address);
+    LinearAddress address = m_tr.base.offset(iomapBase + (port / 8));
+    u16 perm = mask & 0xff00 ? read_memory16(address) : read_memory8(address);
     if (perm & mask)
         throw GeneralProtectionFault(0, "I/O map disallowed access");
 }
@@ -126,7 +126,7 @@ void CPU::validateIOAccess(u16 port)
 template<typename T>
 void CPU::out(u16 port, T data)
 {
-    validateIOAccess<T>(port);
+    validate_io_access<T>(port);
 
     if (options.iopeek) {
         if (port != 0x00E6 && port != 0x0020 && port != 0x3D4 && port != 0x03d5 && port != 0xe2 && port != 0xe0 && port != 0x92) {
@@ -134,25 +134,25 @@ void CPU::out(u16 port, T data)
         }
     }
 
-    if (auto* device = machine().outputDeviceForPort(port)) {
+    if (auto* device = machine().output_device_for_port(port)) {
         device->out<T>(port, data);
         return;
     }
 
-    if (!IODevice::shouldIgnorePort(port))
+    if (!IODevice::should_ignore_port(port))
         vlog(LogAlert, "Unhandled I/O write to port %03x, data %x", port, data);
 }
 
 template<typename T>
 T CPU::in(u16 port)
 {
-    validateIOAccess<T>(port);
+    validate_io_access<T>(port);
 
     T data;
-    if (auto* device = machine().inputDeviceForPort(port)) {
+    if (auto* device = machine().input_device_for_port(port)) {
         data = device->in<T>(port);
     } else {
-        if (!IODevice::shouldIgnorePort(port))
+        if (!IODevice::should_ignore_port(port))
             vlog(LogAlert, "Unhandled I/O read from port %03x", port);
         data = IODevice::JunkValue;
     }

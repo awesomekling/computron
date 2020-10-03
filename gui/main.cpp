@@ -72,11 +72,11 @@ int main(int argc, char** argv)
     OwnPtr<Machine> machine;
 
     if (options.autotestPath.length()) {
-        machine = Machine::createForAutotest(options.autotestPath);
+        machine = Machine::create_for_autotest(options.autotestPath);
     } else if (options.configPath.length()) {
-        machine = Machine::createFromFile(options.configPath);
+        machine = Machine::create_from_file(options.configPath);
     } else {
-        machine = Machine::createFromFile(QLatin1String("default.vmf"));
+        machine = Machine::create_from_file(QLatin1String("default.vmf"));
     }
 
     if (!machine)
@@ -87,12 +87,12 @@ int main(int argc, char** argv)
 
     QFile::remove("log.txt");
 
-    machine->forEachIODevice([](IODevice& device) {
+    machine->for_each_io_device([](IODevice& device) {
         vlog(LogInit, "%s present", device.name());
     });
 
-    if (machine->settings().isForAutotest()) {
-        machine->cpu().mainLoop();
+    if (machine->settings().is_for_autotest()) {
+        machine->cpu().main_loop();
         return 0;
     }
 

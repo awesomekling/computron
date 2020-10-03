@@ -71,7 +71,7 @@ static bool parseAddress(const QString& string, u32* address)
     return true;
 }
 
-bool Settings::handleLoadFile(const QStringList& arguments)
+bool Settings::handle_load_file(const QStringList& arguments)
 {
     // load-file <segment:offset> <path/to/file>
 
@@ -86,7 +86,7 @@ bool Settings::handleLoadFile(const QStringList& arguments)
     return true;
 }
 
-bool Settings::handleROMImage(const QStringList& arguments)
+bool Settings::handle_rom_image(const QStringList& arguments)
 {
     // load-file <physical-address> <path/to/file>
 
@@ -98,11 +98,11 @@ bool Settings::handleROMImage(const QStringList& arguments)
     if (!ok)
         return false;
 
-    m_romImages.insert(address, arguments.at(1));
+    m_rom_images.insert(address, arguments.at(1));
     return true;
 }
 
-bool Settings::handleMemorySize(const QStringList& arguments)
+bool Settings::handle_memory_size(const QStringList& arguments)
 {
     // memory-size <size>
 
@@ -114,11 +114,11 @@ bool Settings::handleMemorySize(const QStringList& arguments)
     if (!ok)
         return false;
 
-    setMemorySize(size * 1024);
+    set_memory_size(size * 1024);
     return true;
 }
 
-bool Settings::handleKeymap(const QStringList& arguments)
+bool Settings::handle_keymap(const QStringList& arguments)
 {
     // keymap <path/to/file>
 
@@ -134,7 +134,7 @@ bool Settings::handleKeymap(const QStringList& arguments)
     return true;
 }
 
-bool Settings::handleFixedDisk(const QStringList& arguments)
+bool Settings::handle_fixed_disk(const QStringList& arguments)
 {
     // fixed-disk <index> <path/to/file> <size>
 
@@ -166,7 +166,7 @@ bool Settings::handleFixedDisk(const QStringList& arguments)
     return true;
 }
 
-bool Settings::handleFloppyDisk(const QStringList& arguments)
+bool Settings::handle_floppy_disk(const QStringList& arguments)
 {
     // floppy-disk <index> <type> <path/to/file>
 
@@ -206,7 +206,7 @@ bool Settings::handleFloppyDisk(const QStringList& arguments)
     return true;
 }
 
-OwnPtr<Settings> Settings::createForAutotest(const QString& fileName)
+OwnPtr<Settings> Settings::create_for_autotest(const QString& fileName)
 {
     static const u16 autotestEntryCS = 0x1000;
     static const u16 autotestEntryIP = 0x0000;
@@ -223,11 +223,11 @@ OwnPtr<Settings> Settings::createForAutotest(const QString& fileName)
     settings->m_entrySP = autotestEntrySP;
     settings->m_files.insert(realModeAddressToPhysicalAddress(autotestEntryCS, autotestEntryIP).get(), fileName);
 
-    settings->m_forAutotest = true;
+    settings->m_for_autotest = true;
     return settings;
 }
 
-OwnPtr<Settings> Settings::createFromFile(const QString& fileName)
+OwnPtr<Settings> Settings::create_from_file(const QString& fileName)
 {
     QFile file(fileName);
 
@@ -263,17 +263,17 @@ OwnPtr<Settings> Settings::createFromFile(const QString& fileName)
         bool success = false;
 
         if (command == QLatin1String("load-file"))
-            success = settings->handleLoadFile(arguments);
+            success = settings->handle_load_file(arguments);
         else if (command == QLatin1String("rom-image"))
-            success = settings->handleROMImage(arguments);
+            success = settings->handle_rom_image(arguments);
         else if (command == QLatin1String("memory-size"))
-            success = settings->handleMemorySize(arguments);
+            success = settings->handle_memory_size(arguments);
         else if (command == QLatin1String("fixed-disk"))
-            success = settings->handleFixedDisk(arguments);
+            success = settings->handle_fixed_disk(arguments);
         else if (command == QLatin1String("floppy-disk"))
-            success = settings->handleFloppyDisk(arguments);
+            success = settings->handle_floppy_disk(arguments);
         else if (command == QLatin1String("keymap"))
-            success = settings->handleKeymap(arguments);
+            success = settings->handle_keymap(arguments);
 
         if (!success) {
             vlog(LogConfig, "Failed parsing %s:%u %s", qPrintable(fileName), lineNumber, qPrintable(line));

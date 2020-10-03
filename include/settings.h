@@ -34,24 +34,24 @@ class QStringList;
 
 class Settings {
 public:
-    static OwnPtr<Settings> createFromFile(const QString&);
-    static OwnPtr<Settings> createForAutotest(const QString& fileName);
+    static OwnPtr<Settings> create_from_file(const QString&);
+    static OwnPtr<Settings> create_for_autotest(const QString& fileName);
 
-    unsigned memorySize() const { return m_memorySize; }
-    void setMemorySize(unsigned size) { m_memorySize = size; }
+    unsigned memory_size() const { return m_memory_size; }
+    void set_memory_size(unsigned size) { m_memory_size = size; }
 
-    u16 entryCS() const { return m_entryCS; }
-    u16 entryIP() const { return m_entryIP; }
-    u16 entryDS() const { return m_entryDS; }
-    u16 entrySS() const { return m_entrySS; }
-    u16 entrySP() const { return m_entrySP; }
+    u16 entry_cs() const { return m_entryCS; }
+    u16 entry_ip() const { return m_entryIP; }
+    u16 entry_ds() const { return m_entryDS; }
+    u16 entry_ss() const { return m_entrySS; }
+    u16 entry_sp() const { return m_entrySP; }
 
-    QHash<u32, QString> files() const { return m_files; }
-    QHash<u32, QString> romImages() const { return m_romImages; }
+    const QHash<u32, QString>& files() const { return m_files; }
+    const QHash<u32, QString>& rom_images() const { return m_rom_images; }
     QString keymap() const { return m_keymap; }
 
-    bool isForAutotest() const { return m_forAutotest; }
-    void setForAutotest(bool b) { m_forAutotest = b; }
+    bool is_for_autotest() const { return m_for_autotest; }
+    void set_for_autotest(bool b) { m_for_autotest = b; }
 
     Settings() { }
     ~Settings() { }
@@ -65,12 +65,12 @@ private:
     Settings(const Settings&) = delete;
     Settings& operator=(const Settings&) = delete;
 
-    bool handleROMImage(const QStringList&);
-    bool handleLoadFile(const QStringList&);
-    bool handleMemorySize(const QStringList&);
-    bool handleFixedDisk(const QStringList&);
-    bool handleFloppyDisk(const QStringList&);
-    bool handleKeymap(const QStringList&);
+    bool handle_rom_image(const QStringList&);
+    bool handle_load_file(const QStringList&);
+    bool handle_memory_size(const QStringList&);
+    bool handle_fixed_disk(const QStringList&);
+    bool handle_floppy_disk(const QStringList&);
+    bool handle_keymap(const QStringList&);
 
     DiskDrive::Configuration m_floppy0;
     DiskDrive::Configuration m_floppy1;
@@ -78,13 +78,13 @@ private:
     DiskDrive::Configuration m_fixed1;
 
     QHash<u32, QString> m_files;
-    QHash<u32, QString> m_romImages;
+    QHash<u32, QString> m_rom_images;
     QString m_keymap;
-    unsigned m_memorySize { 0 };
+    unsigned m_memory_size { 0 };
     u16 m_entryCS { 0 };
     u16 m_entryIP { 0 };
     u16 m_entryDS { 0 };
     u16 m_entrySS { 0 };
     u16 m_entrySP { 0 };
-    bool m_forAutotest { false };
+    bool m_for_autotest { false };
 };

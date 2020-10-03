@@ -55,8 +55,8 @@ class MachineWidget;
 class Machine : public QObject {
     Q_OBJECT
 public:
-    static OwnPtr<Machine> createFromFile(const QString& fileName);
-    static OwnPtr<Machine> createForAutotest(const QString& fileName);
+    static OwnPtr<Machine> create_from_file(const QString& fileName);
+    static OwnPtr<Machine> create_for_autotest(const QString& fileName);
 
     explicit Machine(OwnPtr<Settings>&&, QObject* parent = nullptr);
     virtual ~Machine();
@@ -64,11 +64,11 @@ public:
     CPU& cpu() { return *m_cpu; }
     VGA& vga() { return *m_vga; }
     PIT& pit() { return *m_pit; }
-    BusMouse& busMouse() { return *m_busMouse; }
+    BusMouse& busmouse() { return *m_busmouse; }
     Keyboard& keyboard() { return *m_keyboard; }
-    VomCtl& vomCtl() { return *m_vomCtl; }
-    PIC& masterPIC() { return *m_masterPIC; }
-    PIC& slavePIC() { return *m_slavePIC; }
+    VomCtl& vomctl() { return *m_vomctl; }
+    PIC& master_pic() { return *m_master_pic; }
+    PIC& slave_pic() { return *m_slave_pic; }
     CMOS& cmos() { return *m_cmos; }
     Settings& settings() { return *m_settings; }
 
@@ -77,27 +77,27 @@ public:
     DiskDrive& fixed0();
     DiskDrive& fixed1();
 
-    bool isForAutotest() PURE;
+    bool is_for_autotest() PURE;
 
     MachineWidget* widget() { return m_widget; }
-    void setWidget(MachineWidget* widget) { m_widget = widget; }
+    void set_widget(MachineWidget* widget) { m_widget = widget; }
 
-    void resetAllIODevices();
-    void notifyScreen();
+    void reset_all_io_devices();
+    void notify_screen();
 
-    void forEachIODevice(std::function<void(IODevice&)>);
+    void for_each_io_device(std::function<void(IODevice&)>);
 
-    IODevice* inputDeviceForPort(u16 port);
-    IODevice* outputDeviceForPort(u16 port);
+    IODevice* input_device_for_port(u16 port);
+    IODevice* output_device_for_port(u16 port);
 
-    void registerInputDevice(Badge<IODevice>, u16 port, IODevice&);
-    void registerOutputDevice(Badge<IODevice>, u16 port, IODevice&);
-    void registerDevice(Badge<IODevice>, IODevice&);
-    void unregisterDevice(Badge<IODevice>, IODevice&);
+    void register_input_device(Badge<IODevice>, u16 port, IODevice&);
+    void register_output_device(Badge<IODevice>, u16 port, IODevice&);
+    void register_device(Badge<IODevice>, IODevice&);
+    void unregister_device(Badge<IODevice>, IODevice&);
 
-    void makeCPU(Badge<Worker>);
-    void makeDevices(Badge<Worker>);
-    void didInitializeWorker(Badge<Worker>);
+    void make_cpu(Badge<Worker>);
+    void make_devices(Badge<Worker>);
+    void did_initialize_worker(Badge<Worker>);
 
 public slots:
     void start();
@@ -106,38 +106,38 @@ public slots:
     void reboot();
 
 private slots:
-    void onWorkerFinished();
+    void on_worker_finished();
 
 private:
-    bool loadFile(u32 address, const QString& fileName);
-    bool loadROMImage(u32 address, const QString& fileName);
+    bool load_file(u32 address, const QString& fileName);
+    bool load_rom_image(u32 address, const QString& fileName);
 
-    void applySettings();
+    void apply_settings();
 
     Worker& worker() { return *m_worker; }
 
-    IODevice* inputDeviceForPortSlowCase(u16 port);
-    IODevice* outputDeviceForPortSlowCase(u16 port);
+    IODevice* input_device_for_port_slow_case(u16 port);
+    IODevice* output_device_for_port_slow_case(u16 port);
 
     OwnPtr<Settings> m_settings;
     OwnPtr<CPU> m_cpu;
 
     OwnPtr<Worker> m_worker;
-    QMutex m_workerMutex;
-    QWaitCondition m_workerWaiter;
+    QMutex m_worker_mutex;
+    QWaitCondition m_worker_waiter;
 
     // IODevices
     OwnPtr<VGA> m_vga;
     OwnPtr<PIT> m_pit;
-    OwnPtr<BusMouse> m_busMouse;
+    OwnPtr<BusMouse> m_busmouse;
     OwnPtr<CMOS> m_cmos;
     OwnPtr<FDC> m_fdc;
     OwnPtr<IDE> m_ide;
     OwnPtr<Keyboard> m_keyboard;
-    OwnPtr<PIC> m_masterPIC;
-    OwnPtr<PIC> m_slavePIC;
+    OwnPtr<PIC> m_master_pic;
+    OwnPtr<PIC> m_slave_pic;
     OwnPtr<PS2> m_ps2;
-    OwnPtr<VomCtl> m_vomCtl;
+    OwnPtr<VomCtl> m_vomctl;
 
     OwnPtr<DiskDrive> m_floppy0;
     OwnPtr<DiskDrive> m_floppy1;
@@ -148,25 +148,25 @@ private:
 
     QSet<IODevice*> m_allDevices;
 
-    IODevice* m_fastInputDevices[1024];
-    IODevice* m_fastOutputDevices[1024];
+    IODevice* m_fast_input_devices[1024];
+    IODevice* m_fast_output_devices[1024];
 
-    QHash<u16, IODevice*> m_allInputDevices;
-    QHash<u16, IODevice*> m_allOutputDevices;
+    QHash<u16, IODevice*> m_all_input_devices;
+    QHash<u16, IODevice*> m_all_output_devices;
 
     QVector<ROM*> m_roms;
 };
 
-inline IODevice* Machine::inputDeviceForPort(u16 port)
+inline IODevice* Machine::input_device_for_port(u16 port)
 {
     if (port < 1024)
-        return m_fastInputDevices[port];
-    return inputDeviceForPortSlowCase(port);
+        return m_fast_input_devices[port];
+    return input_device_for_port_slow_case(port);
 }
 
-inline IODevice* Machine::outputDeviceForPort(u16 port)
+inline IODevice* Machine::output_device_for_port(u16 port)
 {
     if (port < 1024)
-        return m_fastOutputDevices[port];
-    return outputDeviceForPortSlowCase(port);
+        return m_fast_output_devices[port];
+    return output_device_for_port_slow_case(port);
 }

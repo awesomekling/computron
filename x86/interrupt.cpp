@@ -53,90 +53,90 @@ void CPU::_INTO(Instruction&)
     /* XXX: I've never seen this used, so it's probably good to log it. */
     vlog(LogAlert, "INTO used, can you believe it?");
 
-    if (getOF())
+    if (get_of())
         interrupt(4, InterruptSource::Internal);
 }
 
-void CPU::iretFromVM86Mode()
+void CPU::iret_from_vm86_mode()
 {
-    if (getIOPL() != 3)
+    if (get_iopl() != 3)
         throw GeneralProtectionFault(0, "IRET in VM86 mode with IOPL != 3");
 
-    u8 originalCPL = getCPL();
+    u8 originalCPL = get_cpl();
 
     TransactionalPopper popper(*this);
-    u32 offset = popper.popOperandSizedValue();
-    u16 selector = popper.popOperandSizedValue();
-    u32 flags = popper.popOperandSizedValue();
+    u32 offset = popper.pop_operand_sized_value();
+    u16 selector = popper.pop_operand_sized_value();
+    u32 flags = popper.pop_operand_sized_value();
 
     if (offset & 0xffff0000)
         throw GeneralProtectionFault(0, "IRET in VM86 mode to EIP > 0xffff");
 
-    setCS(selector);
-    setEIP(offset);
-    setEFlagsRespectfully(flags, originalCPL);
+    set_cs(selector);
+    set_eip(offset);
+    set_eflags_respectfully(flags, originalCPL);
     popper.commit();
 }
 
-void CPU::iretFromRealMode()
+void CPU::iret_from_real_mode()
 {
-    u32 offset = popOperandSizedValue();
-    u16 selector = popOperandSizedValue();
-    u32 flags = popOperandSizedValue();
+    u32 offset = pop_operand_sized_value();
+    u16 selector = pop_operand_sized_value();
+    u32 flags = pop_operand_sized_value();
 
 #ifdef DEBUG_JUMPS
     vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), currentStackPointer());
 #endif
 
-    setCS(selector);
-    setEIP(offset);
+    set_cs(selector);
+    set_eip(offset);
 
-    setEFlagsRespectfully(flags, 0);
+    set_eflags_respectfully(flags, 0);
 }
 
 void CPU::_IRET(Instruction&)
 {
-    if (!getPE()) {
-        iretFromRealMode();
+    if (!get_pe()) {
+        iret_from_real_mode();
         return;
     }
 
-    if (getVM()) {
-        iretFromVM86Mode();
+    if (get_vm()) {
+        iret_from_vm86_mode();
         return;
     }
 
-    u16 originalCPL = getCPL();
+    u16 originalCPL = get_cpl();
 
-    if (getNT()) {
-        auto tss = currentTSS();
+    if (get_nt()) {
+        auto tss = current_tss();
 #ifdef DEBUG_TASK_SWITCH
         vlog(LogCPU, "IRET with NT=1 switching tasks. Inner TSS @ %08X -> Outer TSS sel %04X...", TR.base, tss.getBacklink());
 #endif
-        taskSwitch(tss.getBacklink(), JumpType::IRET);
+        task_switch(tss.get_backlink(), JumpType::IRET);
         return;
     }
 
     TransactionalPopper popper(*this);
 
-    u32 offset = popper.popOperandSizedValue();
-    u16 selector = popper.popOperandSizedValue();
-    u32 flags = popper.popOperandSizedValue();
+    u32 offset = popper.pop_operand_sized_value();
+    u16 selector = popper.pop_operand_sized_value();
+    u32 flags = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
     vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), popper.adjustedStackPointer());
 #endif
 
     if (flags & Flag::VM) {
-        if (getCPL() == 0) {
-            iretToVM86Mode(popper, LogicalAddress(selector, offset), flags);
+        if (get_cpl() == 0) {
+            iret_to_vm86_mode(popper, LogicalAddress(selector, offset), flags);
             return;
         }
-        vlog(LogCPU, "IRET to VM86 but CPL = %u!?", getCPL());
+        vlog(LogCPU, "IRET to VM86 but CPL = %u!?", get_cpl());
         ASSERT_NOT_REACHED();
     }
-    protectedIRET(popper, LogicalAddress(selector, offset));
+    protected_iret(popper, LogicalAddress(selector, offset));
 
-    setEFlagsRespectfully(flags, originalCPL);
+    set_eflags_respectfully(flags, originalCPL);
 }
 
 static u16 makeErrorCode(u16 num, bool idt, CPU::InterruptSource source)
@@ -146,11 +146,11 @@ static u16 makeErrorCode(u16 num, bool idt, CPU::InterruptSource source)
     return (num & 0xfc) | (u16)source;
 }
 
-void CPU::interruptToTaskGate(u8, InterruptSource source, QVariant errorCode, Gate& gate)
+void CPU::interrupt_to_task_gate(u8, InterruptSource source, QVariant errorCode, Gate& gate)
 {
-    auto descriptor = getDescriptor(gate.selector());
+    auto descriptor = get_descriptor(gate.selector());
     if (options.trapint) {
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
     }
     if (!descriptor.isGlobal()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing local descriptor");
@@ -165,7 +165,7 @@ void CPU::interruptToTaskGate(u8, InterruptSource source, QVariant errorCode, Ga
     if (!tssDescriptor.present()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing non-present TSS descriptor");
     }
-    taskSwitch(gate.selector(), tssDescriptor, JumpType::INT);
+    task_switch(gate.selector(), tssDescriptor, JumpType::INT);
     if (errorCode.isValid()) {
         if (tssDescriptor.is32Bit())
             push32(errorCode.value<u16>());
@@ -174,37 +174,37 @@ void CPU::interruptToTaskGate(u8, InterruptSource source, QVariant errorCode, Ga
     }
 }
 
-LogicalAddress CPU::getRealModeInterruptVector(u8 index)
+LogicalAddress CPU::get_real_mode_interrupt_vector(u8 index)
 {
-    u16 selector = readPhysicalMemory<u16>(PhysicalAddress(index * 4 + 2));
-    u16 offset = readPhysicalMemory<u16>(PhysicalAddress(index * 4));
+    u16 selector = read_physical_memory<u16>(PhysicalAddress(index * 4 + 2));
+    u16 offset = read_physical_memory<u16>(PhysicalAddress(index * 4));
     return { selector, offset };
 }
 
-void CPU::realModeInterrupt(u8 isr, InterruptSource source)
+void CPU::real_mode_interrupt(u8 isr, InterruptSource source)
 {
-    ASSERT(!getPE());
-    u16 originalCS = getCS();
-    u16 originalIP = getIP();
-    u16 flags = getFlags();
-    auto vector = getRealModeInterruptVector(isr);
+    ASSERT(!get_pe());
+    u16 originalCS = get_cs();
+    u16 originalIP = get_ip();
+    u16 flags = get_flags();
+    auto vector = get_real_mode_interrupt_vector(isr);
 
     if (options.trapint)
-        vlog(LogCPU, "PE=0 interrupt %02x,%04x%s -> %04x:%04x", isr, getAX(), source == InterruptSource::External ? " (external)" : "", vector.selector(), vector.offset());
+        vlog(LogCPU, "PE=0 interrupt %02x,%04x%s -> %04x:%04x", isr, get_ax(), source == InterruptSource::External ? " (external)" : "", vector.selector(), vector.offset());
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=0] Interrupt from %04x:%08x to %04x:%08x", getBaseCS(), currentBaseInstructionPointer(), vector.selector(), vector.offset());
 #endif
 
-    setCS(vector.selector());
-    setEIP(vector.offset());
+    set_cs(vector.selector());
+    set_eip(vector.offset());
 
     push16(flags);
     push16(originalCS);
     push16(originalIP);
 
-    setIF(0);
-    setTF(0);
+    set_if(0);
+    set_tf(0);
 }
 
 #ifdef DEBUG_SERENITY
@@ -212,16 +212,16 @@ void CPU::realModeInterrupt(u8 isr, InterruptSource source)
 
 static void logSerenitySyscall(CPU& cpu)
 {
-    auto func = (Syscall::Function)cpu.getEAX();
-    vlog(LogSerenity, "Syscall %02u %s (%08x, %08x, %08x)", cpu.getEAX(), Syscall::to_string(func), cpu.getEDX(), cpu.getECX(), cpu.getEBX());
+    auto func = (Syscall::Function)cpu.get_eax();
+    vlog(LogSerenity, "Syscall %02u %s (%08x, %08x, %08x)", cpu.get_eax(), Syscall::to_string(func), cpu.get_edx(), cpu.get_ecx(), cpu.get_ebx());
 }
 #endif
 
 static const int ignoredInterrupt = -1;
 
-void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorCode)
+void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant errorCode)
 {
-    ASSERT(getPE());
+    ASSERT(get_pe());
 
 #if DEBUG_SERENITY
     bool logAsSyscall = options.trapint && options.serenity && isr == 0x80;
@@ -232,19 +232,19 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
     bool logAsSyscall = false;
 #endif
 
-    if (source == InterruptSource::Internal && getVM() && getIOPL() != 3) {
+    if (source == InterruptSource::Internal && get_vm() && get_iopl() != 3) {
         throw GeneralProtectionFault(0, "Software INT in VM86 mode with IOPL != 3");
     }
 
-    auto idtEntry = getInterruptDescriptor(isr);
+    auto idtEntry = get_interrupt_descriptor(isr);
     if (!idtEntry.isTaskGate() && !idtEntry.isTrapGate() && !idtEntry.isInterruptGate()) {
         throw GeneralProtectionFault(makeErrorCode(isr, 1, source), "Interrupt to invalid gate type");
     }
     auto& gate = idtEntry.asGate();
 
     if (source == InterruptSource::Internal) {
-        if (gate.DPL() < getCPL()) {
-            throw GeneralProtectionFault(makeErrorCode(isr, 1, source), QString("Software interrupt trying to escalate privilege (CPL=%1, DPL=%2, VM=%3)").arg(getCPL()).arg(gate.DPL()).arg(getVM()));
+        if (gate.DPL() < get_cpl()) {
+            throw GeneralProtectionFault(makeErrorCode(isr, 1, source), QString("Software interrupt trying to escalate privilege (CPL=%1, DPL=%2, VM=%3)").arg(get_cpl()).arg(gate.DPL()).arg(get_vm()));
         }
     }
 
@@ -259,19 +259,19 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
     auto entry = gate.entry();
 
     if (options.trapint && !logAsSyscall && isr != ignoredInterrupt) {
-        vlog(LogCPU, "PE=1 interrupt %02x,%04x%s, type: %s (%1x), %04x:%08x", isr, getAX(), source == InterruptSource::External ? " (external)" : "", gate.typeName(), gate.type(), entry.selector(), entry.offset());
-        dumpDescriptor(gate);
+        vlog(LogCPU, "PE=1 interrupt %02x,%04x%s, type: %s (%1x), %04x:%08x", isr, get_ax(), source == InterruptSource::External ? " (external)" : "", gate.typeName(), gate.type(), entry.selector(), entry.offset());
+        dump_descriptor(gate);
     }
 
     if (gate.isTaskGate()) {
-        interruptToTaskGate(isr, source, errorCode, gate);
+        interrupt_to_task_gate(isr, source, errorCode, gate);
         return;
     }
 
-    auto descriptor = getDescriptor(gate.selector());
+    auto descriptor = get_descriptor(gate.selector());
 
     if (options.trapint && !logAsSyscall && isr != ignoredInterrupt) {
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
     }
 
     if (descriptor.isNull()) {
@@ -283,13 +283,13 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
     }
 
     if (!descriptor.isCode()) {
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt gate to non-code segment");
     }
 
     auto& codeDescriptor = descriptor.asCodeSegmentDescriptor();
-    if (codeDescriptor.DPL() > getCPL()) {
-        throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), QString("Interrupt gate to segment with DPL(%1)>CPL(%2)").arg(codeDescriptor.DPL()).arg(getCPL()));
+    if (codeDescriptor.DPL() > get_cpl()) {
+        throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), QString("Interrupt gate to segment with DPL(%1)>CPL(%2)").arg(codeDescriptor.DPL()).arg(get_cpl()));
     }
 
     if (!codeDescriptor.present()) {
@@ -297,13 +297,13 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
     }
 
     u32 offset = gate.offset();
-    u32 flags = getEFlags();
+    u32 flags = get_eflags();
 
-    u16 originalSS = getSS();
-    u32 originalESP = getESP();
-    u16 originalCPL = getCPL();
-    u16 originalCS = getCS();
-    u32 originalEIP = getEIP();
+    u16 originalSS = get_ss();
+    u32 originalESP = get_esp();
+    u16 originalCPL = get_cpl();
+    u16 originalCS = get_cs();
+    u32 originalEIP = get_eip();
 
     if (!gate.is32Bit() || !codeDescriptor.is32Bit()) {
         if (offset & 0xffff0000) {
@@ -317,8 +317,8 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
-    if (getVM()) {
-        interruptFromVM86Mode(gate, offset, codeDescriptor, source, errorCode);
+    if (get_vm()) {
+        interrupt_from_vm86_mode(gate, offset, codeDescriptor, source, errorCode);
         return;
     }
 
@@ -326,11 +326,11 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Interrupt escalating privilege from ring%u to ring%u", originalCPL, descriptor.DPL(), descriptor);
 #endif
-        auto tss = currentTSS();
+        auto tss = current_tss();
 
-        u16 newSS = tss.getRingSS(descriptor.DPL());
-        u32 newESP = tss.getRingESP(descriptor.DPL());
-        auto newSSDescriptor = getDescriptor(newSS);
+        u16 newSS = tss.get_ring_ss(descriptor.DPL());
+        u32 newESP = tss.get_ring_esp(descriptor.DPL());
+        auto newSSDescriptor = get_descriptor(newSS);
 
         if (newSSDescriptor.isNull()) {
             throw InvalidTSS(source == InterruptSource::External, "New ss is null");
@@ -353,74 +353,74 @@ void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorC
         }
 
         BEGIN_ASSERT_NO_EXCEPTIONS
-        setCPL(descriptor.DPL());
-        setSS(newSS);
-        setESP(newESP);
+        set_cpl(descriptor.DPL());
+        set_ss(newSS);
+        set_esp(newESP);
 
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Interrupt to inner ring, ss:esp %04x:%08x -> %04x:%08x", originalSS, originalESP, getSS(), getESP());
-        vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), getESP());
+        vlog(LogCPU, "Interrupt to inner ring, ss:esp %04x:%08x -> %04x:%08x", originalSS, originalESP, getSS(), get_esp());
+        vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), get_esp());
 #endif
-        pushValueWithSize(originalSS, gate.size());
-        pushValueWithSize(originalESP, gate.size());
+        push_value_with_size(originalSS, gate.size());
+        push_value_with_size(originalESP, gate.size());
         END_ASSERT_NO_EXCEPTIONS
     } else if (codeDescriptor.conforming() || codeDescriptor.DPL() == originalCPL) {
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Interrupt same privilege from ring%u to ring%u", originalCPL, descriptor.DPL());
 #endif
-        if (getVM() && (codeDescriptor.conforming() || codeDescriptor.DPL() != 0)) {
+        if (get_vm() && (codeDescriptor.conforming() || codeDescriptor.DPL() != 0)) {
             ASSERT_NOT_REACHED();
             throw GeneralProtectionFault(gate.selector() & ~3, "Interrupt in VM86 mode to code segment with DPL != 0");
         }
 
-        setCPL(originalCPL);
+        set_cpl(originalCPL);
     } else {
         ASSERT_NOT_REACHED();
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to non-conforming code segment with DPL > CPL");
     }
 
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Push %u-bit flags %08x @stack{%04x:%08x}", gate.size(), flags, getSS(), getESP());
-    vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", gate.size(), originalCS, originalEIP, getSS(), getESP());
+    vlog(LogCPU, "Push %u-bit flags %08x @stack{%04x:%08x}", gate.size(), flags, getSS(), get_esp());
+    vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", gate.size(), originalCS, originalEIP, getSS(), get_esp());
 #endif
     BEGIN_ASSERT_NO_EXCEPTIONS
-    pushValueWithSize(flags, gate.size());
-    pushValueWithSize(originalCS, gate.size());
-    pushValueWithSize(originalEIP, gate.size());
+    push_value_with_size(flags, gate.size());
+    push_value_with_size(originalCS, gate.size());
+    push_value_with_size(originalEIP, gate.size());
     if (errorCode.isValid()) {
-        pushValueWithSize(errorCode.value<u16>(), gate.size());
+        push_value_with_size(errorCode.value<u16>(), gate.size());
     }
 
     if (gate.isInterruptGate())
-        setIF(0);
-    setTF(0);
-    setRF(0);
-    setNT(0);
-    setVM(0);
-    setCS(gate.selector());
-    setEIP(offset);
+        set_if(0);
+    set_tf(0);
+    set_rf(0);
+    set_nt(0);
+    set_vm(0);
+    set_cs(gate.selector());
+    set_eip(offset);
     END_ASSERT_NO_EXCEPTIONS
 }
 
-void CPU::interruptFromVM86Mode(Gate& gate, u32 offset, CodeSegmentDescriptor& codeDescriptor, InterruptSource source, QVariant errorCode)
+void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor& codeDescriptor, InterruptSource source, QVariant errorCode)
 {
 #ifdef DEBUG_VM86
     vlog(LogCPU, "Interrupt from VM86 mode -> %04x:%08x", gate.selector(), offset);
 #endif
 
-    u32 originalFlags = getEFlags();
-    u16 originalSS = getSS();
-    u32 originalESP = getESP();
+    u32 originalFlags = get_eflags();
+    u16 originalSS = get_ss();
+    u32 originalESP = get_esp();
 
     if (codeDescriptor.DPL() != 0) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt from VM86 mode to descriptor with CPL != 0");
     }
 
-    auto tss = currentTSS();
+    auto tss = current_tss();
 
-    u16 newSS = tss.getSS0();
-    u32 newESP = tss.getESP0();
-    auto newSSDescriptor = getDescriptor(newSS);
+    u16 newSS = tss.get_ss0();
+    u32 newESP = tss.get_esp0();
+    auto newSSDescriptor = get_descriptor(newSS);
 
     if (newSSDescriptor.isNull()) {
         throw InvalidTSS(source == InterruptSource::External, "New ss is null");
@@ -451,74 +451,74 @@ void CPU::interruptFromVM86Mode(Gate& gate, u32 offset, CodeSegmentDescriptor& c
 #endif
 
     BEGIN_ASSERT_NO_EXCEPTIONS
-    setCPL(0);
-    setVM(0);
-    setTF(0);
-    setRF(0);
-    setNT(0);
+    set_cpl(0);
+    set_vm(0);
+    set_tf(0);
+    set_rf(0);
+    set_nt(0);
     if (gate.isInterruptGate())
-        setIF(0);
-    setSS(newSS);
-    setESP(newESP);
-    pushValueWithSize(getGS(), gate.size());
-    pushValueWithSize(getFS(), gate.size());
-    pushValueWithSize(getDS(), gate.size());
-    pushValueWithSize(getES(), gate.size());
+        set_if(0);
+    set_ss(newSS);
+    set_esp(newESP);
+    push_value_with_size(get_gs(), gate.size());
+    push_value_with_size(get_fs(), gate.size());
+    push_value_with_size(get_ds(), gate.size());
+    push_value_with_size(get_es(), gate.size());
 #ifdef DEBUG_VM86
-    vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), getESP());
-    LinearAddress esp_laddr = cachedDescriptor(SegmentRegisterIndex::SS).base().offset(getESP());
+    vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), get_esp());
+    LinearAddress esp_laddr = cachedDescriptor(SegmentRegisterIndex::SS).base().offset(get_esp());
     PhysicalAddress esp_paddr = translateAddress(esp_laddr, MemoryAccessType::Write);
     vlog(LogCPU, "Relevant stack pointer at P 0x%08x", esp_paddr.get());
 #endif
-    pushValueWithSize(originalSS, gate.size());
-    pushValueWithSize(originalESP, gate.size());
+    push_value_with_size(originalSS, gate.size());
+    push_value_with_size(originalESP, gate.size());
 #ifdef DEBUG_VM86
     vlog(LogCPU, "Pushing original flags %08x (VM=%u)", originalFlags, !!(originalFlags & Flag::VM));
 #endif
-    pushValueWithSize(originalFlags, gate.size());
-    pushValueWithSize(getCS(), gate.size());
-    pushValueWithSize(getEIP(), gate.size());
+    push_value_with_size(originalFlags, gate.size());
+    push_value_with_size(get_cs(), gate.size());
+    push_value_with_size(get_eip(), gate.size());
     if (errorCode.isValid()) {
-        pushValueWithSize(errorCode.value<u16>(), gate.size());
+        push_value_with_size(errorCode.value<u16>(), gate.size());
     }
-    setGS(0);
-    setFS(0);
-    setDS(0);
-    setES(0);
-    setCS(gate.selector());
-    setCPL(0);
-    setEIP(offset);
+    set_gs(0);
+    set_fs(0);
+    set_ds(0);
+    set_es(0);
+    set_cs(gate.selector());
+    set_cpl(0);
+    set_eip(offset);
     END_ASSERT_NO_EXCEPTIONS
 }
 
 void CPU::interrupt(u8 isr, InterruptSource source, QVariant errorCode)
 {
-    if (getPE())
-        protectedModeInterrupt(isr, source, errorCode);
+    if (get_pe())
+        protected_mode_interrupt(isr, source, errorCode);
     else
-        realModeInterrupt(isr, source);
+        real_mode_interrupt(isr, source);
 }
 
-void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
+void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 {
-    ASSERT(getPE());
+    ASSERT(get_pe());
 #ifdef DEBUG_JUMPS
     u16 originalSS = getSS();
-    u32 originalESP = getESP();
+    u32 originalESP = get_esp();
     u16 originalCS = getCS();
     u32 originalEIP = getEIP();
 #endif
 
     u16 selector = address.selector();
     u32 offset = address.offset();
-    u16 originalCPL = getCPL();
+    u16 originalCPL = get_cpl();
     u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, PG=%u] IRET from %04x:%08x to %04x:%08x", getPE(), getPG(), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
 #endif
 
-    auto descriptor = getDescriptor(selector);
+    auto descriptor = get_descriptor(selector);
 
     if (descriptor.isNull())
         throw GeneralProtectionFault(0, "IRET to null selector");
@@ -527,12 +527,12 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         throw GeneralProtectionFault(selector & 0xfffc, "IRET to selector outside table limit");
 
     if (!descriptor.isCode()) {
-        dumpDescriptor(descriptor);
+        dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
 
-    if (selectorRPL < getCPL())
-        throw GeneralProtectionFault(selector & 0xfffc, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(getCPL()));
+    if (selectorRPL < get_cpl())
+        throw GeneralProtectionFault(selector & 0xfffc, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(get_cpl()));
 
     auto& codeSegment = descriptor.asCodeSegmentDescriptor();
 
@@ -552,7 +552,7 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
 
     if (offset > codeSegment.effectiveLimit()) {
         vlog(LogCPU, "IRET to eip(%08x) outside limit(%08x)", offset, codeSegment.effectiveLimit());
-        dumpDescriptor(codeSegment);
+        dump_descriptor(codeSegment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
@@ -560,8 +560,8 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
     u32 newESP;
     if (selectorRPL > originalCPL) {
         BEGIN_ASSERT_NO_EXCEPTIONS
-        newESP = popper.popOperandSizedValue();
-        newSS = popper.popOperandSizedValue();
+        newESP = popper.pop_operand_sized_value();
+        newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
         vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
@@ -570,23 +570,23 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
     }
 
     // FIXME: Validate SS before clobbering CS:EIP.
-    setCS(selector);
-    setEIP(offset);
+    set_cs(selector);
+    set_eip(offset);
 
     if (selectorRPL > originalCPL) {
-        setSS(newSS);
-        setESP(newESP);
+        set_ss(newSS);
+        set_esp(newESP);
 
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::ES, JumpType::IRET);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::FS, JumpType::IRET);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::GS, JumpType::IRET);
-        clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex::DS, JumpType::IRET);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::ES, JumpType::IRET);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::FS, JumpType::IRET);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::GS, JumpType::IRET);
+        clear_segment_register_after_return_if_needed(SegmentRegisterIndex::DS, JumpType::IRET);
     } else {
         popper.commit();
     }
 }
 
-void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, u32 flags)
+void CPU::iret_to_vm86_mode(TransactionalPopper& popper, LogicalAddress entry, u32 flags)
 {
 #ifdef DEBUG_VM86
     vlog(LogCPU, "IRET (o%u) to VM86 mode -> %04x:%04x", o16() ? 16 : 32, entry.selector(), entry.offset());
@@ -599,17 +599,17 @@ void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, u32 
     if (entry.offset() & 0xffff0000)
         throw GeneralProtectionFault(0, "IRET to VM86 with offset > 0xffff");
 
-    setEFlags(flags);
-    setCS(entry.selector());
-    setEIP(entry.offset());
+    set_eflags(flags);
+    set_cs(entry.selector());
+    set_eip(entry.offset());
 
     u32 newESP = popper.pop32();
     u16 newSS = popper.pop32();
-    setES(popper.pop32());
-    setDS(popper.pop32());
-    setFS(popper.pop32());
-    setGS(popper.pop32());
-    setCPL(3);
-    setESP(newESP);
-    setSS(newSS);
+    set_es(popper.pop32());
+    set_ds(popper.pop32());
+    set_fs(popper.pop32());
+    set_gs(popper.pop32());
+    set_cpl(3);
+    set_esp(newESP);
+    set_ss(newSS);
 }

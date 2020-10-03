@@ -28,22 +28,22 @@
 
 void CPU::_STR_RM16(Instruction& insn)
 {
-    if (!getPE() || getVM()) {
+    if (!get_pe() || get_vm()) {
         throw InvalidOpcode("STR not recognized in real/VM86 mode");
     }
-    insn.modrm().writeSpecial(TR.selector, o32());
+    insn.modrm().write_special(m_tr.selector, o32());
 }
 
 void CPU::_LTR_RM16(Instruction& insn)
 {
-    if (!getPE() || getVM())
+    if (!get_pe() || get_vm())
         throw InvalidOpcode("LTR not recognized in real/VM86 mode");
 
-    if (getCPL() != 0)
+    if (get_cpl() != 0)
         throw GeneralProtectionFault(0, "LTR with CPL != 0");
 
     u16 selector = insn.modrm().read16();
-    auto descriptor = getDescriptor(selector);
+    auto descriptor = get_descriptor(selector);
 
     if (descriptor.isNull())
         throw GeneralProtectionFault(0, "LTR with null selector");
@@ -59,12 +59,12 @@ void CPU::_LTR_RM16(Instruction& insn)
         throw NotPresent(selector & 0xfffc, "LTR with non-present TSS");
 
     tssDescriptor.setBusy();
-    writeToGDT(tssDescriptor);
+    write_to_gdt(tssDescriptor);
 
-    TR.selector = selector;
-    TR.base = tssDescriptor.base();
-    TR.limit = tssDescriptor.limit();
-    TR.is32Bit = tssDescriptor.is32Bit();
+    m_tr.selector = selector;
+    m_tr.base = tssDescriptor.base();
+    m_tr.limit = tssDescriptor.limit();
+    m_tr.is_32bit = tssDescriptor.is32Bit();
 #ifdef DEBUG_TASK_SWITCH
     vlog(LogAlert, "LTR { segment: %04x => base:%08x, limit:%08x }", TR.selector, TR.base.get(), TR.limit);
 #endif
@@ -77,7 +77,7 @@ void CPU::_LTR_RM16(Instruction& insn)
         }                                           \
     } while (0)
 
-void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
+void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
 {
     ASSERT(incomingTSSDescriptor.is32Bit());
 
@@ -99,11 +99,11 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
         EXCEPTION_ON(GeneralProtectionFault, task_selector & 0xfffc, incomingTSSDescriptor.isBusy(), "Incoming TSS descriptor is busy");
     }
 
-    auto outgoingDescriptor = getDescriptor(TR.selector);
+    auto outgoingDescriptor = get_descriptor(m_tr.selector);
     if (!outgoingDescriptor.isTSS()) {
         // Hmm, what have we got ourselves into now?
         vlog(LogCPU, "Switching tasks and outgoing TSS is not a TSS:");
-        dumpDescriptor(outgoingDescriptor);
+        dump_descriptor(outgoingDescriptor);
     }
 
     TSSDescriptor outgoingTSSDescriptor = outgoingDescriptor.asTSSDescriptor();
@@ -112,41 +112,41 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
     if (outgoingTSSDescriptor.base() == incomingTSSDescriptor.base())
         vlog(LogCPU, "Switching to same TSS (%08x)", incomingTSSDescriptor.base().get());
 
-    TSS outgoingTSS(*this, TR.base, outgoingTSSDescriptor.is32Bit());
+    TSS outgoingTSS(*this, m_tr.base, outgoingTSSDescriptor.is32Bit());
 
-    outgoingTSS.setEAX(getEAX());
-    outgoingTSS.setEBX(getEBX());
-    outgoingTSS.setECX(getECX());
-    outgoingTSS.setEDX(getEDX());
-    outgoingTSS.setEBP(getEBP());
-    outgoingTSS.setESP(getESP());
-    outgoingTSS.setESI(getESI());
-    outgoingTSS.setEDI(getEDI());
+    outgoingTSS.set_eax(get_eax());
+    outgoingTSS.set_ebx(get_ebx());
+    outgoingTSS.set_ecx(get_ecx());
+    outgoingTSS.set_edx(get_edx());
+    outgoingTSS.set_ebp(get_ebp());
+    outgoingTSS.set_esp(get_esp());
+    outgoingTSS.set_esi(get_esi());
+    outgoingTSS.set_edi(get_edi());
 
     if (source == JumpType::JMP || source == JumpType::IRET) {
         outgoingTSSDescriptor.setAvailable();
-        writeToGDT(outgoingTSSDescriptor);
+        write_to_gdt(outgoingTSSDescriptor);
     }
 
-    u32 outgoingEFlags = getEFlags();
+    u32 outgoingEFlags = get_eflags();
 
     if (source == JumpType::IRET) {
         outgoingEFlags &= ~Flag::NT;
     }
 
-    outgoingTSS.setEFlags(outgoingEFlags);
+    outgoingTSS.set_eflags(outgoingEFlags);
 
-    outgoingTSS.setCS(getCS());
-    outgoingTSS.setDS(getDS());
-    outgoingTSS.setES(getES());
-    outgoingTSS.setFS(getFS());
-    outgoingTSS.setGS(getGS());
-    outgoingTSS.setSS(getSS());
-    outgoingTSS.setLDT(m_LDTR.selector());
-    outgoingTSS.setEIP(getEIP());
+    outgoingTSS.set_cs(get_cs());
+    outgoingTSS.set_ds(get_ds());
+    outgoingTSS.set_es(get_es());
+    outgoingTSS.set_fs(get_fs());
+    outgoingTSS.set_gs(get_gs());
+    outgoingTSS.set_ss(get_ss());
+    outgoingTSS.set_ldt(m_ldtr.selector());
+    outgoingTSS.set_eip(get_eip());
 
-    if (getPG())
-        outgoingTSS.setCR3(getCR3());
+    if (get_pg())
+        outgoingTSS.set_cr3(get_cr3());
 
     TSS incomingTSS(*this, incomingTSSDescriptor.base(), incomingTSSDescriptor.is32Bit());
 
@@ -158,20 +158,20 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
 #endif
 
     // First, load all registers from TSS without validating contents.
-    m_CR3 = incomingTSS.getCR3();
+    m_cr3 = incomingTSS.get_cr3();
 
-    m_LDTR.setSelector(incomingTSS.getLDT());
-    m_LDTR.setBase(LinearAddress());
-    m_LDTR.setLimit(0);
+    m_ldtr.setSelector(incomingTSS.get_ldt());
+    m_ldtr.setBase(LinearAddress());
+    m_ldtr.setLimit(0);
 
-    CS = incomingTSS.getCS();
-    DS = incomingTSS.getDS();
-    ES = incomingTSS.getES();
-    FS = incomingTSS.getFS();
-    GS = incomingTSS.getGS();
-    SS = incomingTSS.getSS();
+    m_cs = incomingTSS.get_cs();
+    m_ds = incomingTSS.get_ds();
+    m_es = incomingTSS.get_es();
+    m_fs = incomingTSS.get_fs();
+    m_gs = incomingTSS.get_gs();
+    m_ss = incomingTSS.get_ss();
 
-    u32 incomingEFlags = incomingTSS.getEFlags();
+    u32 incomingEFlags = incomingTSS.get_eflags();
 
     if (incomingEFlags & Flag::VM) {
         vlog(LogCPU, "Incoming task is in VM86 mode, this needs work!");
@@ -182,87 +182,87 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
         incomingEFlags |= Flag::NT;
     }
 
-    if (incomingTSS.is32Bit())
-        setEFlags(incomingEFlags);
+    if (incomingTSS.is_32bit())
+        set_eflags(incomingEFlags);
     else
-        setFlags(incomingEFlags);
+        set_flags(incomingEFlags);
 
-    setEAX(incomingTSS.getEAX());
-    setEBX(incomingTSS.getEBX());
-    setECX(incomingTSS.getECX());
-    setEDX(incomingTSS.getEDX());
-    setEBP(incomingTSS.getEBP());
-    setESP(incomingTSS.getESP());
-    setESI(incomingTSS.getESI());
-    setEDI(incomingTSS.getEDI());
+    set_eax(incomingTSS.get_eax());
+    set_ebx(incomingTSS.get_ebx());
+    set_ecx(incomingTSS.get_ecx());
+    set_edx(incomingTSS.get_edx());
+    set_ebp(incomingTSS.get_ebp());
+    set_esp(incomingTSS.get_esp());
+    set_esi(incomingTSS.get_esi());
+    set_edi(incomingTSS.get_edi());
 
     if (source == JumpType::CALL || source == JumpType::INT) {
-        incomingTSS.setBacklink(TR.selector);
+        incomingTSS.set_backlink(m_tr.selector);
     }
 
-    TR.selector = incomingTSSDescriptor.index();
-    TR.base = incomingTSSDescriptor.base();
-    TR.limit = incomingTSSDescriptor.limit();
-    TR.is32Bit = incomingTSSDescriptor.is32Bit();
+    m_tr.selector = incomingTSSDescriptor.index();
+    m_tr.base = incomingTSSDescriptor.base();
+    m_tr.limit = incomingTSSDescriptor.limit();
+    m_tr.is_32bit = incomingTSSDescriptor.is32Bit();
 
     if (source != JumpType::IRET) {
         incomingTSSDescriptor.setBusy();
-        writeToGDT(incomingTSSDescriptor);
+        write_to_gdt(incomingTSSDescriptor);
     }
 
-    m_CR0 |= CR0::TS; // Task Switched
+    m_cr0 |= CR0::TS; // Task Switched
 
     // Now, let's validate!
-    auto ldtDescriptor = getDescriptor(m_LDTR.selector());
+    auto ldtDescriptor = get_descriptor(m_ldtr.selector());
     if (!ldtDescriptor.isNull()) {
         if (!ldtDescriptor.isGlobal())
-            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not in GDT");
+            throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not in GDT");
         if (!ldtDescriptor.isLDT())
-            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not an LDT");
+            throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not an LDT");
     }
 
-    unsigned incomingCPL = getCS() & 3;
+    unsigned incoming_cpl = get_cs() & 3;
 
-    auto csDescriptor = getDescriptor(CS);
-    if (csDescriptor.isCode()) {
-        if (csDescriptor.isNonconformingCode()) {
-            if (csDescriptor.DPL() != (getCS() & 3))
-                throw InvalidTSS(getCS() & 0xfffc, QString("CS is non-conforming with DPL(%1) != RPL(%2)").arg(csDescriptor.DPL()).arg(getCS() & 3));
-        } else if (csDescriptor.isConformingCode()) {
-            if (csDescriptor.DPL() > (getCS() & 3))
-                throw InvalidTSS(getCS() & 0xfffc, "CS is conforming with DPL > RPL");
+    auto cs_descriptor = get_descriptor(m_cs);
+    if (cs_descriptor.isCode()) {
+        if (cs_descriptor.isNonconformingCode()) {
+            if (cs_descriptor.DPL() != (get_cs() & 3))
+                throw InvalidTSS(get_cs() & 0xfffc, QString("CS is non-conforming with DPL(%1) != RPL(%2)").arg(cs_descriptor.DPL()).arg(get_cs() & 3));
+        } else if (cs_descriptor.isConformingCode()) {
+            if (cs_descriptor.DPL() > (get_cs() & 3))
+                throw InvalidTSS(get_cs() & 0xfffc, "CS is conforming with DPL > RPL");
         }
     }
-    auto ssDescriptor = getDescriptor(getSS());
-    if (!ssDescriptor.isNull()) {
-        if (ssDescriptor.isOutsideTableLimits())
-            throw InvalidTSS(getSS() & 0xfffc, "SS outside table limits");
-        if (!ssDescriptor.isData())
-            throw InvalidTSS(getSS() & 0xfffc, "SS is not a data segment");
-        if (!ssDescriptor.asDataSegmentDescriptor().writable())
-            throw InvalidTSS(getSS() & 0xfffc, "SS is not writable");
-        if (!ssDescriptor.present())
-            throw StackFault(getSS() & 0xfffc, "SS is not present");
-        if (ssDescriptor.DPL() != incomingCPL)
-            throw InvalidTSS(getSS() & 0xfffc, QString("SS DPL(%1) != CPL(%2)").arg(ssDescriptor.DPL()).arg(incomingCPL));
+    auto ss_descriptor = get_descriptor(get_ss());
+    if (!ss_descriptor.isNull()) {
+        if (ss_descriptor.isOutsideTableLimits())
+            throw InvalidTSS(get_ss() & 0xfffc, "SS outside table limits");
+        if (!ss_descriptor.isData())
+            throw InvalidTSS(get_ss() & 0xfffc, "SS is not a data segment");
+        if (!ss_descriptor.asDataSegmentDescriptor().writable())
+            throw InvalidTSS(get_ss() & 0xfffc, "SS is not writable");
+        if (!ss_descriptor.present())
+            throw StackFault(get_ss() & 0xfffc, "SS is not present");
+        if (ss_descriptor.DPL() != incoming_cpl)
+            throw InvalidTSS(get_ss() & 0xfffc, QString("SS DPL(%1) != CPL(%2)").arg(ss_descriptor.DPL()).arg(incoming_cpl));
     }
 
     if (!ldtDescriptor.isNull()) {
         if (!ldtDescriptor.present())
-            throw InvalidTSS(m_LDTR.selector() & 0xfffc, "Incoming LDT is not present");
+            throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not present");
     }
 
-    if (!csDescriptor.isCode())
-        throw InvalidTSS(getCS() & 0xfffc, "CS is not a code segment");
-    if (!csDescriptor.present())
-        throw InvalidTSS(getCS() & 0xfffc, "CS is not present");
+    if (!cs_descriptor.isCode())
+        throw InvalidTSS(get_cs() & 0xfffc, "CS is not a code segment");
+    if (!cs_descriptor.present())
+        throw InvalidTSS(get_cs() & 0xfffc, "CS is not present");
 
-    if (ssDescriptor.DPL() != (getSS() & 3))
-        throw InvalidTSS(getSS() & 0xfffc, "SS DPL != RPL");
+    if (ss_descriptor.DPL() != (get_ss() & 3))
+        throw InvalidTSS(get_ss() & 0xfffc, "SS DPL != RPL");
 
-    auto validateDataSegment = [&](SegmentRegisterIndex segreg) {
-        u16 selector = readSegmentRegister(segreg);
-        auto descriptor = getDescriptor(selector);
+    auto validate_data_segment = [&](SegmentRegisterIndex segreg) {
+        u16 selector = read_segment_register(segreg);
+        auto descriptor = get_descriptor(selector);
         if (descriptor.isNull())
             return;
         if (descriptor.isOutsideTableLimits())
@@ -271,31 +271,31 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
             throw InvalidTSS(selector & 0xfffc, "DS/ES/FS/GS is a system segment");
         if (!descriptor.present())
             throw NotPresent(selector & 0xfffc, "DS/ES/FS/GS is not present");
-        if (!descriptor.isConformingCode() && descriptor.DPL() < incomingCPL)
+        if (!descriptor.isConformingCode() && descriptor.DPL() < incoming_cpl)
             throw InvalidTSS(selector & 0xfffc, "DS/ES/FS/GS has DPL < CPL and is not a conforming code segment");
     };
 
-    validateDataSegment(SegmentRegisterIndex::DS);
-    validateDataSegment(SegmentRegisterIndex::ES);
-    validateDataSegment(SegmentRegisterIndex::FS);
-    validateDataSegment(SegmentRegisterIndex::GS);
+    validate_data_segment(SegmentRegisterIndex::DS);
+    validate_data_segment(SegmentRegisterIndex::ES);
+    validate_data_segment(SegmentRegisterIndex::FS);
+    validate_data_segment(SegmentRegisterIndex::GS);
 
-    EXCEPTION_ON(GeneralProtectionFault, 0, getEIP() > cachedDescriptor(SegmentRegisterIndex::CS).effectiveLimit(), "Task switch to EIP outside CS limit");
+    EXCEPTION_ON(GeneralProtectionFault, 0, get_eip() > cached_descriptor(SegmentRegisterIndex::CS).effectiveLimit(), "Task switch to EIP outside CS limit");
 
-    setLDT(incomingTSS.getLDT());
-    setCS(incomingTSS.getCS());
-    setES(incomingTSS.getES());
-    setDS(incomingTSS.getDS());
-    setFS(incomingTSS.getFS());
-    setGS(incomingTSS.getGS());
-    setSS(incomingTSS.getSS());
-    setEIP(incomingTSS.getEIP());
+    set_ldt(incomingTSS.get_ldt());
+    set_cs(incomingTSS.get_cs());
+    set_es(incomingTSS.get_es());
+    set_ds(incomingTSS.get_ds());
+    set_fs(incomingTSS.get_fs());
+    set_gs(incomingTSS.get_gs());
+    set_ss(incomingTSS.get_ss());
+    set_eip(incomingTSS.get_eip());
 
-    if (getTF()) {
+    if (get_tf()) {
         vlog(LogCPU, "Leaving task switch with TF=1");
     }
 
-    if (getVM()) {
+    if (get_vm()) {
         vlog(LogCPU, "Leaving task switch with VM=1");
     }
 
@@ -304,172 +304,172 @@ void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, Ju
 #endif
 }
 
-void CPU::dumpTSS(const TSS& tss)
+void CPU::dump_tss(const TSS& tss)
 {
-    vlog(LogCPU, "TSS bits=%u", tss.is32Bit() ? 32 : 16);
-    vlog(LogCPU, "eax=%08x ebx=%08x ecx=%08x edx=%08x", tss.getEAX(), tss.getEBX(), tss.getECX(), tss.getEDX());
-    vlog(LogCPU, "esi=%08x edi=%08x ebp=%08x esp=%08x", tss.getESI(), tss.getEDI(), tss.getEBP(), tss.getESP());
-    vlog(LogCPU, "ldt=%04x backlink=%04x cr3=%08x", tss.getLDT(), tss.getBacklink(), getPG() ? tss.getCR3() : 0);
-    vlog(LogCPU, "ds=%04x ss=%04x es=%04x fs=%04x gs=%04x", tss.getDS(), tss.getSS(), tss.getES(), tss.getFS(), tss.getGS());
-    vlog(LogCPU, "cs=%04x eip=%08x eflags=%08x", tss.getCS(), tss.getEIP(), tss.getEFlags());
-    vlog(LogCPU, "stack0 { %04x:%08x }", tss.getSS0(), tss.getESP0());
-    vlog(LogCPU, "stack1 { %04x:%08x }", tss.getSS1(), tss.getESP1());
-    vlog(LogCPU, "stack2 { %04x:%08x }", tss.getSS2(), tss.getESP2());
+    vlog(LogCPU, "TSS bits=%u", tss.is_32bit() ? 32 : 16);
+    vlog(LogCPU, "eax=%08x ebx=%08x ecx=%08x edx=%08x", tss.get_eax(), tss.get_ebx(), tss.get_ecx(), tss.get_edx());
+    vlog(LogCPU, "esi=%08x edi=%08x ebp=%08x esp=%08x", tss.get_esi(), tss.get_edi(), tss.get_ebp(), tss.get_esp());
+    vlog(LogCPU, "ldt=%04x backlink=%04x cr3=%08x", tss.get_ldt(), tss.get_backlink(), get_pg() ? tss.get_cr3() : 0);
+    vlog(LogCPU, "ds=%04x ss=%04x es=%04x fs=%04x gs=%04x", tss.get_ds(), tss.get_ss(), tss.get_es(), tss.get_fs(), tss.get_gs());
+    vlog(LogCPU, "cs=%04x eip=%08x eflags=%08x", tss.get_cs(), tss.get_eip(), tss.get_eflags());
+    vlog(LogCPU, "stack0 { %04x:%08x }", tss.get_ss0(), tss.get_esp0());
+    vlog(LogCPU, "stack1 { %04x:%08x }", tss.get_ss1(), tss.get_esp1());
+    vlog(LogCPU, "stack2 { %04x:%08x }", tss.get_ss2(), tss.get_esp2());
 }
 
-void CPU::taskSwitch(u16 task_selector, JumpType source)
+void CPU::task_switch(u16 task_selector, JumpType source)
 {
-    auto descriptor = getDescriptor(task_selector);
+    auto descriptor = get_descriptor(task_selector);
     auto& tssDescriptor = descriptor.asTSSDescriptor();
-    taskSwitch(task_selector, tssDescriptor, source);
+    task_switch(task_selector, tssDescriptor, source);
 }
 
-TSS CPU::currentTSS()
+TSS CPU::current_tss()
 {
-    return TSS(*this, TR.base, TR.is32Bit);
+    return TSS(*this, m_tr.base, m_tr.is_32bit);
 }
 
 struct TSS32 {
-    u16 Backlink, __blh;
-    u32 ESP0;
-    u16 SS0, __ss0h;
-    u32 ESP1;
-    u16 SS1, __ss1h;
-    u32 ESP2;
-    u16 SS2, __ss2h;
-    u32 CR3, EIP, EFlags;
-    u32 EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI;
-    u16 ES, __esh;
-    u16 CS, __csh;
-    u16 SS, __ssh;
-    u16 DS, __dsh;
-    u16 FS, __fsh;
-    u16 GS, __gsh;
-    u16 LDT, __ldth;
+    u16 backlink, __blh;
+    u32 esp0;
+    u16 ss0, __ss0h;
+    u32 esp1;
+    u16 ss1, __ss1h;
+    u32 esp2;
+    u16 ss2, __ss2h;
+    u32 cr3, eip, eflags;
+    u32 eax, ecx, edx, ebx, esp, ebp, esi, edi;
+    u16 es, __esh;
+    u16 cs, __csh;
+    u16 ss, __ssh;
+    u16 ds, __dsh;
+    u16 fs, __fsh;
+    u16 gs, __gsh;
+    u16 ldt, __ldth;
     u16 trace, iomapbase;
 } __attribute__((packed));
 
 struct TSS16 {
-    u16 Backlink;
-    u16 SP0;
-    u16 SS0;
-    u16 SP1;
-    u16 SS1;
-    u16 SP2;
-    u16 SS2;
-    u16 IP;
-    u16 Flags;
-    u16 AX, CX, DX, BX, SP, BP, SI, DI;
-    u16 ES;
-    u16 CS;
-    u16 SS;
-    u16 DS;
-    u16 FS;
-    u16 GS;
-    u16 LDT;
+    u16 backlink;
+    u16 sp0;
+    u16 ss0;
+    u16 sp1;
+    u16 ss1;
+    u16 sp2;
+    u16 ss2;
+    u16 ip;
+    u16 flags;
+    u16 ax, cx, dx, bx, sp, bp, si, di;
+    u16 es;
+    u16 cs;
+    u16 ss;
+    u16 ds;
+    u16 fs;
+    u16 gs;
+    u16 ldt;
 } __attribute__((packed));
 
 TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
     : m_cpu(cpu)
     , m_base(base)
-    , m_is32Bit(is32Bit)
+    , m_is_32bit(is32Bit)
 {
 }
 
-#define TSS_FIELD_16(name)                                                         \
-    void TSS::set##name(u16 value)                                                 \
-    {                                                                              \
-        if (m_is32Bit)                                                             \
-            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS32, name)), value); \
-        else                                                                       \
-            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
-    }                                                                              \
-    u16 TSS::get##name() const                                                     \
-    {                                                                              \
-        if (m_is32Bit)                                                             \
-            return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, name)));  \
-        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name)));      \
+#define TSS_FIELD_16(name)                                                           \
+    void TSS::set_##name(u16 value)                                                  \
+    {                                                                                \
+        if (m_is_32bit)                                                              \
+            m_cpu.write_memory_metal16(m_base.offset(offsetof(TSS32, name)), value); \
+        else                                                                         \
+            m_cpu.write_memory_metal16(m_base.offset(offsetof(TSS16, name)), value); \
+    }                                                                                \
+    u16 TSS::get_##name() const                                                      \
+    {                                                                                \
+        if (m_is_32bit)                                                              \
+            return m_cpu.read_memory_metal16(m_base.offset(offsetof(TSS32, name)));  \
+        return m_cpu.read_memory_metal16(m_base.offset(offsetof(TSS16, name)));      \
     }
 
-#define TSS_FIELD_16OR32(name)                                                        \
-    u32 TSS::getE##name() const                                                       \
-    {                                                                                 \
-        if (m_is32Bit)                                                                \
-            return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)));  \
-        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name)));         \
-    }                                                                                 \
-    void TSS::setE##name(u32 value)                                                   \
-    {                                                                                 \
-        if (m_is32Bit)                                                                \
-            m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)), value); \
-        else                                                                          \
-            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value);    \
+#define TSS_FIELD_16OR32(name)                                                          \
+    u32 TSS::get_e##name() const                                                        \
+    {                                                                                   \
+        if (m_is_32bit)                                                                 \
+            return m_cpu.read_memory_metal32(m_base.offset(offsetof(TSS32, e##name)));  \
+        return m_cpu.read_memory_metal16(m_base.offset(offsetof(TSS16, name)));         \
+    }                                                                                   \
+    void TSS::set_e##name(u32 value)                                                    \
+    {                                                                                   \
+        if (m_is_32bit)                                                                 \
+            m_cpu.write_memory_metal32(m_base.offset(offsetof(TSS32, e##name)), value); \
+        else                                                                            \
+            m_cpu.write_memory_metal16(m_base.offset(offsetof(TSS16, name)), value);    \
     }
 
-u32 TSS::getCR3() const
+u32 TSS::get_cr3() const
 {
-    ASSERT(m_is32Bit);
-    return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)));
+    ASSERT(m_is_32bit);
+    return m_cpu.read_memory_metal32(m_base.offset(offsetof(TSS32, cr3)));
 }
 
-void TSS::setCR3(u32 value)
+void TSS::set_cr3(u32 value)
 {
-    ASSERT(m_is32Bit);
-    m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)), value);
+    ASSERT(m_is_32bit);
+    m_cpu.write_memory_metal32(m_base.offset(offsetof(TSS32, cr3)), value);
 }
 
-TSS_FIELD_16OR32(AX)
-TSS_FIELD_16OR32(BX)
-TSS_FIELD_16OR32(CX)
-TSS_FIELD_16OR32(DX)
-TSS_FIELD_16OR32(SI)
-TSS_FIELD_16OR32(DI)
-TSS_FIELD_16OR32(BP)
-TSS_FIELD_16OR32(SP)
-TSS_FIELD_16OR32(IP)
-TSS_FIELD_16OR32(SP0)
-TSS_FIELD_16OR32(SP1)
-TSS_FIELD_16OR32(SP2)
-TSS_FIELD_16OR32(Flags)
+TSS_FIELD_16OR32(ax)
+TSS_FIELD_16OR32(bx)
+TSS_FIELD_16OR32(cx)
+TSS_FIELD_16OR32(dx)
+TSS_FIELD_16OR32(si)
+TSS_FIELD_16OR32(di)
+TSS_FIELD_16OR32(bp)
+TSS_FIELD_16OR32(sp)
+TSS_FIELD_16OR32(ip)
+TSS_FIELD_16OR32(sp0)
+TSS_FIELD_16OR32(sp1)
+TSS_FIELD_16OR32(sp2)
+TSS_FIELD_16OR32(flags)
 
-TSS_FIELD_16(Backlink)
-TSS_FIELD_16(LDT)
-TSS_FIELD_16(CS)
-TSS_FIELD_16(DS)
-TSS_FIELD_16(ES)
-TSS_FIELD_16(SS)
-TSS_FIELD_16(FS)
-TSS_FIELD_16(GS)
-TSS_FIELD_16(SS0)
-TSS_FIELD_16(SS1)
-TSS_FIELD_16(SS2)
+TSS_FIELD_16(backlink)
+TSS_FIELD_16(ldt)
+TSS_FIELD_16(cs)
+TSS_FIELD_16(ds)
+TSS_FIELD_16(es)
+TSS_FIELD_16(ss)
+TSS_FIELD_16(fs)
+TSS_FIELD_16(gs)
+TSS_FIELD_16(ss0)
+TSS_FIELD_16(ss1)
+TSS_FIELD_16(ss2)
 
-u32 TSS::getRingESP(u8 ring) const
+u32 TSS::get_ring_esp(u8 ring) const
 {
     if (ring == 0)
-        return getESP0();
+        return get_esp0();
     if (ring == 1)
-        return getESP1();
+        return get_esp1();
     if (ring == 2)
-        return getESP2();
+        return get_esp2();
     ASSERT_NOT_REACHED();
     return 0;
 }
 
-u16 TSS::getRingSS(u8 ring) const
+u16 TSS::get_ring_ss(u8 ring) const
 {
     if (ring == 0)
-        return getSS0();
+        return get_ss0();
     if (ring == 1)
-        return getSS1();
+        return get_ss1();
     if (ring == 2)
-        return getSS2();
+        return get_ss2();
     ASSERT_NOT_REACHED();
     return 0;
 }
 
-u16 TSS::getIOMapBase() const
+u16 TSS::get_io_map_base() const
 {
-    ASSERT(m_is32Bit);
-    return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, iomapbase)));
+    ASSERT(m_is_32bit);
+    return m_cpu.read_memory_metal16(m_base.offset(offsetof(TSS32, iomapbase)));
 }

@@ -35,7 +35,7 @@ public:
     class Listener {
     public:
         virtual ~Listener();
-        virtual void threadedTimerFired(Badge<ThreadedTimer>) = 0;
+        virtual void threaded_timer_fired(Badge<ThreadedTimer>) = 0;
     };
 
     explicit ThreadedTimer(Listener&, int ms);
@@ -44,7 +44,7 @@ public:
 private:
     friend class ThreadedTimerHelper;
     virtual void run() override;
-    void helperTimerFired();
+    void helper_timer_fired();
     Listener& m_listener;
     int m_ms { 0 };
 };
@@ -53,16 +53,16 @@ class ThreadedTimerHelper : public QObject {
     Q_OBJECT
 public:
     explicit ThreadedTimerHelper(ThreadedTimer& threadedTimer, int ms)
-        : m_threadedTimer(threadedTimer)
+        : m_threaded_timer(threadedTimer)
     {
         startTimer(ms);
     }
 
     virtual void timerEvent(QTimerEvent*) override
     {
-        m_threadedTimer.helperTimerFired();
+        m_threaded_timer.helper_timer_fired();
     }
 
 private:
-    ThreadedTimer& m_threadedTimer;
+    ThreadedTimer& m_threaded_timer;
 };

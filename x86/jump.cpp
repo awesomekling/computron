@@ -26,53 +26,53 @@
 
 void CPU::_JCXZ_imm8(Instruction& insn)
 {
-    if (readRegisterForAddressSize(RegisterCX) == 0)
-        jumpRelative8(insn.imm8());
+    if (read_register_for_address_size(RegisterCX) == 0)
+        jump_relative8(insn.imm8());
 }
 
 void CPU::_JMP_imm16(Instruction& insn)
 {
-    jumpRelative16(insn.imm16());
+    jump_relative16(insn.imm16());
 }
 
 void CPU::_JMP_imm32(Instruction& insn)
 {
-    jumpRelative32(insn.imm32());
+    jump_relative32(insn.imm32());
 }
 
 void CPU::_JMP_imm16_imm16(Instruction& insn)
 {
-    farJump(insn.immAddress16_16(), JumpType::JMP);
+    far_jump(insn.immAddress16_16(), JumpType::JMP);
 }
 
 void CPU::_JMP_imm16_imm32(Instruction& insn)
 {
-    farJump(insn.immAddress16_32(), JumpType::JMP);
+    far_jump(insn.immAddress16_32(), JumpType::JMP);
 }
 
 void CPU::_JMP_short_imm8(Instruction& insn)
 {
-    jumpRelative8(insn.imm8());
+    jump_relative8(insn.imm8());
 }
 
 void CPU::_JMP_RM16(Instruction& insn)
 {
-    jumpAbsolute16(insn.modrm().read16());
+    jump_absolute16(insn.modrm().read16());
 }
 
 void CPU::_JMP_RM32(Instruction& insn)
 {
-    jumpAbsolute32(insn.modrm().read32());
+    jump_absolute32(insn.modrm().read32());
 }
 
 template<typename T>
 void CPU::doFarJump(Instruction& insn, JumpType jumpType)
 {
-    if (insn.modrm().isRegister())
+    if (insn.modrm().is_register())
         throw InvalidOpcode("Far JMP/CALL with register operand");
 
-    auto address = readLogicalAddress<T>(insn.modrm().segment(), insn.modrm().offset());
-    farJump(address, jumpType);
+    auto address = read_logical_address<T>(insn.modrm().segment(), insn.modrm().offset());
+    far_jump(address, jumpType);
 }
 
 void CPU::_JMP_FAR_mem16(Instruction& insn)
@@ -115,75 +115,75 @@ void CPU::_SETcc_RM8(Instruction& insn)
 void CPU::_Jcc_imm8(Instruction& insn)
 {
     if (evaluate(insn.cc()))
-        jumpRelative8(insn.imm8());
+        jump_relative8(insn.imm8());
 }
 
 void CPU::_Jcc_NEAR_imm(Instruction& insn)
 {
     if (!evaluate(insn.cc()))
         return;
-    jumpRelative32(insn.immAddress());
+    jump_relative32(insn.immAddress());
 }
 
 void CPU::_CALL_imm16(Instruction& insn)
 {
-    push16(getIP());
-    jumpRelative16(insn.imm16());
+    push16(get_ip());
+    jump_relative16(insn.imm16());
 }
 
 void CPU::_CALL_imm32(Instruction& insn)
 {
-    push32(getEIP());
-    jumpRelative32(insn.imm32());
+    push32(get_eip());
+    jump_relative32(insn.imm32());
 }
 
 void CPU::_CALL_imm16_imm16(Instruction& insn)
 {
-    farJump(insn.immAddress16_16(), JumpType::CALL);
+    far_jump(insn.immAddress16_16(), JumpType::CALL);
 }
 
 void CPU::_CALL_imm16_imm32(Instruction& insn)
 {
-    farJump(insn.immAddress16_32(), JumpType::CALL);
+    far_jump(insn.immAddress16_32(), JumpType::CALL);
 }
 
 void CPU::_CALL_RM16(Instruction& insn)
 {
-    push16(getIP());
-    jumpAbsolute16(insn.modrm().read16());
+    push16(get_ip());
+    jump_absolute16(insn.modrm().read16());
 }
 
 void CPU::_CALL_RM32(Instruction& insn)
 {
-    push32(getEIP());
-    jumpAbsolute32(insn.modrm().read32());
+    push32(get_eip());
+    jump_absolute32(insn.modrm().read32());
 }
 
 void CPU::_RET(Instruction&)
 {
-    jumpAbsolute32(popOperandSizedValue());
+    jump_absolute32(pop_operand_sized_value());
 }
 
 void CPU::_RET_imm16(Instruction& insn)
 {
-    jumpAbsolute32(popOperandSizedValue());
-    adjustStackPointer(insn.imm16());
+    jump_absolute32(pop_operand_sized_value());
+    adjust_stack_pointer(insn.imm16());
 }
 
 void CPU::_RETF(Instruction&)
 {
-    farReturn();
+    far_return();
 }
 
 void CPU::_RETF_imm16(Instruction& insn)
 {
-    farReturn(insn.imm16());
+    far_return(insn.imm16());
 }
 
 void CPU::doLOOP(Instruction& insn, bool condition)
 {
-    if (!decrementCXForAddressSize() && condition)
-        jumpRelative8(static_cast<i8>(insn.imm8()));
+    if (!decrement_cx_for_address_size() && condition)
+        jump_relative8(static_cast<i8>(insn.imm8()));
 }
 
 void CPU::_LOOP_imm8(Instruction& insn)
@@ -193,10 +193,10 @@ void CPU::_LOOP_imm8(Instruction& insn)
 
 void CPU::_LOOPZ_imm8(Instruction& insn)
 {
-    doLOOP(insn, getZF());
+    doLOOP(insn, get_zf());
 }
 
 void CPU::_LOOPNZ_imm8(Instruction& insn)
 {
-    doLOOP(insn, !getZF());
+    doLOOP(insn, !get_zf());
 }

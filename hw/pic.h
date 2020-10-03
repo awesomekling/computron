@@ -40,43 +40,43 @@ public:
     void raise(u8 num);
     void lower(u8 num);
 
-    u8 getIMR() const { return m_imr; }
-    u8 getIRR() const { return m_irr; }
-    u8 getISR() const { return m_isr; }
+    u8 get_imr() const { return m_imr; }
+    u8 get_irr() const { return m_irr; }
+    u8 get_isr() const { return m_isr; }
 
-    void dumpMask();
-    void unmaskAll();
+    void dump_mask();
+    void unmask_all();
 
-    static void serviceIRQ(CPU&);
-    static void raiseIRQ(Machine&, u8 num);
-    static void lowerIRQ(Machine&, u8 num);
-    static bool isIRQRaised(Machine&, u8 num);
-    static bool isIgnoringAllIRQs();
-    static void setIgnoreAllIRQs(bool);
-    static bool hasPendingIRQ() { return s_pendingRequests; }
+    static void service_irq(CPU&);
+    static void raise_irq(Machine&, u8 num);
+    static void lower_irq(Machine&, u8 num);
+    static bool is_irq_raised(Machine&, u8 num);
+    static bool is_ignoring_all_irqs();
+    static void set_ignore_all_irqs(bool);
+    static bool has_pending_irq() { return s_pending_requests; }
 
     PIC& master() const;
     PIC& slave() const;
 
 private:
-    static void updatePendingRequests(Machine&);
+    static void update_pending_requests(Machine&);
 
     void writePort0(u8);
     void writePort1(u8);
 
-    u16 m_baseAddress { 0 };
-    u8 m_isrBase { 0 };
-    u8 m_irqBase { 0 };
+    u16 m_base_address { 0 };
+    u8 m_isr_base { 0 };
+    u8 m_irq_base { 0 };
 
     u8 m_isr { 0 };
     u8 m_irr { 0 };
     u8 m_imr { 0 };
 
-    bool m_icw2Expected { false };
-    bool m_icw4Expected { false };
-    bool m_readISR { false };
-    bool m_specialMaskMode { false };
-    bool m_isMaster { false };
+    bool m_icw2_expected { false };
+    bool m_icw4_expected { false };
+    bool m_read_isr { false };
+    bool m_special_mask_mode { false };
+    bool m_is_master { false };
 
-    static std::atomic<u16> s_pendingRequests;
+    static std::atomic<u16> s_pending_requests;
 };

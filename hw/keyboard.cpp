@@ -190,7 +190,7 @@ void Keyboard::out8(u16 port, u8 data)
         if (m_command == 0xD1) {
             vlog(LogKeyboard, "Write output port: A20=%s", (data & 0x02) ? "on" : "off");
             // FIXME: Should this also update other places where A20 state is managed?
-            machine().cpu().setA20Enabled(data & 0x02);
+            machine().cpu().set_a20_enabled(data & 0x02);
             return;
         }
 
@@ -223,5 +223,5 @@ void Keyboard::out8(u16 port, u8 data)
 void Keyboard::didEnqueueData()
 {
     if (m_ram[0] & CCB_KEYBOARD_INTERRUPT_ENABLE)
-        raiseIRQ();
+        raise_irq();
 }

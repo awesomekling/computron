@@ -379,7 +379,7 @@ static void build0FSlash(u8 op, u8 slash, const char* mnemonic, InstructionForma
     buildSlash(s_0F_table32, op, slash, mnemonic, format, impl, lockPrefixAllowed);
 }
 
-void buildOpcodeTablesIfNeeded()
+void build_opcode_tables_if_needed()
 {
     static bool hasBuiltTables = false;
     if (hasBuiltTables)
@@ -869,7 +869,7 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     , m_o32(o32)
 {
     for (;; ++m_prefixBytes) {
-        u8 opbyte = stream.readInstruction8();
+        u8 opbyte = stream.read_instruction8();
         if (opbyte == Prefix::OperandSizeOverride) {
             m_o32 = !o32;
             m_hasOperandSizeOverridePrefix = true;
@@ -901,7 +901,7 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
 
     if (m_op == 0x0F) {
         m_hasSubOp = true;
-        m_subOp = stream.readInstruction8();
+        m_subOp = stream.read_instruction8();
         m_descriptor = m_o32 ? &s_0F_table32[m_subOp] : &s_0F_table16[m_subOp];
     } else {
         m_descriptor = m_o32 ? &s_table32[m_op] : &s_table16[m_op];
@@ -911,9 +911,9 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     if (m_hasRM) {
         // Consume ModR/M (may include SIB and displacement.)
         m_modrm.decode(stream, m_a32);
-        m_registerIndex = (m_modrm.m_rm >> 3) & 7;
+        m_register_index = (m_modrm.m_rm >> 3) & 7;
     } else {
-        m_registerIndex = m_op & 7;
+        m_register_index = m_op & 7;
     }
 
     bool hasSlash = m_descriptor->format == MultibyteWithSlash;
@@ -951,20 +951,20 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
 
     // Consume immediates if present.
     if (m_imm2Bytes)
-        m_imm2 = stream.readBytes(m_imm2Bytes);
+        m_imm2 = stream.read_bytes(m_imm2Bytes);
     if (m_imm1Bytes)
-        m_imm1 = stream.readBytes(m_imm1Bytes);
+        m_imm1 = stream.read_bytes(m_imm1Bytes);
 }
 
-u32 InstructionStream::readBytes(unsigned count)
+u32 InstructionStream::read_bytes(unsigned count)
 {
     switch (count) {
     case 1:
-        return readInstruction8();
+        return read_instruction8();
     case 2:
-        return readInstruction16();
+        return read_instruction16();
     case 4:
-        return readInstruction32();
+        return read_instruction32();
     }
     ASSERT_NOT_REACHED();
     return 0;
@@ -972,37 +972,37 @@ u32 InstructionStream::readBytes(unsigned count)
 
 const char* Instruction::reg8Name() const
 {
-    return CPU::registerName(static_cast<CPU::RegisterIndex8>(registerIndex()));
+    return CPU::register_name(static_cast<CPU::RegisterIndex8>(register_index()));
 }
 
 const char* Instruction::reg16Name() const
 {
-    return CPU::registerName(static_cast<CPU::RegisterIndex16>(registerIndex()));
+    return CPU::register_name(static_cast<CPU::RegisterIndex16>(register_index()));
 }
 
 const char* Instruction::reg32Name() const
 {
-    return CPU::registerName(static_cast<CPU::RegisterIndex32>(registerIndex()));
+    return CPU::register_name(static_cast<CPU::RegisterIndex32>(register_index()));
 }
 
 QString MemoryOrRegisterReference::toStringO8() const
 {
-    if (isRegister())
-        return CPU::registerName(static_cast<CPU::RegisterIndex8>(m_registerIndex));
+    if (is_register())
+        return CPU::register_name(static_cast<CPU::RegisterIndex8>(m_register_index));
     return QString("[%1]").arg(toString());
 }
 
 QString MemoryOrRegisterReference::toStringO16() const
 {
-    if (isRegister())
-        return CPU::registerName(static_cast<CPU::RegisterIndex16>(m_registerIndex));
+    if (is_register())
+        return CPU::register_name(static_cast<CPU::RegisterIndex16>(m_register_index));
     return QString("[%1]").arg(toString());
 }
 
 QString MemoryOrRegisterReference::toStringO32() const
 {
-    if (isRegister())
-        return CPU::registerName(static_cast<CPU::RegisterIndex32>(m_registerIndex));
+    if (is_register())
+        return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
     return QString("[%1]").arg(toString());
 }
 
@@ -1146,8 +1146,8 @@ static QString sibToString(u8 rm, u8 sib)
 
 QString MemoryOrRegisterReference::toStringA32() const
 {
-    if (isRegister())
-        return CPU::registerName(static_cast<CPU::RegisterIndex32>(m_registerIndex));
+    if (is_register())
+        return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
 
     bool hasDisplacement = false;
     switch (m_rm & 0xc0) {
@@ -1213,8 +1213,8 @@ QString MemoryOrRegisterReference::toStringA32() const
 #define RM8ARGS m_modrm.toStringO8()
 #define RM16ARGS m_modrm.toStringO16()
 #define RM32ARGS m_modrm.toStringO32()
-#define SEGARGS CPU::registerName(segmentRegisterIndex())
-#define CDRARGS registerIndex()
+#define SEGARGS CPU::register_name(segmentRegisterIndex())
+#define CDRARGS register_index()
 
 static QString relativeAddress(u32 origin, bool x32, i8 imm)
 {
@@ -1242,19 +1242,19 @@ QString Instruction::toString(u32 origin, bool x32) const
     QString osizePrefix;
     QString repPrefix;
     QString lockPrefix;
-    if (hasSegmentPrefix()) {
-        segmentPrefix = QString("%1: ").arg(CPU::registerName(m_segmentPrefix));
+    if (has_segment_prefix()) {
+        segmentPrefix = QString("%1: ").arg(CPU::register_name(m_segmentPrefix));
     }
-    if (hasAddressSizeOverridePrefix()) {
+    if (has_address_size_override_prefix()) {
         asizePrefix = m_a32 ? "a32 " : "a16 ";
     }
-    if (hasOperandSizeOverridePrefix()) {
+    if (has_operand_size_override_prefix()) {
         osizePrefix = m_o32 ? "o32 " : "o16 ";
     }
-    if (hasLockPrefix()) {
+    if (has_lock_prefix()) {
         lockPrefix = "lock ";
     }
-    if (hasRepPrefix()) {
+    if (has_rep_prefix()) {
         repPrefix = m_repPrefix == Prefix::REPNZ ? "repnz " : "repz ";
     }
     return QString("%1%2%3%4%5%6").arg(segmentPrefix).arg(asizePrefix).arg(osizePrefix).arg(lockPrefix).arg(repPrefix).arg(toStringInternal(origin, x32));
@@ -1425,13 +1425,13 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_FAR_mem32:
         return QString("%1 far %2").arg(mnemonic).arg(RM32ARGS);
     case OP_reg32_CR:
-        return QString("%1 %2, cr%3").arg(mnemonic).arg(CPU::registerName(static_cast<CPU::RegisterIndex32>(rm() & 7))).arg(CDRARGS);
+        return QString("%1 %2, cr%3").arg(mnemonic).arg(CPU::register_name(static_cast<CPU::RegisterIndex32>(rm() & 7))).arg(CDRARGS);
     case OP_CR_reg32:
-        return QString("%1 cr%2, %3").arg(mnemonic).arg(CDRARGS).arg(CPU::registerName(static_cast<CPU::RegisterIndex32>(rm() & 7)));
+        return QString("%1 cr%2, %3").arg(mnemonic).arg(CDRARGS).arg(CPU::register_name(static_cast<CPU::RegisterIndex32>(rm() & 7)));
     case OP_reg32_DR:
-        return QString("%1 %2, dr%3").arg(mnemonic).arg(CPU::registerName(static_cast<CPU::RegisterIndex32>(rm() & 7))).arg(CDRARGS);
+        return QString("%1 %2, dr%3").arg(mnemonic).arg(CPU::register_name(static_cast<CPU::RegisterIndex32>(rm() & 7))).arg(CDRARGS);
     case OP_DR_reg32:
-        return QString("%1 dr%2, %3").arg(mnemonic).arg(CDRARGS).arg(CPU::registerName(static_cast<CPU::RegisterIndex32>(rm() & 7)));
+        return QString("%1 dr%2, %3").arg(mnemonic).arg(CDRARGS).arg(CPU::register_name(static_cast<CPU::RegisterIndex32>(rm() & 7)));
     case OP_short_imm8:
         return QString("%1 short 0x%2").arg(mnemonic).arg(RELIMM8ARGS);
     case OP_relimm16:
@@ -1469,16 +1469,16 @@ QString Instruction::mnemonic() const
     return m_descriptor->mnemonic;
 }
 
-u16 SimpleInstructionStream::readInstruction16()
+u16 SimpleInstructionStream::read_instruction16()
 {
     u8 lsb = *(m_data++);
     u8 msb = *(m_data++);
     return weld<u16>(msb, lsb);
 }
 
-u32 SimpleInstructionStream::readInstruction32()
+u32 SimpleInstructionStream::read_instruction32()
 {
-    u16 lsw = readInstruction16();
-    u16 msw = readInstruction16();
+    u16 lsw = read_instruction16();
+    u16 msw = read_instruction16();
     return weld<u32>(msw, lsw);
 }

@@ -61,7 +61,7 @@ VomCtl::~VomCtl()
 
 void VomCtl::reset()
 {
-    m_registerIndex = 0;
+    m_register_index = 0;
     d->consoleWriteBuffer = QString();
 }
 
@@ -69,18 +69,18 @@ u8 VomCtl::in8(u16 port)
 {
     switch (port) {
     case 0xD6: // VOMCTL_REGISTER
-        vlog(LogVomCtl, "Read register %02X", m_registerIndex);
-        switch (m_registerIndex) {
+        vlog(LogVomCtl, "Read register %02X", m_register_index);
+        switch (m_register_index) {
         case 0x00: // Always 0
             return 0;
         case 0x01: // Get CPU type
             return 3;
         case 0x02: // RAM size LSB
-            return leastSignificant<u8>(machine().cpu().baseMemorySize() / 1024);
+            return least_significant<u8>(machine().cpu().base_memory_size() / 1024);
         case 0x03: // RAM size MSB
-            return mostSignificant<u8>(machine().cpu().baseMemorySize() / 1024);
+            return most_significant<u8>(machine().cpu().base_memory_size() / 1024);
         }
-        vlog(LogVomCtl, "Invalid register %02X read", m_registerIndex);
+        vlog(LogVomCtl, "Invalid register %02X read", m_register_index);
         return IODevice::JunkValue;
     case 0xD7: // VOMCTL_CONSOLE_WRITE
         vlog(LogVomCtl, "%s", d->consoleWriteBuffer.toLatin1().constData());
@@ -98,7 +98,7 @@ void VomCtl::out8(u16 port, u8 data)
     switch (port) {
     case 0xD6: // VOMCTL_REGISTER
         //vlog(LogVomCtl, "Select register %02X", data);
-        m_registerIndex = data;
+        m_register_index = data;
         break;
     case 0xD7: // VOMCTL_CONSOLE_WRITE
         d->consoleWriteBuffer += QChar::fromLatin1(data);

@@ -42,17 +42,17 @@
 #include "worker.h"
 #include <QtCore/QFile>
 
-OwnPtr<Machine> Machine::createFromFile(const QString& fileName)
+OwnPtr<Machine> Machine::create_from_file(const QString& fileName)
 {
-    auto settings = Settings::createFromFile(fileName);
+    auto settings = Settings::create_from_file(fileName);
     if (!settings)
         return nullptr;
     return make<Machine>(std::move(settings));
 }
 
-OwnPtr<Machine> Machine::createForAutotest(const QString& fileName)
+OwnPtr<Machine> Machine::create_for_autotest(const QString& fileName)
 {
-    auto settings = Settings::createForAutotest(fileName);
+    auto settings = Settings::create_for_autotest(fileName);
     if (!settings)
         return nullptr;
     return make<Machine>(std::move(settings));
@@ -62,51 +62,51 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
     : QObject(parent)
     , m_settings(std::move(settings))
 {
-    m_workerMutex.lock();
+    m_worker_mutex.lock();
     m_worker = make<Worker>(*this);
-    QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(onWorkerFinished()));
+    QObject::connect(&worker(), SIGNAL(finished()), this, SLOT(on_worker_finished()));
 
     worker().start();
 
-    m_workerWaiter.wait(&m_workerMutex);
-    m_workerMutex.unlock();
+    m_worker_waiter.wait(&m_worker_mutex);
+    m_worker_mutex.unlock();
 
-    if (!m_settings->isForAutotest()) {
+    if (!m_settings->is_for_autotest()) {
         // FIXME: Move this somewhere else.
         // Mitigate spam about uninteresting ports.
-        IODevice::ignorePort(0x220);
-        IODevice::ignorePort(0x221);
-        IODevice::ignorePort(0x222);
-        IODevice::ignorePort(0x223);
-        IODevice::ignorePort(0x201); // Gameport.
-        IODevice::ignorePort(0x80);  // Linux outb_p() uses this for small delays.
-        IODevice::ignorePort(0x330); // MIDI
-        IODevice::ignorePort(0x331); // MIDI
-        IODevice::ignorePort(0x334); // SCSI (BusLogic)
+        IODevice::ignore_port(0x220);
+        IODevice::ignore_port(0x221);
+        IODevice::ignore_port(0x222);
+        IODevice::ignore_port(0x223);
+        IODevice::ignore_port(0x201); // Gameport.
+        IODevice::ignore_port(0x80);  // Linux outb_p() uses this for small delays.
+        IODevice::ignore_port(0x330); // MIDI
+        IODevice::ignore_port(0x331); // MIDI
+        IODevice::ignore_port(0x334); // SCSI (BusLogic)
 
-        IODevice::ignorePort(0x237);
-        IODevice::ignorePort(0x337);
+        IODevice::ignore_port(0x237);
+        IODevice::ignore_port(0x337);
 
-        IODevice::ignorePort(0x322);
+        IODevice::ignore_port(0x322);
 
-        IODevice::ignorePort(0x0C8F);
-        IODevice::ignorePort(0x1C8F);
-        IODevice::ignorePort(0x2C8F);
-        IODevice::ignorePort(0x3C8F);
-        IODevice::ignorePort(0x4C8F);
-        IODevice::ignorePort(0x5C8F);
-        IODevice::ignorePort(0x6C8F);
-        IODevice::ignorePort(0x7C8F);
-        IODevice::ignorePort(0x8C8F);
-        IODevice::ignorePort(0x9C8F);
-        IODevice::ignorePort(0xAC8F);
-        IODevice::ignorePort(0xBC8F);
-        IODevice::ignorePort(0xCC8F);
-        IODevice::ignorePort(0xDC8F);
-        IODevice::ignorePort(0xEC8F);
-        IODevice::ignorePort(0xFC8F);
+        IODevice::ignore_port(0x0C8F);
+        IODevice::ignore_port(0x1C8F);
+        IODevice::ignore_port(0x2C8F);
+        IODevice::ignore_port(0x3C8F);
+        IODevice::ignore_port(0x4C8F);
+        IODevice::ignore_port(0x5C8F);
+        IODevice::ignore_port(0x6C8F);
+        IODevice::ignore_port(0x7C8F);
+        IODevice::ignore_port(0x8C8F);
+        IODevice::ignore_port(0x9C8F);
+        IODevice::ignore_port(0xAC8F);
+        IODevice::ignore_port(0xBC8F);
+        IODevice::ignore_port(0xCC8F);
+        IODevice::ignore_port(0xDC8F);
+        IODevice::ignore_port(0xEC8F);
+        IODevice::ignore_port(0xFC8F);
 
-        IODevice::ignorePort(0x3f6);
+        IODevice::ignore_port(0x3f6);
     }
 }
 
@@ -115,18 +115,18 @@ Machine::~Machine()
     qDeleteAll(m_roms);
 }
 
-void Machine::didInitializeWorker(Badge<Worker>)
+void Machine::did_initialize_worker(Badge<Worker>)
 {
-    m_workerWaiter.wakeAll();
+    m_worker_waiter.wakeAll();
 }
 
-void Machine::makeCPU(Badge<Worker>)
+void Machine::make_cpu(Badge<Worker>)
 {
     RELEASE_ASSERT(QThread::currentThread() == m_worker.ptr());
     m_cpu = make<CPU>(*this);
 }
 
-void Machine::makeDevices(Badge<Worker>)
+void Machine::make_devices(Badge<Worker>)
 {
     RELEASE_ASSERT(QThread::currentThread() == m_worker.ptr());
     m_floppy0 = make<DiskDrive>("floppy0");
@@ -134,38 +134,38 @@ void Machine::makeDevices(Badge<Worker>)
     m_fixed0 = make<DiskDrive>("fixed0");
     m_fixed1 = make<DiskDrive>("fixed1");
 
-    applySettings();
+    apply_settings();
 
-    memset(m_fastInputDevices, 0, sizeof(m_fastInputDevices));
-    memset(m_fastOutputDevices, 0, sizeof(m_fastOutputDevices));
+    memset(m_fast_input_devices, 0, sizeof(m_fast_input_devices));
+    memset(m_fast_output_devices, 0, sizeof(m_fast_output_devices));
 
     cpu().setBaseMemorySize(640 * 1024);
 
-    m_masterPIC = make<PIC>(true, *this);
-    m_slavePIC = make<PIC>(false, *this);
-    m_busMouse = make<BusMouse>(*this);
+    m_master_pic = make<PIC>(true, *this);
+    m_slave_pic = make<PIC>(false, *this);
+    m_busmouse = make<BusMouse>(*this);
     m_cmos = make<CMOS>(*this);
     m_fdc = make<FDC>(*this);
     m_ide = make<IDE>(*this);
     m_keyboard = make<Keyboard>(*this);
     m_ps2 = make<PS2>(*this);
-    m_vomCtl = make<VomCtl>(*this);
+    m_vomctl = make<VomCtl>(*this);
     m_pit = make<PIT>(*this);
     m_vga = make<VGA>(*this);
 
     pit().boot();
 }
 
-void Machine::applySettings()
+void Machine::apply_settings()
 {
-    cpu().setExtendedMemorySize(settings().memorySize());
-    cpu().setMemorySizeAndReallocateIfNeeded(settings().memorySize());
+    cpu().set_extended_memory_size(settings().memory_size());
+    cpu().set_memory_size_and_reallocate_if_needed(settings().memory_size());
 
-    cpu().setCS(settings().entryCS());
-    cpu().setIP(settings().entryIP());
-    cpu().setDS(settings().entryDS());
-    cpu().setSS(settings().entrySS());
-    cpu().setSP(settings().entrySP());
+    cpu().set_cs(settings().entry_cs());
+    cpu().set_ip(settings().entry_ip());
+    cpu().set_ds(settings().entry_ds());
+    cpu().set_ss(settings().entry_ss());
+    cpu().set_sp(settings().entry_sp());
 
     QHash<u32, QString> files = settings().files();
 
@@ -173,13 +173,13 @@ void Machine::applySettings()
     QHash<u32, QString>::const_iterator end = files.constEnd();
 
     for (; it != end; ++it) {
-        if (!loadFile(it.key(), it.value())) {
+        if (!load_file(it.key(), it.value())) {
             // FIXME: Should we abort if a load fails?
         }
     }
 
-    for (auto it = settings().romImages().constBegin(); it != settings().romImages().constEnd(); ++it) {
-        loadROMImage(it.key(), it.value());
+    for (auto it = settings().rom_images().constBegin(); it != settings().rom_images().constEnd(); ++it) {
+        load_rom_image(it.key(), it.value());
     }
 
     m_floppy0->setConfiguration(settings().floppy0());
@@ -188,7 +188,7 @@ void Machine::applySettings()
     m_fixed1->setConfiguration(settings().fixed1());
 }
 
-bool Machine::loadFile(u32 address, const QString& fileName)
+bool Machine::load_file(u32 address, const QString& fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -202,19 +202,19 @@ bool Machine::loadFile(u32 address, const QString& fileName)
 
     LinearAddress base(address);
     for (int i = 0; i < fileContents.size(); ++i) {
-        cpu().writeMemory8(base.offset(i), fileContents[i]);
+        cpu().write_memory8(base.offset(i), fileContents[i]);
     }
     return true;
 }
 
-bool Machine::loadROMImage(u32 address, const QString& fileName)
+bool Machine::load_rom_image(u32 address, const QString& fileName)
 {
     auto rom = make<ROM>(PhysicalAddress(address), fileName);
     if (!rom->isValid()) {
         vlog(LogConfig, "Failed to load ROM image %s", qPrintable(fileName));
         return false;
     }
-    cpu().registerMemoryProvider(*rom);
+    cpu().register_memory_provider(*rom);
     m_roms.append(rom.leakPtr());
     return true;
 }
@@ -239,66 +239,66 @@ void Machine::reboot()
     worker().rebootMachine();
 }
 
-void Machine::onWorkerFinished()
+void Machine::on_worker_finished()
 {
     // FIXME: Implement.
 }
 
-bool Machine::isForAutotest()
+bool Machine::is_for_autotest()
 {
-    return settings().isForAutotest();
+    return settings().is_for_autotest();
 }
 
-void Machine::notifyScreen()
+void Machine::notify_screen()
 {
     if (widget())
         widget()->screen().notify();
 }
 
-void Machine::forEachIODevice(std::function<void(IODevice&)> function)
+void Machine::for_each_io_device(std::function<void(IODevice&)> function)
 {
     for (IODevice* device : m_allDevices) {
         function(*device);
     }
 }
 
-void Machine::resetAllIODevices()
+void Machine::reset_all_io_devices()
 {
-    forEachIODevice([](IODevice& device) {
+    for_each_io_device([](IODevice& device) {
         device.reset();
     });
 }
 
-IODevice* Machine::inputDeviceForPortSlowCase(u16 port)
+IODevice* Machine::input_device_for_port_slow_case(u16 port)
 {
-    return m_allInputDevices.value(port, nullptr);
+    return m_all_input_devices.value(port, nullptr);
 }
 
-IODevice* Machine::outputDeviceForPortSlowCase(u16 port)
+IODevice* Machine::output_device_for_port_slow_case(u16 port)
 {
-    return m_allOutputDevices.value(port, nullptr);
+    return m_all_output_devices.value(port, nullptr);
 }
 
-void Machine::registerInputDevice(Badge<IODevice>, u16 port, IODevice& device)
-{
-    if (port < 1024)
-        m_fastInputDevices[port] = &device;
-    m_allInputDevices.insert(port, &device);
-}
-
-void Machine::registerOutputDevice(Badge<IODevice>, u16 port, IODevice& device)
+void Machine::register_input_device(Badge<IODevice>, u16 port, IODevice& device)
 {
     if (port < 1024)
-        m_fastOutputDevices[port] = &device;
-    m_allOutputDevices.insert(port, &device);
+        m_fast_input_devices[port] = &device;
+    m_all_input_devices.insert(port, &device);
 }
 
-void Machine::registerDevice(Badge<IODevice>, IODevice& device)
+void Machine::register_output_device(Badge<IODevice>, u16 port, IODevice& device)
+{
+    if (port < 1024)
+        m_fast_output_devices[port] = &device;
+    m_all_output_devices.insert(port, &device);
+}
+
+void Machine::register_device(Badge<IODevice>, IODevice& device)
 {
     m_allDevices.insert(&device);
 }
 
-void Machine::unregisterDevice(Badge<IODevice>, IODevice& device)
+void Machine::unregister_device(Badge<IODevice>, IODevice& device)
 {
     m_allDevices.remove(&device);
 }

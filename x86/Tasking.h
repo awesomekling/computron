@@ -31,74 +31,74 @@ class CPU;
 
 class TSS {
 public:
-    TSS(CPU&, LinearAddress, bool is32Bit);
+    TSS(CPU&, LinearAddress, bool is_32bit);
 
-    bool is32Bit() const { return m_is32Bit; }
+    bool is_32bit() const { return m_is_32bit; }
 
-    u16 getIOMapBase() const;
+    u16 get_io_map_base() const;
 
-    u32 getRingESP(u8) const;
-    u16 getRingSS(u8) const;
+    u32 get_ring_esp(u8) const;
+    u16 get_ring_ss(u8) const;
 
-    u32 getESP0() const;
-    u32 getESP1() const;
-    u32 getESP2() const;
-    u16 getSS0() const;
-    u16 getSS1() const;
-    u16 getSS2() const;
+    u32 get_esp0() const;
+    u32 get_esp1() const;
+    u32 get_esp2() const;
+    u16 get_ss0() const;
+    u16 get_ss1() const;
+    u16 get_ss2() const;
 
-    void setSS0(u16);
-    void setSS1(u16);
-    void setSS2(u16);
-    void setESP0(u32);
-    void setESP1(u32);
-    void setESP2(u32);
+    void set_ss0(u16);
+    void set_ss1(u16);
+    void set_ss2(u16);
+    void set_esp0(u32);
+    void set_esp1(u32);
+    void set_esp2(u32);
 
-    u16 getBacklink() const;
-    u16 getLDT() const;
-    u32 getEIP() const;
+    u16 get_backlink() const;
+    u16 get_ldt() const;
+    u32 get_eip() const;
 
-    void setCR3(u32);
-    u32 getCR3() const;
+    void set_cr3(u32);
+    u32 get_cr3() const;
 
-    u16 getCS() const;
-    u16 getDS() const;
-    u16 getES() const;
-    u16 getSS() const;
-    u16 getFS() const;
-    u16 getGS() const;
+    u16 get_cs() const;
+    u16 get_ds() const;
+    u16 get_es() const;
+    u16 get_ss() const;
+    u16 get_fs() const;
+    u16 get_gs() const;
 
-    u32 getEAX() const;
-    u32 getEBX() const;
-    u32 getECX() const;
-    u32 getEDX() const;
-    u32 getESI() const;
-    u32 getEDI() const;
-    u32 getESP() const;
-    u32 getEBP() const;
-    u32 getEFlags() const;
+    u32 get_eax() const;
+    u32 get_ebx() const;
+    u32 get_ecx() const;
+    u32 get_edx() const;
+    u32 get_esi() const;
+    u32 get_edi() const;
+    u32 get_esp() const;
+    u32 get_ebp() const;
+    u32 get_eflags() const;
 
-    void setCS(u16);
-    void setDS(u16);
-    void setES(u16);
-    void setSS(u16);
-    void setFS(u16);
-    void setGS(u16);
-    void setLDT(u16);
-    void setEIP(u32);
-    void setEAX(u32);
-    void setEBX(u32);
-    void setECX(u32);
-    void setEDX(u32);
-    void setEBP(u32);
-    void setESP(u32);
-    void setESI(u32);
-    void setEDI(u32);
-    void setEFlags(u32);
-    void setBacklink(u16);
+    void set_cs(u16);
+    void set_ds(u16);
+    void set_es(u16);
+    void set_ss(u16);
+    void set_fs(u16);
+    void set_gs(u16);
+    void set_ldt(u16);
+    void set_eip(u32);
+    void set_eax(u32);
+    void set_ebx(u32);
+    void set_ecx(u32);
+    void set_edx(u32);
+    void set_ebp(u32);
+    void set_esp(u32);
+    void set_esi(u32);
+    void set_edi(u32);
+    void set_eflags(u32);
+    void set_backlink(u16);
 
 private:
     CPU& m_cpu;
     LinearAddress m_base;
-    bool m_is32Bit { false };
+    bool m_is_32bit { false };
 };

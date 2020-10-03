@@ -172,13 +172,13 @@ inline constexpr T signExtendedTo(U value)
 }
 
 template<typename T>
-inline constexpr T leastSignificant(typename TypeDoubler<T>::type whole)
+inline constexpr T least_significant(typename TypeDoubler<T>::type whole)
 {
     return whole & TypeTrivia<T>::mask;
 }
 
 template<typename T>
-inline constexpr T mostSignificant(typename TypeDoubler<T>::type whole)
+inline constexpr T most_significant(typename TypeDoubler<T>::type whole)
 {
     return (whole >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
 }
