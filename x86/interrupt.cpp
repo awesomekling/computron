@@ -208,7 +208,7 @@ void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
 }
 
 #ifdef DEBUG_SERENITY
-#include "../serenity/Kernel/Syscall.h"
+#include "../serenity/Kernel/API/Syscall.h"
 
 static void logSerenitySyscall(CPU& cpu)
 {
