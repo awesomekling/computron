@@ -32,7 +32,7 @@ enum class MouseButton { Left,
 class MouseObserver {
 public:
     virtual ~MouseObserver();
-    virtual void moveEvent(WORD x, WORD y) = 0;
-    virtual void buttonPressEvent(WORD x, WORD y, MouseButton) = 0;
-    virtual void buttonReleaseEvent(WORD x, WORD y, MouseButton) = 0;
+    virtual void moveEvent(u16 x, u16 y) = 0;
+    virtual void buttonPressEvent(u16 x, u16 y, MouseButton) = 0;
+    virtual void buttonReleaseEvent(u16 x, u16 y, MouseButton) = 0;
 };

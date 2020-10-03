@@ -45,7 +45,7 @@ void PS2::reset()
     machine().cpu().setA20Enabled(false);
 }
 
-BYTE PS2::in8(WORD port)
+u8 PS2::in8(u16 port)
 {
     if (port == 0x92) {
 #ifdef PS2_DEBUG
@@ -56,7 +56,7 @@ BYTE PS2::in8(WORD port)
     return IODevice::in8(port);
 }
 
-void PS2::out8(WORD port, BYTE data)
+void PS2::out8(u16 port, u8 data)
 {
     if (port == 0x92) {
 #ifdef PS2_DEBUG

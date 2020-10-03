@@ -87,36 +87,36 @@ struct FDCDrive {
     FDCDrive() { }
 
     bool motor { false };
-    BYTE cylinder { 0 };
-    BYTE head { 0 };
-    BYTE sector { 0 };
-    BYTE stepRateTime { 0 };
-    BYTE headLoadTime { 0 };
-    BYTE headUnloadTime { 0 };
-    BYTE bytesPerSector { 0 };
-    BYTE endOfTrack { 0 };
-    BYTE gap3Length { 0 };
-    BYTE dataLength { 0 };
-    BYTE digitalInputRegister { 0 };
+    u8 cylinder { 0 };
+    u8 head { 0 };
+    u8 sector { 0 };
+    u8 stepRateTime { 0 };
+    u8 headLoadTime { 0 };
+    u8 headUnloadTime { 0 };
+    u8 bytesPerSector { 0 };
+    u8 endOfTrack { 0 };
+    u8 gap3Length { 0 };
+    u8 dataLength { 0 };
+    u8 digitalInputRegister { 0 };
 };
 
 struct FDC::Private {
     FDCDrive drive[2];
-    BYTE driveIndex;
+    u8 driveIndex;
     bool enabled;
     FDCDataRate dataRate;
-    BYTE dataDirection;
-    BYTE mainStatusRegister;
-    BYTE statusRegister[4];
+    u8 dataDirection;
+    u8 mainStatusRegister;
+    u8 statusRegister[4];
     bool hasPendingReset { false };
-    QVector<BYTE> command;
-    BYTE commandSize;
-    QList<BYTE> commandResult;
-    BYTE configureData { 0 };
-    BYTE precompensationStartNumber { 0 };
-    BYTE perpendicularModeConfig { 0 };
+    QVector<u8> command;
+    u8 commandSize;
+    QList<u8> commandResult;
+    u8 configureData { 0 };
+    u8 precompensationStartNumber { 0 };
+    u8 perpendicularModeConfig { 0 };
     bool lock { false };
-    BYTE expectedSenseInterruptCount { 0 };
+    u8 expectedSenseInterruptCount { 0 };
 
     FDCDrive& currentDrive()
     {
@@ -220,9 +220,9 @@ void FDC::reset()
     resetController(ResetSource::Hardware);
 }
 
-BYTE FDC::in8(WORD port)
+u8 FDC::in8(u16 port)
 {
-    BYTE data = 0;
+    u8 data = 0;
     switch (port) {
     case 0x3F0: {
         if (machine().floppy1().present()) {
@@ -279,12 +279,12 @@ BYTE FDC::in8(WORD port)
     return data;
 }
 
-static bool isReadDataCommand(BYTE b)
+static bool isReadDataCommand(u8 b)
 {
     return (b & 0x1f) == 0x06;
 }
 
-void FDC::out8(WORD port, BYTE data)
+void FDC::out8(u16 port, u8 data)
 {
 #ifdef FDC_DEBUG
     vlog(LogFDC, "out8 %03x, %02x", port, data);
@@ -472,7 +472,7 @@ void FDC::executeCommandInternal()
         d->commandResult.append(d->currentDrive().cylinder);
         // Linux sends 4 SenseInterruptStatus commands after a controller reset because of "drive polling"
         if (d->expectedSenseInterruptCount) {
-            BYTE driveIndex = 4 - d->expectedSenseInterruptCount;
+            u8 driveIndex = 4 - d->expectedSenseInterruptCount;
             d->statusRegister[0] &= 0xf8;
             d->statusRegister[0] |= (d->drive[driveIndex].head << 2) | driveIndex;
             --d->expectedSenseInterruptCount;
@@ -533,7 +533,7 @@ void FDC::executeCommandInternal()
         d->precompensationStartNumber = d->command[3];
         break;
     case SenseDriveStatus: {
-        BYTE driveIndex = d->command[1] & 3;
+        u8 driveIndex = d->command[1] & 3;
         d->drive[driveIndex].head = (d->command[1] >> 2) & 1;
         d->statusRegister[3] = 0x28; // Reserved bits, always set.
         d->statusRegister[3] |= d->command[1] & 7;

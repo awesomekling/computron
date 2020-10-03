@@ -38,7 +38,7 @@ ROM::ROM(PhysicalAddress baseAddress, const QString& fileName)
     }
     m_data = file.readAll();
     setSize(m_data.size());
-    m_pointerForDirectReadAccess = reinterpret_cast<const BYTE*>(m_data.data());
+    m_pointerForDirectReadAccess = reinterpret_cast<const u8*>(m_data.data());
 }
 
 ROM::~ROM()
@@ -50,12 +50,12 @@ bool ROM::isValid() const
     return !m_data.isNull();
 }
 
-BYTE ROM::readMemory8(DWORD address)
+u8 ROM::readMemory8(u32 address)
 {
     return m_data.data()[address - baseAddress().get()];
 }
 
-void ROM::writeMemory8(DWORD address, BYTE data)
+void ROM::writeMemory8(u32 address, u8 data)
 {
     vlog(LogAlert, "Write to ROM address %08x, data %02x", address, data);
 #ifdef DEBUG_SERENITY
@@ -64,7 +64,7 @@ void ROM::writeMemory8(DWORD address, BYTE data)
 #endif
 }
 
-const BYTE* ROM::memoryPointer(DWORD address) const
+const u8* ROM::memoryPointer(u32 address) const
 {
-    return reinterpret_cast<const BYTE*>(&m_data.data()[address - baseAddress().get()]);
+    return reinterpret_cast<const u8*>(&m_data.data()[address - baseAddress().get()]);
 }

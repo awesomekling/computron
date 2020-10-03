@@ -45,13 +45,13 @@ public:
     Machine& machine() const { return m_machine; }
 
     // FIXME: These should be moved into VGA.
-    BYTE currentVideoMode() const;
-    BYTE currentRowCount() const;
-    BYTE currentColumnCount() const;
+    u8 currentVideoMode() const;
+    u8 currentRowCount() const;
+    u8 currentColumnCount() const;
 
-    WORD nextKey();
-    WORD peekKey();
-    BYTE popKeyData();
+    u16 nextKey();
+    u16 peekKey();
+    u8 popKeyData();
     bool hasRawKey();
 
     void setScreenSize(int width, int height);
@@ -83,16 +83,16 @@ private:
     int m_width { 0 };
     int m_height { 0 };
 
-    WORD scanCodeFromKeyEvent(const QKeyEvent*) const;
+    u16 scanCodeFromKeyEvent(const QKeyEvent*) const;
     QString keyNameFromKeyEvent(const QKeyEvent*) const;
 
-    WORD keyToScanCode(const QString& keyName, Qt::KeyboardModifiers) const;
+    u16 keyToScanCode(const QString& keyName, Qt::KeyboardModifiers) const;
 
-    QHash<BYTE, QString> m_keyMappings;
+    QHash<u8, QString> m_keyMappings;
 
     struct Private;
     OwnPtr<Private> d;
 
-    BYTE m_videoModeInLastRefresh { 0xFF };
+    u8 m_videoModeInLastRefresh { 0xFF };
     Machine& m_machine;
 };

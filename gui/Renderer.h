@@ -67,7 +67,7 @@ public:
     virtual void paint(QPainter&) override;
 
 private:
-    void putCharacter(QPainter&, int row, int column, BYTE color, BYTE character);
+    void putCharacter(QPainter&, int row, int column, u8 color, u8 character);
 
     int m_rows { 25 };
     int m_columns { 80 };
@@ -100,7 +100,7 @@ public:
 
 protected:
     explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
-    BYTE* bufferBits() { return m_buffer.bits(); }
+    u8* bufferBits() { return m_buffer.bits(); }
 
     QImage m_buffer;
     int m_scale { 1 };

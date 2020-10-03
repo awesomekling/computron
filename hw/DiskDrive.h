@@ -35,7 +35,7 @@ public:
         unsigned heads { 0 };
         unsigned sectors { 0 };
         unsigned bytesPerSector { 0 };
-        BYTE floppyTypeForCMOS { 0 };
+        u8 floppyTypeForCMOS { 0 };
     };
 
     explicit DiskDrive(const QString& name);
@@ -47,7 +47,7 @@ public:
     void setImagePath(const QString&);
     QString imagePath() const { return m_config.imagePath; }
 
-    DWORD toLBA(WORD cylinder, BYTE head, WORD sector)
+    u32 toLBA(u16 cylinder, u8 head, u16 sector)
     {
         return (sector - 1) + (head * sectorsPerTrack()) + (cylinder * sectorsPerTrack() * heads());
     }
@@ -58,7 +58,7 @@ public:
     unsigned sectors() const { return m_config.sectors; }
     unsigned sectorsPerTrack() const { return m_config.sectorsPerTrack; }
     unsigned bytesPerSector() const { return m_config.bytesPerSector; }
-    BYTE floppyTypeForCMOS() const { return m_config.floppyTypeForCMOS; }
+    u8 floppyTypeForCMOS() const { return m_config.floppyTypeForCMOS; }
 
     //private:
     Configuration m_config;

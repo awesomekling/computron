@@ -50,7 +50,7 @@ public:
 
     unsigned index() const { return m_index; }
     bool isGlobal() const { return m_isGlobal; }
-    BYTE RPL() const { return m_RPL; }
+    u8 RPL() const { return m_RPL; }
 
     bool isSegmentDescriptor() const { return m_DT; }
     bool isSystemDescriptor() const { return !m_DT; }
@@ -95,17 +95,17 @@ public:
     const DataSegmentDescriptor& asDataSegmentDescriptor() const;
 
 protected:
-    DWORD m_high { 0 };
-    DWORD m_low { 0 };
+    u32 m_high { 0 };
+    u32 m_low { 0 };
     union {
         struct {
-            DWORD m_segmentBase { 0 };
-            DWORD m_segmentLimit { 0 };
+            u32 m_segmentBase { 0 };
+            u32 m_segmentLimit { 0 };
         };
         struct {
-            WORD m_gateParameterCount;
-            WORD m_gateSelector;
-            DWORD m_gateOffset;
+            u16 m_gateParameterCount;
+            u16 m_gateSelector;
+            u32 m_gateOffset;
         };
     };
     unsigned m_DPL { 0 };
@@ -116,12 +116,12 @@ protected:
     bool m_AVL { false };
     bool m_DT { false };
 
-    DWORD m_effectiveLimit { 0 };
+    u32 m_effectiveLimit { 0 };
 
     // These are not part of the descriptor, but metadata about the lookup that found this descriptor.
     unsigned m_index { 0xFFFFFFFF };
     bool m_isGlobal { false };
-    BYTE m_RPL { 0 };
+    u8 m_RPL { 0 };
     Error m_error { NoError };
 
     bool m_loaded_in_ss { false };
@@ -164,9 +164,9 @@ public:
 
 class Gate : public SystemDescriptor {
 public:
-    WORD selector() const { return m_gateSelector; }
-    DWORD offset() const { return m_gateOffset; }
-    WORD parameterCount() const { return m_gateParameterCount; }
+    u16 selector() const { return m_gateSelector; }
+    u32 offset() const { return m_gateOffset; }
+    u16 parameterCount() const { return m_gateParameterCount; }
 
     LogicalAddress entry() const { return LogicalAddress(selector(), offset()); }
 
@@ -178,8 +178,8 @@ public:
 class TSSDescriptor : public SystemDescriptor {
 public:
     LinearAddress base() const { return LinearAddress(m_segmentBase); }
-    DWORD limit() const { return m_segmentLimit; }
-    DWORD effectiveLimit() const { return m_effectiveLimit; }
+    u32 limit() const { return m_segmentLimit; }
+    u32 effectiveLimit() const { return m_effectiveLimit; }
 
     void setBusy();
     void setAvailable();
@@ -194,8 +194,8 @@ public:
 class LDTDescriptor : public SystemDescriptor {
 public:
     LinearAddress base() const { return LinearAddress(m_segmentBase); }
-    DWORD limit() const { return m_segmentLimit; }
-    DWORD effectiveLimit() const { return m_effectiveLimit; }
+    u32 limit() const { return m_segmentLimit; }
+    u32 effectiveLimit() const { return m_effectiveLimit; }
 };
 
 inline Gate& Descriptor::asGate()
@@ -237,7 +237,7 @@ inline const LDTDescriptor& Descriptor::asLDTDescriptor() const
 class SegmentDescriptor : public Descriptor {
 public:
     LinearAddress base() const { return LinearAddress(m_segmentBase); }
-    DWORD limit() const { return m_segmentLimit; }
+    u32 limit() const { return m_segmentLimit; }
 
     bool isCode() const { return (m_type & 0x8) != 0; }
     bool isData() const { return (m_type & 0x8) == 0; }
@@ -245,10 +245,10 @@ public:
     bool readable() const;
     bool writable() const;
 
-    DWORD effectiveLimit() const { return m_effectiveLimit; }
+    u32 effectiveLimit() const { return m_effectiveLimit; }
     bool granularity() const { return m_G; }
 
-    LinearAddress linearAddress(DWORD offset) const { return LinearAddress(m_segmentBase + offset); }
+    LinearAddress linearAddress(u32 offset) const { return LinearAddress(m_segmentBase + offset); }
 };
 
 class CodeSegmentDescriptor : public SegmentDescriptor {

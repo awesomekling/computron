@@ -31,7 +31,7 @@
 //#define IODEVICE_DEBUG
 //#define IRQ_DEBUG
 
-QSet<WORD> IODevice::s_ignorePorts;
+QSet<u16> IODevice::s_ignorePorts;
 
 IODevice::IODevice(const char* name, Machine& machine, int irq)
     : m_machine(machine)
@@ -46,7 +46,7 @@ IODevice::~IODevice()
     m_machine.unregisterDevice(Badge<IODevice>(), *this);
 }
 
-void IODevice::listen(WORD port, ListenMask mask)
+void IODevice::listen(u16 port, ListenMask mask)
 {
     if (mask & ReadOnly)
         machine().registerInputDevice(Badge<IODevice>(), port, *this);
@@ -57,7 +57,7 @@ void IODevice::listen(WORD port, ListenMask mask)
     m_ports.append(port);
 }
 
-QList<WORD> IODevice::ports() const
+QList<u16> IODevice::ports() const
 {
     return m_ports;
 }
@@ -67,59 +67,59 @@ const char* IODevice::name() const
     return m_name;
 }
 
-void IODevice::out8(WORD port, BYTE data)
+void IODevice::out8(u16 port, u8 data)
 {
     vlog(LogIO, "FIXME: IODevice[%s]::out8(%04X, %02X)", m_name, port, data);
 }
 
-void IODevice::out16(WORD port, WORD data)
+void IODevice::out16(u16 port, u16 data)
 {
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::out16(%04x) fallback to multiple out8() calls", m_name, port);
 #endif
-    out8(port, leastSignificant<BYTE>(data));
-    out8(port + 1, mostSignificant<BYTE>(data));
+    out8(port, leastSignificant<u8>(data));
+    out8(port + 1, mostSignificant<u8>(data));
 }
 
-void IODevice::out32(WORD port, DWORD data)
+void IODevice::out32(u16 port, u32 data)
 {
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::out32(%04x) fallback to multiple out8() calls", m_name, port);
 #endif
-    out8(port + 0, leastSignificant<BYTE>(leastSignificant<WORD>(data)));
-    out8(port + 1, mostSignificant<BYTE>(leastSignificant<WORD>(data)));
-    out8(port + 2, leastSignificant<BYTE>(mostSignificant<WORD>(data)));
-    out8(port + 3, mostSignificant<BYTE>(mostSignificant<WORD>(data)));
+    out8(port + 0, leastSignificant<u8>(leastSignificant<u16>(data)));
+    out8(port + 1, mostSignificant<u8>(leastSignificant<u16>(data)));
+    out8(port + 2, leastSignificant<u8>(mostSignificant<u16>(data)));
+    out8(port + 3, mostSignificant<u8>(mostSignificant<u16>(data)));
 }
 
-BYTE IODevice::in8(WORD port)
+u8 IODevice::in8(u16 port)
 {
     vlog(LogIO, "FIXME: IODevice[%s]::in8(%04X)", m_name, port);
     return IODevice::JunkValue;
 }
 
-WORD IODevice::in16(WORD port)
+u16 IODevice::in16(u16 port)
 {
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::in16(%04x) fallback to multiple in8() calls", m_name, port);
 #endif
-    return weld<WORD>(in8(port + 1), in8(port));
+    return weld<u16>(in8(port + 1), in8(port));
 }
 
-DWORD IODevice::in32(WORD port)
+u32 IODevice::in32(u16 port)
 {
 #ifdef IODEVICE_DEBUG
     vlog(LogIO, "IODevice[%s]::in32(%04x) fallback to multiple in8() calls", m_name, port);
 #endif
-    return weld<DWORD>(in16(port + 2), in16(port));
+    return weld<u32>(in16(port + 2), in16(port));
 }
 
-void IODevice::ignorePort(WORD port)
+void IODevice::ignorePort(u16 port)
 {
     s_ignorePorts.insert(port);
 }
 
-bool IODevice::shouldIgnorePort(WORD port)
+bool IODevice::shouldIgnorePort(u16 port)
 {
     return s_ignorePorts.contains(port);
 }

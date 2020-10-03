@@ -56,7 +56,7 @@ void CPU::_CWD(Instruction&)
 
 void CPU::_CWDE(Instruction&)
 {
-    setEAX(signExtendedTo<DWORD>(getAX()));
+    setEAX(signExtendedTo<u32>(getAX()));
 }
 
 void CPU::_CDQ(Instruction&)
@@ -245,17 +245,17 @@ void CPU::doNOT(Instruction& insn)
 
 void CPU::_NOT_RM8(Instruction& insn)
 {
-    doNOT<BYTE>(insn);
+    doNOT<u8>(insn);
 }
 
 void CPU::_NOT_RM16(Instruction& insn)
 {
-    doNOT<WORD>(insn);
+    doNOT<u16>(insn);
 }
 
 void CPU::_NOT_RM32(Instruction& insn)
 {
-    doNOT<DWORD>(insn);
+    doNOT<u32>(insn);
 }
 
 struct op_BT {
@@ -295,25 +295,25 @@ void CPU::_BTx_RM_imm8(Instruction& insn)
 template<typename BTx_Op>
 void CPU::_BTx_RM32_imm8(Instruction& insn)
 {
-    _BTx_RM_imm8<BTx_Op, DWORD>(insn);
+    _BTx_RM_imm8<BTx_Op, u32>(insn);
 }
 
 template<typename BTx_Op>
 void CPU::_BTx_RM16_imm8(Instruction& insn)
 {
-    _BTx_RM_imm8<BTx_Op, WORD>(insn);
+    _BTx_RM_imm8<BTx_Op, u16>(insn);
 }
 
 template<typename BTx_Op>
 void CPU::_BTx_RM32_reg32(Instruction& insn)
 {
-    _BTx_RM_reg<BTx_Op, DWORD>(insn);
+    _BTx_RM_reg<BTx_Op, u32>(insn);
 }
 
 template<typename BTx_Op>
 void CPU::_BTx_RM16_reg16(Instruction& insn)
 {
-    _BTx_RM_reg<BTx_Op, WORD>(insn);
+    _BTx_RM_reg<BTx_Op, u16>(insn);
 }
 
 #define DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(op)  \
@@ -357,9 +357,9 @@ DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTS)
     unsigned bit_offset_in_array = insn.reg<T>() / 8;
     unsigned bit_offset_in_byte = insn.reg<T>() & 7;
     LinearAddress laddr(modrm.offset() + bit_offset_in_array);
-    BYTE dest = readMemory8(laddr);
-    BYTE bit_mask = 1 << bit_offset_in_byte;
-    BYTE result = BTx_Op::op(dest, bit_mask);
+    u8 dest = readMemory8(laddr);
+    u8 bit_mask = 1 << bit_offset_in_byte;
+    u8 result = BTx_Op::op(dest, bit_mask);
     setCF((dest & bit_mask) != 0);
     if (BTx_Op::should_update())
         writeMemory8(laddr, result);

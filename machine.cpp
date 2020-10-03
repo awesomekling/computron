@@ -167,10 +167,10 @@ void Machine::applySettings()
     cpu().setSS(settings().entrySS());
     cpu().setSP(settings().entrySP());
 
-    QHash<DWORD, QString> files = settings().files();
+    QHash<u32, QString> files = settings().files();
 
-    QHash<DWORD, QString>::const_iterator it = files.constBegin();
-    QHash<DWORD, QString>::const_iterator end = files.constEnd();
+    QHash<u32, QString>::const_iterator it = files.constBegin();
+    QHash<u32, QString>::const_iterator end = files.constEnd();
 
     for (; it != end; ++it) {
         if (!loadFile(it.key(), it.value())) {
@@ -188,7 +188,7 @@ void Machine::applySettings()
     m_fixed1->setConfiguration(settings().fixed1());
 }
 
-bool Machine::loadFile(DWORD address, const QString& fileName)
+bool Machine::loadFile(u32 address, const QString& fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -207,7 +207,7 @@ bool Machine::loadFile(DWORD address, const QString& fileName)
     return true;
 }
 
-bool Machine::loadROMImage(DWORD address, const QString& fileName)
+bool Machine::loadROMImage(u32 address, const QString& fileName)
 {
     auto rom = make<ROM>(PhysicalAddress(address), fileName);
     if (!rom->isValid()) {
@@ -269,24 +269,24 @@ void Machine::resetAllIODevices()
     });
 }
 
-IODevice* Machine::inputDeviceForPortSlowCase(WORD port)
+IODevice* Machine::inputDeviceForPortSlowCase(u16 port)
 {
     return m_allInputDevices.value(port, nullptr);
 }
 
-IODevice* Machine::outputDeviceForPortSlowCase(WORD port)
+IODevice* Machine::outputDeviceForPortSlowCase(u16 port)
 {
     return m_allOutputDevices.value(port, nullptr);
 }
 
-void Machine::registerInputDevice(Badge<IODevice>, WORD port, IODevice& device)
+void Machine::registerInputDevice(Badge<IODevice>, u16 port, IODevice& device)
 {
     if (port < 1024)
         m_fastInputDevices[port] = &device;
     m_allInputDevices.insert(port, &device);
 }
 
-void Machine::registerOutputDevice(Badge<IODevice>, WORD port, IODevice& device)
+void Machine::registerOutputDevice(Badge<IODevice>, u16 port, IODevice& device)
 {
     if (port < 1024)
         m_fastOutputDevices[port] = &device;

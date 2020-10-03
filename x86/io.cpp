@@ -90,7 +90,7 @@ void CPU::_IN_EAX_DX(Instruction&)
 }
 
 template<typename T>
-void CPU::validateIOAccess(WORD port)
+void CPU::validateIOAccess(u16 port)
 {
     if (!getPE())
         return;
@@ -105,15 +105,15 @@ void CPU::validateIOAccess(WORD port)
     if (TR.limit < 103)
         throw GeneralProtectionFault(0, "TSS too small, I/O map missing");
 
-    WORD iomapBase = tss.getIOMapBase();
-    WORD highPort = port + sizeof(T) - 1;
+    u16 iomapBase = tss.getIOMapBase();
+    u16 highPort = port + sizeof(T) - 1;
 
     if (TR.limit < (iomapBase + highPort / 8))
         throw GeneralProtectionFault(0, "TSS I/O map too small");
 
-    WORD mask = (1 << (sizeof(T) - 1)) << (port & 7);
+    u16 mask = (1 << (sizeof(T) - 1)) << (port & 7);
     LinearAddress address = TR.base.offset(iomapBase + (port / 8));
-    WORD perm = mask & 0xff00 ? readMemory16(address) : readMemory8(address);
+    u16 perm = mask & 0xff00 ? readMemory16(address) : readMemory8(address);
     if (perm & mask)
         throw GeneralProtectionFault(0, "I/O map disallowed access");
 }
@@ -124,7 +124,7 @@ void CPU::validateIOAccess(WORD port)
 // effects, software should ensure the write to the memory location does not cause an exception or VM exit."
 
 template<typename T>
-void CPU::out(WORD port, T data)
+void CPU::out(u16 port, T data)
 {
     validateIOAccess<T>(port);
 
@@ -144,7 +144,7 @@ void CPU::out(WORD port, T data)
 }
 
 template<typename T>
-T CPU::in(WORD port)
+T CPU::in(u16 port)
 {
     validateIOAccess<T>(port);
 
@@ -165,39 +165,39 @@ T CPU::in(WORD port)
     return data;
 }
 
-void CPU::out8(WORD port, BYTE data)
+void CPU::out8(u16 port, u8 data)
 {
-    out<BYTE>(port, data);
+    out<u8>(port, data);
 }
 
-void CPU::out16(WORD port, WORD data)
+void CPU::out16(u16 port, u16 data)
 {
-    out<WORD>(port, data);
+    out<u16>(port, data);
 }
 
-void CPU::out32(WORD port, DWORD data)
+void CPU::out32(u16 port, u32 data)
 {
-    out<DWORD>(port, data);
+    out<u32>(port, data);
 }
 
-BYTE CPU::in8(WORD port)
+u8 CPU::in8(u16 port)
 {
-    return in<BYTE>(port);
+    return in<u8>(port);
 }
 
-WORD CPU::in16(WORD port)
+u16 CPU::in16(u16 port)
 {
-    return in<WORD>(port);
+    return in<u16>(port);
 }
 
-DWORD CPU::in32(WORD port)
+u32 CPU::in32(u16 port)
 {
-    return in<DWORD>(port);
+    return in<u32>(port);
 }
 
-template BYTE CPU::in<BYTE>(WORD port);
-template WORD CPU::in<WORD>(WORD port);
-template DWORD CPU::in<DWORD>(WORD port);
-template void CPU::out<BYTE>(WORD port, BYTE);
-template void CPU::out<WORD>(WORD port, WORD);
-template void CPU::out<DWORD>(WORD port, DWORD);
+template u8 CPU::in<u8>(u16 port);
+template u16 CPU::in<u16>(u16 port);
+template u32 CPU::in<u32>(u16 port);
+template void CPU::out<u8>(u16 port, u8);
+template void CPU::out<u16>(u16 port, u16);
+template void CPU::out<u32>(u16 port, u32);

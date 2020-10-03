@@ -32,9 +32,9 @@ public:
     virtual ~PS2();
 
     virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
+    virtual u8 in8(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
 
 private:
-    BYTE m_controlPortA { 0 };
+    u8 m_controlPortA { 0 };
 };

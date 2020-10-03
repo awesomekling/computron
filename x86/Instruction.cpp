@@ -164,7 +164,7 @@ static InstructionDescriptor s_table32[256];
 static InstructionDescriptor s_0F_table16[256];
 static InstructionDescriptor s_0F_table32[256];
 
-static bool opcodeHasRegisterIndex(BYTE op)
+static bool opcodeHasRegisterIndex(u8 op)
 {
     if (op >= 0x40 && op <= 0x5F)
         return true;
@@ -175,7 +175,7 @@ static bool opcodeHasRegisterIndex(BYTE op)
     return false;
 }
 
-static void build(InstructionDescriptor* table, BYTE op, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed)
+static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed)
 {
     InstructionDescriptor& d = table[op];
     ASSERT(!d.impl);
@@ -308,7 +308,7 @@ static void build(InstructionDescriptor* table, BYTE op, const char* mnemonic, I
     }
 }
 
-static void buildSlash(InstructionDescriptor* table, BYTE op, BYTE slash, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void buildSlash(InstructionDescriptor* table, u8 op, u8 slash, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     InstructionDescriptor& d = table[op];
     d.format = MultibyteWithSlash;
@@ -319,61 +319,61 @@ static void buildSlash(InstructionDescriptor* table, BYTE op, BYTE slash, const 
     build(d.slashes, slash, mnemonic, format, impl, lockPrefixAllowed);
 }
 
-static void build0F(BYTE op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build0F(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_0F_table16, op, mnemonic, format, impl, lockPrefixAllowed);
     build(s_0F_table32, op, mnemonic, format, impl, lockPrefixAllowed);
 }
 
-static void build(BYTE op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_table16, op, mnemonic, format, impl, lockPrefixAllowed);
     build(s_table32, op, mnemonic, format, impl, lockPrefixAllowed);
 }
 
-static void build(BYTE op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_table16, op, mnemonic, format16, impl16, lockPrefixAllowed);
     build(s_table32, op, mnemonic, format32, impl32, lockPrefixAllowed);
 }
 
-static void build0F(BYTE op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build0F(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_0F_table16, op, mnemonic, format16, impl16, lockPrefixAllowed);
     build(s_0F_table32, op, mnemonic, format32, impl32, lockPrefixAllowed);
 }
 
-static void build(BYTE op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_table16, op, mnemonic16, format16, impl16, lockPrefixAllowed);
     build(s_table32, op, mnemonic32, format32, impl32, lockPrefixAllowed);
 }
 
-static void build0F(BYTE op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build0F(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     build(s_0F_table16, op, mnemonic16, format16, impl16, lockPrefixAllowed);
     build(s_0F_table32, op, mnemonic32, format32, impl32, lockPrefixAllowed);
 }
 
-static void buildSlash(BYTE op, BYTE slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void buildSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     buildSlash(s_table16, op, slash, mnemonic, format, impl, lockPrefixAllowed);
     buildSlash(s_table32, op, slash, mnemonic, format, impl, lockPrefixAllowed);
 }
 
-static void buildSlash(BYTE op, BYTE slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void buildSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     buildSlash(s_table16, op, slash, mnemonic, format16, impl16, lockPrefixAllowed);
     buildSlash(s_table32, op, slash, mnemonic, format32, impl32, lockPrefixAllowed);
 }
 
-static void build0FSlash(BYTE op, BYTE slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build0FSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     buildSlash(s_0F_table16, op, slash, mnemonic, format16, impl16, lockPrefixAllowed);
     buildSlash(s_0F_table32, op, slash, mnemonic, format32, impl32, lockPrefixAllowed);
 }
 
-static void build0FSlash(BYTE op, BYTE slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build0FSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
 {
     buildSlash(s_0F_table16, op, slash, mnemonic, format, impl, lockPrefixAllowed);
     buildSlash(s_0F_table32, op, slash, mnemonic, format, impl, lockPrefixAllowed);
@@ -448,16 +448,16 @@ void buildOpcodeTablesIfNeeded()
     build(0x3D, "CMP", OP_AX_imm16, &CPU::_CMP_AX_imm16, OP_EAX_imm32, &CPU::_CMP_EAX_imm32);
     build(0x3F, "AAS", OP, &CPU::_AAS);
 
-    for (BYTE i = 0; i <= 7; ++i)
+    for (u8 i = 0; i <= 7; ++i)
         build(0x40 + i, "INC", OP_reg16, &CPU::_INC_reg16, OP_reg32, &CPU::_INC_reg32);
 
-    for (BYTE i = 0; i <= 7; ++i)
+    for (u8 i = 0; i <= 7; ++i)
         build(0x48 + i, "DEC", OP_reg16, &CPU::_DEC_reg16, OP_reg32, &CPU::_DEC_reg32);
 
-    for (BYTE i = 0; i <= 7; ++i)
+    for (u8 i = 0; i <= 7; ++i)
         build(0x50 + i, "PUSH", OP_reg16, &CPU::_PUSH_reg16, OP_reg32, &CPU::_PUSH_reg32);
 
-    for (BYTE i = 0; i <= 7; ++i)
+    for (u8 i = 0; i <= 7; ++i)
         build(0x58 + i, "POP", OP_reg16, &CPU::_POP_reg16, OP_reg32, &CPU::_POP_reg32);
 
     build(0x60, "PUSHAW", OP, &CPU::_PUSHA, "PUSHAD", OP, &CPU::_PUSHAD);
@@ -505,7 +505,7 @@ void buildOpcodeTablesIfNeeded()
 
     build(0x90, "NOP", OP, &CPU::_NOP);
 
-    for (BYTE i = 0; i <= 6; ++i)
+    for (u8 i = 0; i <= 6; ++i)
         build(0x91 + i, "XCHG", OP_AX_reg16, &CPU::_XCHG_AX_reg16, OP_EAX_reg32, &CPU::_XCHG_EAX_reg32);
 
     build(0x98, "CBW", OP, &CPU::_CBW, "CWDE", OP, &CPU::_CWDE);
@@ -534,10 +534,10 @@ void buildOpcodeTablesIfNeeded()
     build(0xAE, "SCASB", OP, &CPU::_SCASB);
     build(0xAF, "SCASW", OP, &CPU::_SCASW, "SCASD", OP, &CPU::_SCASD);
 
-    for (BYTE i = 0xb0; i <= 0xb7; ++i)
+    for (u8 i = 0xb0; i <= 0xb7; ++i)
         build(i, "MOV", OP_reg8_imm8, &CPU::_MOV_reg8_imm8);
 
-    for (BYTE i = 0xb8; i <= 0xbf; ++i)
+    for (u8 i = 0xb8; i <= 0xbf; ++i)
         build(i, "MOV", OP_reg16_imm16, &CPU::_MOV_reg16_imm16, OP_reg32_imm32, &CPU::_MOV_reg32_imm32);
 
     build(0xC2, "RET", OP_imm16, &CPU::_RET_imm16);
@@ -561,7 +561,7 @@ void buildOpcodeTablesIfNeeded()
     build(0xD7, "XLAT", OP, &CPU::_XLAT);
 
     // FIXME: D8-DF == FPU
-    for (BYTE i = 0; i <= 7; ++i)
+    for (u8 i = 0; i <= 7; ++i)
         build(0xD8 + i, "FPU?", OP_RM8, &CPU::_ESCAPE);
 
     build(0xE0, "LOOPNZ", OP_imm8, &CPU::_LOOPNZ_imm8);
@@ -844,7 +844,7 @@ unsigned Instruction::length() const
     return len;
 }
 
-static SegmentRegisterIndex toSegmentPrefix(BYTE op)
+static SegmentRegisterIndex toSegmentPrefix(u8 op)
 {
     switch (op) {
     case 0x26:
@@ -869,7 +869,7 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     , m_o32(o32)
 {
     for (;; ++m_prefixBytes) {
-        BYTE opbyte = stream.readInstruction8();
+        u8 opbyte = stream.readInstruction8();
         if (opbyte == Prefix::OperandSizeOverride) {
             m_o32 = !o32;
             m_hasOperandSizeOverridePrefix = true;
@@ -956,7 +956,7 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
         m_imm1 = stream.readBytes(m_imm1Bytes);
 }
 
-DWORD InstructionStream::readBytes(unsigned count)
+u32 InstructionStream::readBytes(unsigned count)
 {
     switch (count) {
     case 1:
@@ -1058,14 +1058,14 @@ QString MemoryOrRegisterReference::toStringA16() const
         return base;
 
     QString disp;
-    if ((SIGNED_WORD)m_displacement16 < 0)
-        disp.sprintf("-0x%x", -(SIGNED_WORD)m_displacement16);
+    if ((i16)m_displacement16 < 0)
+        disp.sprintf("-0x%x", -(i16)m_displacement16);
     else
         disp.sprintf("+0x%x", m_displacement16);
     return QString("%1%2").arg(base).arg(disp);
 }
 
-static QString sibToString(BYTE rm, BYTE sib)
+static QString sibToString(u8 rm, u8 sib)
 {
     QString scale;
     QString index;
@@ -1193,8 +1193,8 @@ QString MemoryOrRegisterReference::toStringA32() const
         return base;
 
     QString disp;
-    if ((SIGNED_DWORD)m_displacement32 < 0)
-        disp.sprintf("-0x%x", -(SIGNED_DWORD)m_displacement32);
+    if ((i32)m_displacement32 < 0)
+        disp.sprintf("-0x%x", -(i32)m_displacement32);
     else
         disp.sprintf("+0x%x", m_displacement32);
     return QString("%1%2").arg(base).arg(disp);
@@ -1216,26 +1216,26 @@ QString MemoryOrRegisterReference::toStringA32() const
 #define SEGARGS CPU::registerName(segmentRegisterIndex())
 #define CDRARGS registerIndex()
 
-static QString relativeAddress(DWORD origin, bool x32, SIGNED_BYTE imm)
+static QString relativeAddress(u32 origin, bool x32, i8 imm)
 {
     QString s;
     if (x32)
         return s.sprintf("%08x", origin + imm);
-    WORD w = origin & 0xffff;
+    u16 w = origin & 0xffff;
     return s.sprintf("%04x", w + imm);
 }
 
-static QString relativeAddress(DWORD origin, bool x32, SIGNED_DWORD imm)
+static QString relativeAddress(u32 origin, bool x32, i32 imm)
 {
     QString s;
     if (x32)
         return s.sprintf("%08x", origin + imm);
-    WORD w = origin & 0xffff;
-    SIGNED_WORD si = imm;
+    u16 w = origin & 0xffff;
+    i16 si = imm;
     return s.sprintf("%04x", w + si);
 }
 
-QString Instruction::toString(DWORD origin, bool x32) const
+QString Instruction::toString(u32 origin, bool x32) const
 {
     QString segmentPrefix;
     QString asizePrefix;
@@ -1260,12 +1260,12 @@ QString Instruction::toString(DWORD origin, bool x32) const
     return QString("%1%2%3%4%5%6").arg(segmentPrefix).arg(asizePrefix).arg(osizePrefix).arg(lockPrefix).arg(repPrefix).arg(toStringInternal(origin, x32));
 }
 
-#define RELADDRARGS relativeAddress(origin + (m_a32 ? 6 : 4), x32, SIGNED_DWORD(m_a32 ? imm32() : imm16()))
-#define RELIMM8ARGS relativeAddress(origin + 2, x32, SIGNED_BYTE(imm8()))
-#define RELIMM16ARGS relativeAddress(origin + 3, x32, SIGNED_DWORD(imm16()))
-#define RELIMM32ARGS relativeAddress(origin + 5, x32, SIGNED_DWORD(imm32()))
+#define RELADDRARGS relativeAddress(origin + (m_a32 ? 6 : 4), x32, i32(m_a32 ? imm32() : imm16()))
+#define RELIMM8ARGS relativeAddress(origin + 2, x32, i8(imm8()))
+#define RELIMM16ARGS relativeAddress(origin + 3, x32, i32(imm16()))
+#define RELIMM32ARGS relativeAddress(origin + 5, x32, i32(imm32()))
 
-QString Instruction::toStringInternal(DWORD origin, bool x32) const
+QString Instruction::toStringInternal(u32 origin, bool x32) const
 {
     QString mnemonic = QString(m_descriptor->mnemonic).toLower();
 
@@ -1469,16 +1469,16 @@ QString Instruction::mnemonic() const
     return m_descriptor->mnemonic;
 }
 
-WORD SimpleInstructionStream::readInstruction16()
+u16 SimpleInstructionStream::readInstruction16()
 {
-    BYTE lsb = *(m_data++);
-    BYTE msb = *(m_data++);
-    return weld<WORD>(msb, lsb);
+    u8 lsb = *(m_data++);
+    u8 msb = *(m_data++);
+    return weld<u16>(msb, lsb);
 }
 
-DWORD SimpleInstructionStream::readInstruction32()
+u32 SimpleInstructionStream::readInstruction32()
 {
-    WORD lsw = readInstruction16();
-    WORD msw = readInstruction16();
-    return weld<DWORD>(msw, lsw);
+    u16 lsw = readInstruction16();
+    u16 msw = readInstruction16();
+    return weld<u32>(msw, lsw);
 }

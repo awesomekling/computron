@@ -29,11 +29,11 @@
 #include "debugger.h"
 #include <stdio.h>
 
-unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offset)
+unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, u32 offset)
 {
     char buf[512];
     char* p = buf;
-    const BYTE* data = nullptr;
+    const u8* data = nullptr;
 
     try {
         data = memoryPointer(descriptor, offset);
@@ -69,7 +69,7 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offs
     return insn.length();
 }
 
-unsigned CPU::dumpDisassembled(SegmentDescriptor& descriptor, DWORD offset, unsigned count)
+unsigned CPU::dumpDisassembled(SegmentDescriptor& descriptor, u32 offset, unsigned count)
 {
     unsigned bytes = 0;
     for (unsigned i = 0; i < count; ++i) {
@@ -235,7 +235,7 @@ void CPU::dumpWatches()
 {
     for (WatchedAddress& watch : m_watches) {
         if (watch.size == ByteSize) {
-            auto data = readPhysicalMemory<BYTE>(watch.address);
+            auto data = readPhysicalMemory<u8>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %02X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -243,7 +243,7 @@ void CPU::dumpWatches()
                     debugger().enter();
             }
         } else if (watch.size == WordSize) {
-            auto data = readPhysicalMemory<WORD>(watch.address);
+            auto data = readPhysicalMemory<u16>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %04X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -251,7 +251,7 @@ void CPU::dumpWatches()
                     debugger().enter();
             }
         } else if (watch.size == DWordSize) {
-            auto data = readPhysicalMemory<DWORD>(watch.address);
+            auto data = readPhysicalMemory<u32>(watch.address);
             if (data != watch.lastSeenValue) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %08X", watch.address, qPrintable(watch.name), data);
                 watch.lastSeenValue = data;
@@ -308,18 +308,18 @@ void CPU::dumpAll()
     dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), currentBaseInstructionPointer());
 }
 
-static inline BYTE n(BYTE b)
+static inline u8 n(u8 b)
 {
     if (b < 0x20 || ((b > 127) && (b < 160)))
         return '.';
     return b;
 }
 
-void CPU::dumpFlatMemory(DWORD address)
+void CPU::dumpFlatMemory(u32 address)
 {
     address &= 0xFFFFFFF0;
 
-    BYTE* p = &m_memory[address];
+    u8* p = &m_memory[address];
     int rows = 16;
 
     for (int i = 0; i < rows; ++i) {
@@ -343,7 +343,7 @@ void CPU::dumpFlatMemory(DWORD address)
     }
 }
 
-void CPU::dumpRawMemory(BYTE* p)
+void CPU::dumpRawMemory(u8* p)
 {
     int rows = 16;
     vlog(LogDump, "Raw dump %p", p);
@@ -356,10 +356,10 @@ void CPU::dumpRawMemory(BYTE* p)
     }
 }
 
-void CPU::dumpMemory(SegmentDescriptor& descriptor, DWORD offset, int rows)
+void CPU::dumpMemory(SegmentDescriptor& descriptor, u32 offset, int rows)
 {
     offset &= 0xFFFFFFF0;
-    const BYTE* p;
+    const u8* p;
 
     try {
         p = memoryPointer(descriptor, offset);
@@ -399,12 +399,12 @@ void CPU::dumpMemory(LogicalAddress address, int rows)
     return dumpMemory(descriptor, address.offset(), rows);
 }
 
-static inline WORD isrSegment(CPU& cpu, BYTE isr)
+static inline u16 isrSegment(CPU& cpu, u8 isr)
 {
     return cpu.getRealModeInterruptVector(isr).selector();
 }
 
-static inline WORD isrOffset(CPU& cpu, BYTE isr)
+static inline u16 isrOffset(CPU& cpu, u8 isr)
 {
     return cpu.getRealModeInterruptVector(isr).offset();
 }
@@ -448,7 +448,7 @@ void CPU::dumpDescriptor(const Gate& gate, const char* prefix)
         prefix,
         gate.index(),
         gate.typeName(),
-        (BYTE)gate.type(),
+        (u8)gate.type(),
         gate.selector(),
         gate.offset(),
         gate.parameterCount(),
@@ -471,7 +471,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
         vlog(LogCPU, "%s%04x (system segment) { type: LDT (%02x), base:%08x e-limit:%08x, p:%u }",
             prefix,
             descriptor.index(),
-            (BYTE)descriptor.type(),
+            (u8)descriptor.type(),
             descriptor.asLDTDescriptor().base(),
             descriptor.asLDTDescriptor().effectiveLimit(),
             descriptor.present());
@@ -481,7 +481,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
         prefix,
         descriptor.index(),
         descriptor.typeName(),
-        (BYTE)descriptor.type(),
+        (u8)descriptor.type(),
         descriptor.D() ? 32 : 16,
         descriptor.present(),
         descriptor.DPL());
@@ -521,17 +521,17 @@ void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefi
         segment.expandDown());
 }
 
-void CPU::dumpSegment(WORD index)
+void CPU::dumpSegment(u16 index)
 {
     dumpDescriptor(getDescriptor(index));
 }
 
 void CPU::dumpStack(ValueSize valueSize, unsigned count)
 {
-    DWORD sp = currentStackPointer();
+    u32 sp = currentStackPointer();
     for (unsigned i = 0; i < count; ++i) {
         if (valueSize == DWordSize) {
-            DWORD value = readMemory32(SegmentRegisterIndex::SS, sp);
+            u32 value = readMemory32(SegmentRegisterIndex::SS, sp);
             vlog(LogDump, "%04x:%08x (+%04x) %08x", getSS(), sp, sp - currentStackPointer(), value);
             sp += 4;
         }

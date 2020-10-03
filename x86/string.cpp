@@ -126,17 +126,17 @@ void CPU::doINS(Instruction& insn)
     void CPU::_##basename##B(Instruction& insn) \
     {                                           \
         do                                      \
-            ##basename<BYTE>(insn);             \
+            ##basename<u8>(insn);               \
     }                                           \
     void CPU::_##basename##W(Instruction& insn) \
     {                                           \
         do                                      \
-            ##basename<WORD>(insn);             \
+            ##basename<u16>(insn);              \
     }                                           \
     void CPU::_##basename##D(Instruction& insn) \
     {                                           \
         do                                      \
-            ##basename<DWORD>(insn);            \
+            ##basename<u32>(insn);              \
     }
 
 DEFINE_STRING_OP(LODS)

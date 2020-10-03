@@ -137,18 +137,18 @@
         modrm.write32(do##op(modrm.read32(), insn.imm32())); \
     }
 
-#define DEFAULT_RM16_imm8(op)                                                     \
-    void CPU::_##op##_RM16_imm8(Instruction& insn)                                \
-    {                                                                             \
-        auto& modrm = insn.modrm();                                               \
-        modrm.write16(do##op(modrm.read16(), signExtendedTo<WORD>(insn.imm8()))); \
+#define DEFAULT_RM16_imm8(op)                                                    \
+    void CPU::_##op##_RM16_imm8(Instruction& insn)                               \
+    {                                                                            \
+        auto& modrm = insn.modrm();                                              \
+        modrm.write16(do##op(modrm.read16(), signExtendedTo<u16>(insn.imm8()))); \
     }
 
-#define DEFAULT_RM32_imm8(op)                                                      \
-    void CPU::_##op##_RM32_imm8(Instruction& insn)                                 \
-    {                                                                              \
-        auto& modrm = insn.modrm();                                                \
-        modrm.write32(do##op(modrm.read32(), signExtendedTo<DWORD>(insn.imm8()))); \
+#define DEFAULT_RM32_imm8(op)                                                    \
+    void CPU::_##op##_RM32_imm8(Instruction& insn)                               \
+    {                                                                            \
+        auto& modrm = insn.modrm();                                              \
+        modrm.write32(do##op(modrm.read32(), signExtendedTo<u32>(insn.imm8()))); \
     }
 
 #define DEFAULT_AL_imm8(op)                      \
@@ -225,11 +225,11 @@
             ##op(insn.modrm().read16(), insn.imm16()); \
     }
 
-#define READONLY_RM32_imm8(op, name)                                         \
-    void CPU::_##name##_RM32_imm8(Instruction& insn)                         \
-    {                                                                        \
-        do                                                                   \
-            ##op(insn.modrm().read32(), signExtendedTo<DWORD>(insn.imm8())); \
+#define READONLY_RM32_imm8(op, name)                                       \
+    void CPU::_##name##_RM32_imm8(Instruction& insn)                       \
+    {                                                                      \
+        do                                                                 \
+            ##op(insn.modrm().read32(), signExtendedTo<u32>(insn.imm8())); \
     }
 
 #define READONLY_RM32_imm32(op, name)                  \
@@ -239,11 +239,11 @@
             ##op(insn.modrm().read32(), insn.imm32()); \
     }
 
-#define READONLY_RM16_imm8(op, name)                                        \
-    void CPU::_##name##_RM16_imm8(Instruction& insn)                        \
-    {                                                                       \
-        do                                                                  \
-            ##op(insn.modrm().read16(), signExtendedTo<WORD>(insn.imm8())); \
+#define READONLY_RM16_imm8(op, name)                                       \
+    void CPU::_##name##_RM16_imm8(Instruction& insn)                       \
+    {                                                                      \
+        do                                                                 \
+            ##op(insn.modrm().read16(), signExtendedTo<u16>(insn.imm8())); \
     }
 
 #define READONLY_AL_imm8(op, name)                 \

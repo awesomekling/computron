@@ -34,23 +34,23 @@ public:
     ~PIC();
 
     virtual void reset() override;
-    void out8(WORD port, BYTE data) override;
-    BYTE in8(WORD port) override;
+    void out8(u16 port, u8 data) override;
+    u8 in8(u16 port) override;
 
-    void raise(BYTE num);
-    void lower(BYTE num);
+    void raise(u8 num);
+    void lower(u8 num);
 
-    BYTE getIMR() const { return m_imr; }
-    BYTE getIRR() const { return m_irr; }
-    BYTE getISR() const { return m_isr; }
+    u8 getIMR() const { return m_imr; }
+    u8 getIRR() const { return m_irr; }
+    u8 getISR() const { return m_isr; }
 
     void dumpMask();
     void unmaskAll();
 
     static void serviceIRQ(CPU&);
-    static void raiseIRQ(Machine&, BYTE num);
-    static void lowerIRQ(Machine&, BYTE num);
-    static bool isIRQRaised(Machine&, BYTE num);
+    static void raiseIRQ(Machine&, u8 num);
+    static void lowerIRQ(Machine&, u8 num);
+    static bool isIRQRaised(Machine&, u8 num);
     static bool isIgnoringAllIRQs();
     static void setIgnoreAllIRQs(bool);
     static bool hasPendingIRQ() { return s_pendingRequests; }
@@ -61,16 +61,16 @@ public:
 private:
     static void updatePendingRequests(Machine&);
 
-    void writePort0(BYTE);
-    void writePort1(BYTE);
+    void writePort0(u8);
+    void writePort1(u8);
 
-    WORD m_baseAddress { 0 };
-    BYTE m_isrBase { 0 };
-    BYTE m_irqBase { 0 };
+    u16 m_baseAddress { 0 };
+    u8 m_isrBase { 0 };
+    u8 m_irqBase { 0 };
 
-    BYTE m_isr { 0 };
-    BYTE m_irr { 0 };
-    BYTE m_imr { 0 };
+    u8 m_isr { 0 };
+    u8 m_irr { 0 };
+    u8 m_imr { 0 };
 
     bool m_icw2Expected { false };
     bool m_icw4Expected { false };
@@ -78,5 +78,5 @@ private:
     bool m_specialMaskMode { false };
     bool m_isMaster { false };
 
-    static std::atomic<WORD> s_pendingRequests;
+    static std::atomic<u16> s_pendingRequests;
 };

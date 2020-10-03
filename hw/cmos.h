@@ -57,23 +57,23 @@ public:
     ~CMOS();
 
     void reset() override;
-    void out8(WORD port, BYTE data) override;
-    BYTE in8(WORD port) override;
+    void out8(u16 port, u8 data) override;
+    u8 in8(u16 port) override;
 
     void updateClock();
 
-    void set(RegisterIndex, BYTE);
-    BYTE get(RegisterIndex) const;
+    void set(RegisterIndex, u8);
+    u8 get(RegisterIndex) const;
 
 private:
     virtual void threadedTimerFired(Badge<ThreadedTimer>) override;
 
-    BYTE m_registerIndex { 0 };
-    BYTE m_ram[80];
+    u8 m_registerIndex { 0 };
+    u8 m_ram[80];
 
     bool inBinaryClockMode() const;
     bool in24HourMode() const;
-    BYTE toCurrentClockFormat(BYTE) const;
+    u8 toCurrentClockFormat(u8) const;
 
     OwnPtr<ThreadedTimer> m_rtcTimer;
 };

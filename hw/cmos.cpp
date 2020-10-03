@@ -57,12 +57,12 @@ void CMOS::reset()
 
     m_ram[StatusRegisterB] = 0x02;
 
-    m_ram[BaseMemoryInKilobytesLSB] = leastSignificant<BYTE>(cpu.baseMemorySize() / 1024);
-    m_ram[BaseMemoryInKilobytesMSB] = mostSignificant<BYTE>(cpu.baseMemorySize() / 1024);
-    m_ram[ExtendedMemoryInKilobytesLSB] = leastSignificant<BYTE>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesMSB] = mostSignificant<BYTE>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesAltLSB] = leastSignificant<BYTE>(cpu.extendedMemorySize() / 1024 - 1024);
-    m_ram[ExtendedMemoryInKilobytesAltMSB] = mostSignificant<BYTE>(cpu.extendedMemorySize() / 1024 - 1024);
+    m_ram[BaseMemoryInKilobytesLSB] = leastSignificant<u8>(cpu.baseMemorySize() / 1024);
+    m_ram[BaseMemoryInKilobytesMSB] = mostSignificant<u8>(cpu.baseMemorySize() / 1024);
+    m_ram[ExtendedMemoryInKilobytesLSB] = leastSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesMSB] = mostSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesAltLSB] = leastSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
+    m_ram[ExtendedMemoryInKilobytesAltMSB] = mostSignificant<u8>(cpu.extendedMemorySize() / 1024 - 1024);
 
     // FIXME: This clearly belongs elsewhere.
     m_ram[FloppyDriveTypes] = (machine().floppy0().floppyTypeForCMOS() << 4) | machine().floppy1().floppyTypeForCMOS();
@@ -88,7 +88,7 @@ static QDateTime currentDateTimeForCMOS()
     return QDateTime::currentDateTime();
 }
 
-BYTE CMOS::toCurrentClockFormat(BYTE value) const
+u8 CMOS::toCurrentClockFormat(u8 value) const
 {
     if (inBinaryClockMode())
         return value;
@@ -114,16 +114,16 @@ void CMOS::updateClock()
     m_ram[StatusRegisterA] &= ~0x80; // RTC update finished
 }
 
-BYTE CMOS::in8(WORD)
+u8 CMOS::in8(u16)
 {
-    BYTE value = m_ram[m_registerIndex];
+    u8 value = m_ram[m_registerIndex];
 #ifdef CMOS_DEBUG
     vlog(LogCMOS, "Read register %02x (%02x)", m_registerIndex, value);
 #endif
     return value;
 }
 
-void CMOS::out8(WORD port, BYTE data)
+void CMOS::out8(u16 port, u8 data)
 {
     if (port == 0x70) {
         m_registerIndex = data & 0x7f;
@@ -139,13 +139,13 @@ void CMOS::out8(WORD port, BYTE data)
     m_ram[m_registerIndex] = data;
 }
 
-void CMOS::set(RegisterIndex index, BYTE data)
+void CMOS::set(RegisterIndex index, u8 data)
 {
     ASSERT((size_t)index < sizeof(m_ram));
     m_ram[index] = data;
 }
 
-BYTE CMOS::get(RegisterIndex index) const
+u8 CMOS::get(RegisterIndex index) const
 {
     ASSERT((size_t)index < sizeof(m_ram));
     return m_ram[index];

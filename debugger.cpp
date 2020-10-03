@@ -104,19 +104,19 @@ void Debugger::handleCommand(const QString& rawCommand)
         if (arguments.size() != 1) {
             printf("usage: xl <address>\n");
         } else {
-            DWORD address = arguments.at(0).toUInt(0, 16);
-            DWORD dir = (address >> 22) & 0x3FF;
-            DWORD page = (address >> 12) & 0x3FF;
-            DWORD offset = address & 0xFFF;
+            u32 address = arguments.at(0).toUInt(0, 16);
+            u32 dir = (address >> 22) & 0x3FF;
+            u32 page = (address >> 12) & 0x3FF;
+            u32 offset = address & 0xFFF;
 
             printf("CR3: %08x\n", cpu().getCR3());
 
             printf("%08x { dir=%03x, page=%03x, offset=%03x }\n", address, dir, page, offset);
 
-            PhysicalAddress pdeAddress(cpu().getCR3() + dir * sizeof(DWORD));
-            DWORD pageDirectoryEntry = cpu().readPhysicalMemory<DWORD>(pdeAddress);
-            PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(DWORD));
-            DWORD pageTableEntry = cpu().readPhysicalMemory<DWORD>(pteAddress);
+            PhysicalAddress pdeAddress(cpu().getCR3() + dir * sizeof(u32));
+            u32 pageDirectoryEntry = cpu().readPhysicalMemory<u32>(pdeAddress);
+            PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(u32));
+            u32 pageTableEntry = cpu().readPhysicalMemory<u32>(pteAddress);
 
             printf("PDE: %08x @ %08x\n", pageDirectoryEntry, pdeAddress.get());
             printf("PTE: %08x @ %08x\n", pageTableEntry, pteAddress.get());
@@ -308,7 +308,7 @@ void Debugger::handleBreakpoint(const QStringList& arguments)
         }
         return;
     }
-    WORD selector;
+    u16 selector;
     int offset_index;
     if (arguments.size() == 3) {
         selector = arguments.at(1).toUInt(0, 16);
@@ -318,7 +318,7 @@ void Debugger::handleBreakpoint(const QStringList& arguments)
         offset_index = 1;
     }
     bool ok;
-    DWORD offset = arguments.at(offset_index).toUInt(&ok, 16);
+    u32 offset = arguments.at(offset_index).toUInt(&ok, 16);
 
     if (!ok) {
 #ifdef SYMBOLIC_TRACING
@@ -400,7 +400,7 @@ void Debugger::handleSelector(const QStringList& arguments)
         vlog(LogDump, "usage: sel <selector>");
         return;
     }
-    WORD select = arguments.at(0).toUInt(0, 16);
+    u16 select = arguments.at(0).toUInt(0, 16);
     cpu().dumpDescriptor(cpu().getDescriptor(select));
 }
 
@@ -412,8 +412,8 @@ void Debugger::handleStack(const QStringList& arguments)
 
 void Debugger::handleDumpMemory(const QStringList& arguments)
 {
-    WORD selector = cpu().getCS();
-    DWORD offset = cpu().getEIP();
+    u16 selector = cpu().getCS();
+    u32 offset = cpu().getEIP();
 
     if (arguments.size() == 1)
         offset = arguments.at(0).toUInt(0, 16);
@@ -427,8 +427,8 @@ void Debugger::handleDumpMemory(const QStringList& arguments)
 
 void Debugger::handleDumpUnassembled(const QStringList& arguments)
 {
-    WORD selector = cpu().getCS();
-    DWORD offset = cpu().getEIP();
+    u16 selector = cpu().getCS();
+    u32 offset = cpu().getEIP();
 
     if (arguments.size() == 1)
         offset = arguments.at(0).toUInt(0, 16);
@@ -437,13 +437,13 @@ void Debugger::handleDumpUnassembled(const QStringList& arguments)
         offset = arguments.at(1).toUInt(0, 16);
     }
 
-    DWORD bytesDisassembled = cpu().dumpDisassembled(LogicalAddress(selector, offset), 20);
+    u32 bytesDisassembled = cpu().dumpDisassembled(LogicalAddress(selector, offset), 20);
     vlog(LogDump, "Next offset: %08x", offset + bytesDisassembled);
 }
 
 void Debugger::handleDumpSegment(const QStringList& arguments)
 {
-    WORD segment = cpu().getCS();
+    u16 segment = cpu().getCS();
 
     if (arguments.size() >= 1)
         segment = arguments.at(0).toUInt(0, 16);
@@ -453,7 +453,7 @@ void Debugger::handleDumpSegment(const QStringList& arguments)
 
 void Debugger::handleDumpFlatMemory(const QStringList& arguments)
 {
-    DWORD address = cpu().getEIP();
+    u32 address = cpu().getEIP();
 
     if (arguments.size() == 1)
         address = arguments.at(0).toUInt(0, 16);

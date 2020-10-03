@@ -77,22 +77,22 @@ void CPU::doFarJump(Instruction& insn, JumpType jumpType)
 
 void CPU::_JMP_FAR_mem16(Instruction& insn)
 {
-    doFarJump<WORD>(insn, JumpType::JMP);
+    doFarJump<u16>(insn, JumpType::JMP);
 }
 
 void CPU::_JMP_FAR_mem32(Instruction& insn)
 {
-    doFarJump<DWORD>(insn, JumpType::JMP);
+    doFarJump<u32>(insn, JumpType::JMP);
 }
 
 void CPU::_CALL_FAR_mem16(Instruction& insn)
 {
-    doFarJump<WORD>(insn, JumpType::CALL);
+    doFarJump<u16>(insn, JumpType::CALL);
 }
 
 void CPU::_CALL_FAR_mem32(Instruction& insn)
 {
-    doFarJump<DWORD>(insn, JumpType::CALL);
+    doFarJump<u32>(insn, JumpType::CALL);
 }
 
 void CPU::_CMOVcc_reg16_RM16(Instruction& insn)
@@ -183,7 +183,7 @@ void CPU::_RETF_imm16(Instruction& insn)
 void CPU::doLOOP(Instruction& insn, bool condition)
 {
     if (!decrementCXForAddressSize() && condition)
-        jumpRelative8(static_cast<SIGNED_BYTE>(insn.imm8()));
+        jumpRelative8(static_cast<i8>(insn.imm8()));
 }
 
 void CPU::_LOOP_imm8(Instruction& insn)

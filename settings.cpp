@@ -33,11 +33,11 @@
 
 struct FloppyType {
     const char* name;
-    WORD sectorsPerTrack;
-    WORD heads;
-    DWORD sectors;
-    WORD bytesPerSector;
-    BYTE mediaType;
+    u16 sectorsPerTrack;
+    u16 heads;
+    u32 sectors;
+    u16 bytesPerSector;
+    u8 mediaType;
 };
 
 static FloppyType gFloppyTypes[] = {
@@ -50,7 +50,7 @@ static FloppyType gFloppyTypes[] = {
     { 0L, 0, 0, 0, 0, 0 }
 };
 
-static bool parseAddress(const QString& string, DWORD* address)
+static bool parseAddress(const QString& string, u32* address)
 {
     ASSERT(address);
 
@@ -59,11 +59,11 @@ static bool parseAddress(const QString& string, DWORD* address)
         return false;
 
     bool ok;
-    WORD segment = parts.at(0).toUInt(&ok, 16);
+    u16 segment = parts.at(0).toUInt(&ok, 16);
     if (!ok)
         return false;
 
-    DWORD offset = parts.at(1).toUInt(&ok, 16);
+    u32 offset = parts.at(1).toUInt(&ok, 16);
     if (!ok)
         return false;
 
@@ -78,7 +78,7 @@ bool Settings::handleLoadFile(const QStringList& arguments)
     if (arguments.count() != 2)
         return false;
 
-    DWORD address;
+    u32 address;
     if (!parseAddress(arguments.at(0), &address))
         return false;
 
@@ -94,7 +94,7 @@ bool Settings::handleROMImage(const QStringList& arguments)
         return false;
 
     bool ok;
-    DWORD address = arguments.at(0).toUInt(&ok, 16);
+    u32 address = arguments.at(0).toUInt(&ok, 16);
     if (!ok)
         return false;
 
@@ -208,11 +208,11 @@ bool Settings::handleFloppyDisk(const QStringList& arguments)
 
 OwnPtr<Settings> Settings::createForAutotest(const QString& fileName)
 {
-    static const WORD autotestEntryCS = 0x1000;
-    static const WORD autotestEntryIP = 0x0000;
-    static const WORD autotestEntryDS = 0x1000;
-    static const WORD autotestEntrySS = 0x9000;
-    static const WORD autotestEntrySP = 0x1000;
+    static const u16 autotestEntryCS = 0x1000;
+    static const u16 autotestEntryIP = 0x0000;
+    static const u16 autotestEntryDS = 0x1000;
+    static const u16 autotestEntrySS = 0x9000;
+    static const u16 autotestEntrySP = 0x1000;
 
     auto settings = make<Settings>();
 

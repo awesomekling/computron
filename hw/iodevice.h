@@ -45,21 +45,21 @@ public:
     virtual void reset() = 0;
 
     template<typename T>
-    T in(WORD port);
+    T in(u16 port);
     template<typename T>
-    void out(WORD port, T data);
+    void out(u16 port, T data);
 
-    virtual BYTE in8(WORD port);
-    virtual WORD in16(WORD port);
-    virtual DWORD in32(WORD port);
-    virtual void out8(WORD port, BYTE data);
-    virtual void out16(WORD port, WORD data);
-    virtual void out32(WORD port, DWORD data);
+    virtual u8 in8(u16 port);
+    virtual u16 in16(u16 port);
+    virtual u32 in32(u16 port);
+    virtual void out8(u16 port, u8 data);
+    virtual void out16(u16 port, u16 data);
+    virtual void out32(u16 port, u32 data);
 
-    static bool shouldIgnorePort(WORD port);
-    static void ignorePort(WORD port);
+    static bool shouldIgnorePort(u16 port);
+    static void ignorePort(u16 port);
 
-    QList<WORD> ports() const;
+    QList<u16> ports() const;
 
     enum { JunkValue = 0xff };
 
@@ -69,19 +69,19 @@ protected:
         WriteOnly = 2,
         ReadWrite = 3
     };
-    virtual void listen(WORD port, ListenMask mask);
+    virtual void listen(u16 port, ListenMask mask);
 
 private:
     Machine& m_machine;
     const char* m_name { nullptr };
     int m_irq { 0 };
-    QList<WORD> m_ports;
+    QList<u16> m_ports;
 
-    static QSet<WORD> s_ignorePorts;
+    static QSet<u16> s_ignorePorts;
 };
 
 template<typename T>
-inline T IODevice::in(WORD port)
+inline T IODevice::in(u16 port)
 {
     if (sizeof(T) == 1)
         return in8(port);
@@ -92,7 +92,7 @@ inline T IODevice::in(WORD port)
 }
 
 template<typename T>
-inline void IODevice::out(WORD port, T data)
+inline void IODevice::out(u16 port, T data)
 {
     if (sizeof(T) == 1)
         return out8(port, data);

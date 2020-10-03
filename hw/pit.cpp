@@ -43,14 +43,14 @@ enum CounterAccessState { ReadLatchedLSB,
     AccessMSBThenLSB };
 
 struct CounterInfo {
-    WORD startValue { 0xffff };
-    WORD reload { 0xffff };
-    WORD value();
-    BYTE mode { 0 };
+    u16 startValue { 0xffff };
+    u16 reload { 0xffff };
+    u16 value();
+    u8 mode { 0 };
     DecrementMode decrementMode { DecrementBinary };
-    WORD latchedValue { 0xffff };
+    u16 latchedValue { 0xffff };
     CounterAccessState accessState { ReadLatchedLSB };
-    BYTE format { 0 };
+    u8 format { 0 };
     QElapsedTimer qtimer;
 
     void check(PIT&);
@@ -87,7 +87,7 @@ void PIT::reset()
     d->counter[2] = CounterInfo();
 }
 
-WORD CounterInfo::value()
+u16 CounterInfo::value()
 {
     double nsec = qtimer.nsecsElapsed() / 1000;
     int ticks = floor(nsec * baseFrequency);
@@ -124,7 +124,7 @@ void CounterInfo::check(PIT& pit)
     }
 }
 
-void PIT::reconfigureTimer(BYTE index)
+void PIT::reconfigureTimer(u8 index)
 {
     auto& counter = d->counter[index];
     counter.qtimer.start();
@@ -149,38 +149,38 @@ void PIT::threadedTimerFired(Badge<ThreadedTimer>)
 #endif
 }
 
-BYTE PIT::readCounter(BYTE index)
+u8 PIT::readCounter(u8 index)
 {
     auto& counter = d->counter[index];
-    BYTE data = 0;
+    u8 data = 0;
     switch (counter.accessState) {
     case ReadLatchedLSB:
-        data = leastSignificant<BYTE>(counter.latchedValue);
+        data = leastSignificant<u8>(counter.latchedValue);
         counter.accessState = ReadLatchedMSB;
         break;
     case ReadLatchedMSB:
-        data = mostSignificant<BYTE>(counter.latchedValue);
+        data = mostSignificant<u8>(counter.latchedValue);
         counter.accessState = ReadLatchedLSB;
         break;
     case AccessLSBOnly:
-        data = leastSignificant<BYTE>(counter.latchedValue);
+        data = leastSignificant<u8>(counter.latchedValue);
         break;
     case AccessMSBOnly:
-        data = mostSignificant<BYTE>(counter.latchedValue);
+        data = mostSignificant<u8>(counter.latchedValue);
         break;
     case AccessLSBThenMSB:
-        data = leastSignificant<BYTE>(counter.value());
+        data = leastSignificant<u8>(counter.value());
         counter.accessState = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
-        data = mostSignificant<BYTE>(counter.value());
+        data = mostSignificant<u8>(counter.value());
         counter.accessState = AccessLSBThenMSB;
         break;
     }
     return data;
 }
 
-void PIT::writeCounter(BYTE index, BYTE data)
+void PIT::writeCounter(u8 index, u8 data)
 {
     auto& counter = d->counter[index];
     switch (counter.accessState) {
@@ -188,28 +188,28 @@ void PIT::writeCounter(BYTE index, BYTE data)
     case ReadLatchedMSB:
         break;
     case AccessLSBOnly:
-        counter.reload = weld<WORD>(mostSignificant<BYTE>(counter.reload), data);
+        counter.reload = weld<u16>(mostSignificant<u8>(counter.reload), data);
         reconfigureTimer(index);
         break;
     case AccessMSBOnly:
-        counter.reload = weld<WORD>(data, leastSignificant<BYTE>(counter.reload));
+        counter.reload = weld<u16>(data, leastSignificant<u8>(counter.reload));
         reconfigureTimer(index);
         break;
     case AccessLSBThenMSB:
-        counter.reload = weld<WORD>(mostSignificant<BYTE>(counter.reload), data);
+        counter.reload = weld<u16>(mostSignificant<u8>(counter.reload), data);
         counter.accessState = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
-        counter.reload = weld<WORD>(data, leastSignificant<BYTE>(counter.reload));
+        counter.reload = weld<u16>(data, leastSignificant<u8>(counter.reload));
         counter.accessState = AccessLSBThenMSB;
         reconfigureTimer(index);
         break;
     }
 }
 
-BYTE PIT::in8(WORD port)
+u8 PIT::in8(u16 port)
 {
-    BYTE data = 0;
+    u8 data = 0;
     switch (port) {
     case 0x40:
     case 0x41:
@@ -227,7 +227,7 @@ BYTE PIT::in8(WORD port)
     return data;
 }
 
-void PIT::out8(WORD port, BYTE data)
+void PIT::out8(u16 port, u8 data)
 {
 #ifdef PIT_DEBUG
     vlog(LogTimer, "out8 %03x, %02x", port, data);
@@ -244,11 +244,11 @@ void PIT::out8(WORD port, BYTE data)
     }
 }
 
-void PIT::modeControl(int timerIndex, BYTE data)
+void PIT::modeControl(int timerIndex, u8 data)
 {
     ASSERT(timerIndex == 0 || timerIndex == 1);
 
-    BYTE counterIndex = (data >> 6);
+    u8 counterIndex = (data >> 6);
 
     if (counterIndex > 2) {
         vlog(LogTimer, "Invalid counter index %d specified.", counterIndex);

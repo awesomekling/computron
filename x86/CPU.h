@@ -40,7 +40,7 @@ class TSS;
 
 struct WatchedAddress {
     WatchedAddress() { }
-    WatchedAddress(QString n, DWORD a, ValueSize s, bool b = false)
+    WatchedAddress(QString n, u32 a, ValueSize s, bool b = false)
         : name(n)
         , address(a)
         , size(s)
@@ -51,8 +51,8 @@ struct WatchedAddress {
     PhysicalAddress address { 0xBEEFBABE };
     ValueSize size { ByteSize };
     bool breakOnChange { false };
-    static const QWORD neverSeen = 0xFFFFFFFFFFFFFFFF;
-    QWORD lastSeenValue { neverSeen };
+    static const u64 neverSeen = 0xFFFFFFFFFFFFFFFF;
+    u64 lastSeenValue { neverSeen };
 };
 
 enum class JumpType {
@@ -91,7 +91,7 @@ struct HardwareInterruptDuringREP {
 
 class Exception {
 public:
-    Exception(BYTE num, WORD code, DWORD address, const QString& reason)
+    Exception(u8 num, u16 code, u32 address, const QString& reason)
         : m_num(num)
         , m_code(code)
         , m_address(address)
@@ -100,7 +100,7 @@ public:
     {
     }
 
-    Exception(BYTE num, WORD code, const QString& reason)
+    Exception(u8 num, u16 code, const QString& reason)
         : m_num(num)
         , m_code(code)
         , m_hasCode(true)
@@ -108,7 +108,7 @@ public:
     {
     }
 
-    Exception(BYTE num, const QString& reason)
+    Exception(u8 num, const QString& reason)
         : m_num(num)
         , m_hasCode(false)
         , m_reason(reason)
@@ -117,43 +117,43 @@ public:
 
     ~Exception() { }
 
-    BYTE num() const { return m_num; }
-    WORD code() const { return m_code; }
+    u8 num() const { return m_num; }
+    u16 code() const { return m_code; }
     bool hasCode() const { return m_hasCode; }
-    DWORD address() const { return m_address; }
+    u32 address() const { return m_address; }
     QString reason() const { return m_reason; }
 
 private:
-    BYTE m_num { 0 };
-    WORD m_code { 0 };
-    DWORD m_address { 0 };
+    u8 m_num { 0 };
+    u16 m_code { 0 };
+    u32 m_address { 0 };
     bool m_hasCode { false };
     QString m_reason;
 };
 
 union PartAddressableRegister {
     struct {
-        DWORD fullDWORD;
+        u32 fullDWORD;
     };
 #ifdef CT_BIG_ENDIAN
     struct {
-        WORD __highWORD;
-        WORD lowWORD;
+        u16 __highWORD;
+        u16 lowWORD;
     };
     struct {
-        WORD __highWORD2;
-        BYTE highBYTE;
-        BYTE lowBYTE;
+        u16 __highWORD2;
+        u8 highBYTE;
+        u8 lowBYTE;
     };
 #else
     struct {
-        WORD lowWORD;
-        WORD __highWORD;
+        u16 lowWORD;
+        u16 __highWORD;
     };
     struct {
-        BYTE lowBYTE;
-        BYTE highBYTE;
-        BYTE __highWORD2;
+        u8 lowBYTE;
+        u8 highBYTE;
+        u8 __highWORD2;
     };
 #endif
 };
@@ -167,12 +167,12 @@ public:
 
     const char* name() const { return m_name; }
     LinearAddress base() const { return m_base; }
-    WORD limit() const { return m_limit; }
-    WORD selector() const { return m_selector; }
+    u16 limit() const { return m_limit; }
+    u16 selector() const { return m_selector; }
 
     void setBase(LinearAddress address) { m_base = address; }
-    void setLimit(WORD limit) { m_limit = limit; }
-    void setSelector(WORD selector) { m_selector = selector; }
+    void setLimit(u16 limit) { m_limit = limit; }
+    void setSelector(u16 selector) { m_selector = selector; }
 
     void clear()
     {
@@ -184,8 +184,8 @@ public:
 private:
     const char* m_name { nullptr };
     LinearAddress m_base { 0 };
-    WORD m_limit { 0xffff };
-    WORD m_selector { 0 };
+    u16 m_limit { 0xffff };
+    u16 m_selector { 0 };
 };
 
 class CPU final : public InstructionStream {
@@ -197,7 +197,7 @@ public:
     ~CPU();
 
     struct Flag {
-        enum Flags : DWORD {
+        enum Flags : u32 {
             CF = 0x0001,
             PF = 0x0004,
             AF = 0x0010,
@@ -219,7 +219,7 @@ public:
     };
 
     struct CR0 {
-        enum Bits : DWORD {
+        enum Bits : u32 {
             PE = 1u << 0,
             EM = 1u << 2,
             TS = 1u << 3,
@@ -229,7 +229,7 @@ public:
     };
 
     struct CR4 {
-        enum Bits : DWORD {
+        enum Bits : u32 {
             VME = 1u << 0,
             PVI = 1u << 1,
             TSD = 1u << 2,
@@ -241,7 +241,7 @@ public:
 
     void recomputeMainLoopNeedsSlowStuff();
 
-    QWORD cycle() const { return m_cycle; }
+    u64 cycle() const { return m_cycle; }
 
     void reset();
 
@@ -298,34 +298,34 @@ public:
         // FIXME: Check SS limits as we go.
         void commit() { m_cpu.adjustStackPointer(m_offset); }
 
-        DWORD pop32()
+        u32 pop32()
         {
-            DWORD new_esp = m_cpu.currentStackPointer() + m_offset;
+            u32 new_esp = m_cpu.currentStackPointer() + m_offset;
             if (m_cpu.s16())
                 new_esp &= 0xffff;
             auto data = m_cpu.readMemory32(SegmentRegisterIndex::SS, new_esp);
             m_offset += 4;
             return data;
         }
-        WORD pop16()
+        u16 pop16()
         {
-            DWORD new_esp = m_cpu.currentStackPointer() + m_offset;
+            u32 new_esp = m_cpu.currentStackPointer() + m_offset;
             if (m_cpu.s16())
                 new_esp &= 0xffff;
             auto data = m_cpu.readMemory16(SegmentRegisterIndex::SS, new_esp);
             m_offset += 2;
             return data;
         }
-        DWORD popOperandSizedValue() { return m_cpu.o16() ? pop16() : pop32(); }
+        u32 popOperandSizedValue() { return m_cpu.o16() ? pop16() : pop32(); }
         void adjustStackPointer(int adjustment) { m_offset += adjustment; }
-        DWORD adjustedStackPointer() const { return m_cpu.currentStackPointer() + m_offset; }
+        u32 adjustedStackPointer() const { return m_cpu.currentStackPointer() + m_offset; }
 
     private:
         CPU& m_cpu;
         int m_offset { 0 };
     };
 
-    void dumpSegment(WORD index);
+    void dumpSegment(u16 index);
     void dumpDescriptor(const Descriptor&, const char* prefix = "");
     void dumpDescriptor(const Gate&, const char* prefix = "");
     void dumpDescriptor(const SegmentDescriptor&, const char* prefix = "");
@@ -333,12 +333,12 @@ public:
     void dumpDescriptor(const CodeSegmentDescriptor&, const char* prefix = "");
     void dumpDescriptor(const DataSegmentDescriptor&, const char* prefix = "");
 
-    LogicalAddress getRealModeInterruptVector(BYTE index);
-    SegmentDescriptor getRealModeOrVM86Descriptor(WORD selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
-    Descriptor getDescriptor(WORD selector);
-    SegmentDescriptor getSegmentDescriptor(WORD selector);
-    Descriptor getInterruptDescriptor(BYTE number);
-    Descriptor getDescriptor(DescriptorTableRegister&, WORD index, bool indexIsSelector);
+    LogicalAddress getRealModeInterruptVector(u8 index);
+    SegmentDescriptor getRealModeOrVM86Descriptor(u16 selector, SegmentRegisterIndex = SegmentRegisterIndex::None);
+    Descriptor getDescriptor(u16 selector);
+    SegmentDescriptor getSegmentDescriptor(u16 selector);
+    Descriptor getInterruptDescriptor(u8 number);
+    Descriptor getDescriptor(DescriptorTableRegister&, u16 index, bool indexIsSelector);
 
     SegmentRegisterIndex currentSegment() const { return m_segmentPrefix == SegmentRegisterIndex::None ? SegmentRegisterIndex::DS : m_segmentPrefix; }
     bool hasSegmentPrefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
@@ -356,40 +356,40 @@ public:
     }
 
     // Extended memory size in KiB (will be reported by CMOS)
-    DWORD extendedMemorySize() const { return m_extendedMemorySize; }
-    void setExtendedMemorySize(DWORD size) { m_extendedMemorySize = size; }
+    u32 extendedMemorySize() const { return m_extendedMemorySize; }
+    void setExtendedMemorySize(u32 size) { m_extendedMemorySize = size; }
 
     // Conventional memory size in KiB (will be reported by CMOS)
-    DWORD baseMemorySize() const { return m_baseMemorySize; }
-    void setBaseMemorySize(DWORD size) { m_baseMemorySize = size; }
+    u32 baseMemorySize() const { return m_baseMemorySize; }
+    void setBaseMemorySize(u32 size) { m_baseMemorySize = size; }
 
-    void setMemorySizeAndReallocateIfNeeded(DWORD);
+    void setMemorySizeAndReallocateIfNeeded(u32);
 
     void kill();
 
     void setA20Enabled(bool value) { m_a20Enabled = value; }
     bool isA20Enabled() const { return m_a20Enabled; }
 
-    DWORD a20Mask() const { return isA20Enabled() ? 0xFFFFFFFF : 0xFFEFFFFF; }
+    u32 a20Mask() const { return isA20Enabled() ? 0xFFFFFFFF : 0xFFEFFFFF; }
 
     enum class InterruptSource { Internal = 0,
         External = 1 };
 
-    void realModeInterrupt(BYTE isr, InterruptSource);
-    void protectedModeInterrupt(BYTE isr, InterruptSource, QVariant errorCode);
-    void interrupt(BYTE isr, InterruptSource, QVariant errorCode = QVariant());
-    void interruptToTaskGate(BYTE isr, InterruptSource, QVariant errorCode, Gate&);
+    void realModeInterrupt(u8 isr, InterruptSource);
+    void protectedModeInterrupt(u8 isr, InterruptSource, QVariant errorCode);
+    void interrupt(u8 isr, InterruptSource, QVariant errorCode = QVariant());
+    void interruptToTaskGate(u8 isr, InterruptSource, QVariant errorCode, Gate&);
 
-    void interruptFromVM86Mode(Gate&, DWORD offset, CodeSegmentDescriptor&, InterruptSource, QVariant errorCode);
-    void iretToVM86Mode(TransactionalPopper&, LogicalAddress, DWORD flags);
+    void interruptFromVM86Mode(Gate&, u32 offset, CodeSegmentDescriptor&, InterruptSource, QVariant errorCode);
+    void iretToVM86Mode(TransactionalPopper&, LogicalAddress, u32 flags);
     void iretFromVM86Mode();
     void iretFromRealMode();
 
-    Exception GeneralProtectionFault(WORD selector, const QString& reason);
-    Exception StackFault(WORD selector, const QString& reason);
-    Exception NotPresent(WORD selector, const QString& reason);
-    Exception InvalidTSS(WORD selector, const QString& reason);
-    Exception PageFault(LinearAddress, PageFaultFlags::Flags, MemoryAccessType, bool inUserMode, const char* faultTable, DWORD pde, DWORD pte = 0);
+    Exception GeneralProtectionFault(u16 selector, const QString& reason);
+    Exception StackFault(u16 selector, const QString& reason);
+    Exception NotPresent(u16 selector, const QString& reason);
+    Exception InvalidTSS(u16 selector, const QString& reason);
+    Exception PageFault(LinearAddress, PageFaultFlags::Flags, MemoryAccessType, bool inUserMode, const char* faultTable, u32 pde, u32 pte = 0);
     Exception DivideError(const QString& reason);
     Exception InvalidOpcode(const QString& reason = QString());
     Exception BoundRangeExceeded(const QString& reason);
@@ -435,8 +435,8 @@ public:
 
     unsigned int getIOPL() const { return this->IOPL; }
 
-    BYTE getCPL() const { return cachedDescriptor(SegmentRegisterIndex::CS).RPL(); }
-    void setCPL(BYTE);
+    u8 getCPL() const { return cachedDescriptor(SegmentRegisterIndex::CS).RPL(); }
+    void setCPL(u8);
 
     bool getNT() const { return this->NT; }
     bool getVIP() const { return this->VIP; }
@@ -448,131 +448,131 @@ public:
     bool getPVI() const { return m_CR4 & CR4::PVI; }
     bool getTSD() const { return m_CR4 & CR4::TSD; }
 
-    WORD getCS() const { return this->CS; }
-    WORD getIP() const { return m_EIP & 0xffff; }
-    DWORD getEIP() const { return m_EIP; }
+    u16 getCS() const { return this->CS; }
+    u16 getIP() const { return m_EIP & 0xffff; }
+    u32 getEIP() const { return m_EIP; }
 
-    WORD getDS() const { return this->DS; }
-    WORD getES() const { return this->ES; }
-    WORD getSS() const { return this->SS; }
-    WORD getFS() const { return this->FS; }
-    WORD getGS() const { return this->GS; }
+    u16 getDS() const { return this->DS; }
+    u16 getES() const { return this->ES; }
+    u16 getSS() const { return this->SS; }
+    u16 getFS() const { return this->FS; }
+    u16 getGS() const { return this->GS; }
 
-    void setCS(WORD cs);
-    void setDS(WORD ds);
-    void setES(WORD es);
-    void setSS(WORD ss);
-    void setFS(WORD fs);
-    void setGS(WORD gs);
+    void setCS(u16 cs);
+    void setDS(u16 ds);
+    void setES(u16 es);
+    void setSS(u16 ss);
+    void setFS(u16 fs);
+    void setGS(u16 gs);
 
-    void setIP(WORD ip) { setEIP(ip); }
-    void setEIP(DWORD eip) { m_EIP = eip; }
+    void setIP(u16 ip) { setEIP(ip); }
+    void setEIP(u32 eip) { m_EIP = eip; }
 
-    WORD readSegmentRegister(SegmentRegisterIndex segreg) const { return *m_segmentMap[static_cast<int>(segreg)]; }
+    u16 readSegmentRegister(SegmentRegisterIndex segreg) const { return *m_segmentMap[static_cast<int>(segreg)]; }
 
-    DWORD getControlRegister(int registerIndex) const { return *m_controlRegisterMap[registerIndex]; }
-    void setControlRegister(int registerIndex, DWORD value) { *m_controlRegisterMap[registerIndex] = value; }
+    u32 getControlRegister(int registerIndex) const { return *m_controlRegisterMap[registerIndex]; }
+    void setControlRegister(int registerIndex, u32 value) { *m_controlRegisterMap[registerIndex] = value; }
 
-    DWORD getDebugRegister(int registerIndex) const { return *m_debugRegisterMap[registerIndex]; }
-    void setDebugRegister(int registerIndex, DWORD value) { *m_debugRegisterMap[registerIndex] = value; }
+    u32 getDebugRegister(int registerIndex) const { return *m_debugRegisterMap[registerIndex]; }
+    void setDebugRegister(int registerIndex, u32 value) { *m_debugRegisterMap[registerIndex] = value; }
 
-    BYTE& mutableReg8(RegisterIndex8 index) { return *m_byteRegisters[index]; }
-    WORD& mutableReg16(RegisterIndex16 index) { return m_generalPurposeRegister[index].lowWORD; }
-    DWORD& mutableReg32(RegisterIndex32 index) { return m_generalPurposeRegister[index].fullDWORD; }
+    u8& mutableReg8(RegisterIndex8 index) { return *m_byteRegisters[index]; }
+    u16& mutableReg16(RegisterIndex16 index) { return m_generalPurposeRegister[index].lowWORD; }
+    u32& mutableReg32(RegisterIndex32 index) { return m_generalPurposeRegister[index].fullDWORD; }
 
-    DWORD getEAX() const { return readRegister<DWORD>(RegisterEAX); }
-    DWORD getEBX() const { return readRegister<DWORD>(RegisterEBX); }
-    DWORD getECX() const { return readRegister<DWORD>(RegisterECX); }
-    DWORD getEDX() const { return readRegister<DWORD>(RegisterEDX); }
-    DWORD getESI() const { return readRegister<DWORD>(RegisterESI); }
-    DWORD getEDI() const { return readRegister<DWORD>(RegisterEDI); }
-    DWORD getESP() const { return readRegister<DWORD>(RegisterESP); }
-    DWORD getEBP() const { return readRegister<DWORD>(RegisterEBP); }
+    u32 getEAX() const { return readRegister<u32>(RegisterEAX); }
+    u32 getEBX() const { return readRegister<u32>(RegisterEBX); }
+    u32 getECX() const { return readRegister<u32>(RegisterECX); }
+    u32 getEDX() const { return readRegister<u32>(RegisterEDX); }
+    u32 getESI() const { return readRegister<u32>(RegisterESI); }
+    u32 getEDI() const { return readRegister<u32>(RegisterEDI); }
+    u32 getESP() const { return readRegister<u32>(RegisterESP); }
+    u32 getEBP() const { return readRegister<u32>(RegisterEBP); }
 
-    WORD getAX() const { return readRegister<WORD>(RegisterAX); }
-    WORD getBX() const { return readRegister<WORD>(RegisterBX); }
-    WORD getCX() const { return readRegister<WORD>(RegisterCX); }
-    WORD getDX() const { return readRegister<WORD>(RegisterDX); }
-    WORD getSI() const { return readRegister<WORD>(RegisterSI); }
-    WORD getDI() const { return readRegister<WORD>(RegisterDI); }
-    WORD getSP() const { return readRegister<WORD>(RegisterSP); }
-    WORD getBP() const { return readRegister<WORD>(RegisterBP); }
+    u16 getAX() const { return readRegister<u16>(RegisterAX); }
+    u16 getBX() const { return readRegister<u16>(RegisterBX); }
+    u16 getCX() const { return readRegister<u16>(RegisterCX); }
+    u16 getDX() const { return readRegister<u16>(RegisterDX); }
+    u16 getSI() const { return readRegister<u16>(RegisterSI); }
+    u16 getDI() const { return readRegister<u16>(RegisterDI); }
+    u16 getSP() const { return readRegister<u16>(RegisterSP); }
+    u16 getBP() const { return readRegister<u16>(RegisterBP); }
 
-    BYTE getAL() const { return readRegister<BYTE>(RegisterAL); }
-    BYTE getBL() const { return readRegister<BYTE>(RegisterBL); }
-    BYTE getCL() const { return readRegister<BYTE>(RegisterCL); }
-    BYTE getDL() const { return readRegister<BYTE>(RegisterDL); }
-    BYTE getAH() const { return readRegister<BYTE>(RegisterAH); }
-    BYTE getBH() const { return readRegister<BYTE>(RegisterBH); }
-    BYTE getCH() const { return readRegister<BYTE>(RegisterCH); }
-    BYTE getDH() const { return readRegister<BYTE>(RegisterDH); }
+    u8 getAL() const { return readRegister<u8>(RegisterAL); }
+    u8 getBL() const { return readRegister<u8>(RegisterBL); }
+    u8 getCL() const { return readRegister<u8>(RegisterCL); }
+    u8 getDL() const { return readRegister<u8>(RegisterDL); }
+    u8 getAH() const { return readRegister<u8>(RegisterAH); }
+    u8 getBH() const { return readRegister<u8>(RegisterBH); }
+    u8 getCH() const { return readRegister<u8>(RegisterCH); }
+    u8 getDH() const { return readRegister<u8>(RegisterDH); }
 
-    void setAL(BYTE value) { writeRegister<BYTE>(RegisterAL, value); }
-    void setBL(BYTE value) { writeRegister<BYTE>(RegisterBL, value); }
-    void setCL(BYTE value) { writeRegister<BYTE>(RegisterCL, value); }
-    void setDL(BYTE value) { writeRegister<BYTE>(RegisterDL, value); }
-    void setAH(BYTE value) { writeRegister<BYTE>(RegisterAH, value); }
-    void setBH(BYTE value) { writeRegister<BYTE>(RegisterBH, value); }
-    void setCH(BYTE value) { writeRegister<BYTE>(RegisterCH, value); }
-    void setDH(BYTE value) { writeRegister<BYTE>(RegisterDH, value); }
+    void setAL(u8 value) { writeRegister<u8>(RegisterAL, value); }
+    void setBL(u8 value) { writeRegister<u8>(RegisterBL, value); }
+    void setCL(u8 value) { writeRegister<u8>(RegisterCL, value); }
+    void setDL(u8 value) { writeRegister<u8>(RegisterDL, value); }
+    void setAH(u8 value) { writeRegister<u8>(RegisterAH, value); }
+    void setBH(u8 value) { writeRegister<u8>(RegisterBH, value); }
+    void setCH(u8 value) { writeRegister<u8>(RegisterCH, value); }
+    void setDH(u8 value) { writeRegister<u8>(RegisterDH, value); }
 
-    void setAX(WORD value) { writeRegister<WORD>(RegisterAX, value); }
-    void setBX(WORD value) { writeRegister<WORD>(RegisterBX, value); }
-    void setCX(WORD value) { writeRegister<WORD>(RegisterCX, value); }
-    void setDX(WORD value) { writeRegister<WORD>(RegisterDX, value); }
-    void setSP(WORD value) { writeRegister<WORD>(RegisterSP, value); }
-    void setBP(WORD value) { writeRegister<WORD>(RegisterBP, value); }
-    void setSI(WORD value) { writeRegister<WORD>(RegisterSI, value); }
-    void setDI(WORD value) { writeRegister<WORD>(RegisterDI, value); }
+    void setAX(u16 value) { writeRegister<u16>(RegisterAX, value); }
+    void setBX(u16 value) { writeRegister<u16>(RegisterBX, value); }
+    void setCX(u16 value) { writeRegister<u16>(RegisterCX, value); }
+    void setDX(u16 value) { writeRegister<u16>(RegisterDX, value); }
+    void setSP(u16 value) { writeRegister<u16>(RegisterSP, value); }
+    void setBP(u16 value) { writeRegister<u16>(RegisterBP, value); }
+    void setSI(u16 value) { writeRegister<u16>(RegisterSI, value); }
+    void setDI(u16 value) { writeRegister<u16>(RegisterDI, value); }
 
-    void setEAX(DWORD value) { writeRegister<DWORD>(RegisterEAX, value); }
-    void setEBX(DWORD value) { writeRegister<DWORD>(RegisterEBX, value); }
-    void setECX(DWORD value) { writeRegister<DWORD>(RegisterECX, value); }
-    void setEDX(DWORD value) { writeRegister<DWORD>(RegisterEDX, value); }
-    void setESP(DWORD value) { writeRegister<DWORD>(RegisterESP, value); }
-    void setEBP(DWORD value) { writeRegister<DWORD>(RegisterEBP, value); }
-    void setESI(DWORD value) { writeRegister<DWORD>(RegisterESI, value); }
-    void setEDI(DWORD value) { writeRegister<DWORD>(RegisterEDI, value); }
+    void setEAX(u32 value) { writeRegister<u32>(RegisterEAX, value); }
+    void setEBX(u32 value) { writeRegister<u32>(RegisterEBX, value); }
+    void setECX(u32 value) { writeRegister<u32>(RegisterECX, value); }
+    void setEDX(u32 value) { writeRegister<u32>(RegisterEDX, value); }
+    void setESP(u32 value) { writeRegister<u32>(RegisterESP, value); }
+    void setEBP(u32 value) { writeRegister<u32>(RegisterEBP, value); }
+    void setESI(u32 value) { writeRegister<u32>(RegisterESI, value); }
+    void setEDI(u32 value) { writeRegister<u32>(RegisterEDI, value); }
 
-    DWORD getCR0() const { return m_CR0; }
-    DWORD getCR2() const { return m_CR2; }
-    DWORD getCR3() const { return m_CR3; }
-    DWORD getCR4() const { return m_CR4; }
+    u32 getCR0() const { return m_CR0; }
+    u32 getCR2() const { return m_CR2; }
+    u32 getCR3() const { return m_CR3; }
+    u32 getCR4() const { return m_CR4; }
 
-    DWORD getDR0() const { return m_DR0; }
-    DWORD getDR1() const { return m_DR1; }
-    DWORD getDR2() const { return m_DR2; }
-    DWORD getDR3() const { return m_DR3; }
-    DWORD getDR4() const { return m_DR4; }
-    DWORD getDR5() const { return m_DR5; }
-    DWORD getDR6() const { return m_DR6; }
-    DWORD getDR7() const { return m_DR7; }
+    u32 getDR0() const { return m_DR0; }
+    u32 getDR1() const { return m_DR1; }
+    u32 getDR2() const { return m_DR2; }
+    u32 getDR3() const { return m_DR3; }
+    u32 getDR4() const { return m_DR4; }
+    u32 getDR5() const { return m_DR5; }
+    u32 getDR6() const { return m_DR6; }
+    u32 getDR7() const { return m_DR7; }
 
     // Base CS:EIP is the start address of the currently executing instruction
-    WORD getBaseCS() const { return m_baseCS; }
-    WORD getBaseIP() const { return m_baseEIP & 0xFFFF; }
-    DWORD getBaseEIP() const { return m_baseEIP; }
+    u16 getBaseCS() const { return m_baseCS; }
+    u16 getBaseIP() const { return m_baseEIP & 0xFFFF; }
+    u32 getBaseEIP() const { return m_baseEIP; }
 
-    DWORD currentStackPointer() const
+    u32 currentStackPointer() const
     {
         if (s32())
             return getESP();
         return getSP();
     }
-    DWORD currentBasePointer() const
+    u32 currentBasePointer() const
     {
         if (s32())
             return getEBP();
         return getBP();
     }
-    void setCurrentStackPointer(DWORD value)
+    void setCurrentStackPointer(u32 value)
     {
         if (s32())
             setESP(value);
         else
             setSP(value);
     }
-    void setCurrentBasePointer(DWORD value)
+    void setCurrentBasePointer(u32 value)
     {
         if (s32())
             setEBP(value);
@@ -583,11 +583,11 @@ public:
     {
         setCurrentStackPointer(currentStackPointer() + delta);
     }
-    DWORD currentInstructionPointer() const
+    u32 currentInstructionPointer() const
     {
         return x32() ? getEIP() : getIP();
     }
-    DWORD currentBaseInstructionPointer() const
+    u32 currentBaseInstructionPointer() const
     {
         return x32() ? getBaseEIP() : getBaseIP();
     }
@@ -596,20 +596,20 @@ public:
         m_EIP += delta;
     }
 
-    void farReturn(WORD stackAdjustment = 0);
-    void realModeFarReturn(WORD stackAdjustment);
-    void protectedFarReturn(WORD stackAdjustment);
+    void farReturn(u16 stackAdjustment = 0);
+    void realModeFarReturn(u16 stackAdjustment);
+    void protectedFarReturn(u16 stackAdjustment);
     void protectedIRET(TransactionalPopper&, LogicalAddress);
     void clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex, JumpType);
 
     void realModeFarJump(LogicalAddress, JumpType);
     void protectedModeFarJump(LogicalAddress, JumpType, Gate* = nullptr);
     void farJump(LogicalAddress, JumpType, Gate* = nullptr);
-    void jumpRelative8(SIGNED_BYTE displacement);
-    void jumpRelative16(SIGNED_WORD displacement);
-    void jumpRelative32(SIGNED_DWORD displacement);
-    void jumpAbsolute16(WORD offset);
-    void jumpAbsolute32(DWORD offset);
+    void jumpRelative8(i8 displacement);
+    void jumpRelative16(i16 displacement);
+    void jumpRelative32(i32 displacement);
+    void jumpAbsolute16(u16 offset);
+    void jumpAbsolute32(u32 offset);
 
     void decodeNext();
     void execute(Instruction&);
@@ -623,72 +623,72 @@ public:
     // CPU main loop when halted (HLT) - will do nothing until an IRQ is raised
     void haltedLoop();
 
-    void push32(DWORD value);
-    DWORD pop32();
-    void push16(WORD value);
-    WORD pop16();
+    void push32(u32 value);
+    u32 pop32();
+    void push16(u16 value);
+    u16 pop16();
 
     template<typename T>
     T pop();
     template<typename T>
     void push(T);
 
-    void pushValueWithSize(DWORD value, ValueSize size)
+    void pushValueWithSize(u32 value, ValueSize size)
     {
         if (size == WordSize)
             push16(value);
         else
             push32(value);
     }
-    void pushOperandSizedValue(DWORD value)
+    void pushOperandSizedValue(u32 value)
     {
         if (o16())
             push16(value);
         else
             push32(value);
     }
-    DWORD popOperandSizedValue() { return o16() ? pop16() : pop32(); }
+    u32 popOperandSizedValue() { return o16() ? pop16() : pop32(); }
 
-    void pushSegmentRegisterValue(WORD);
+    void pushSegmentRegisterValue(u16);
 
     Debugger& debugger() { return *m_debugger; }
 
     template<typename T>
-    T in(WORD port);
+    T in(u16 port);
     template<typename T>
-    void out(WORD port, T data);
+    void out(u16 port, T data);
 
-    BYTE in8(WORD port);
-    WORD in16(WORD port);
-    DWORD in32(WORD port);
-    void out8(WORD port, BYTE value);
-    void out16(WORD port, WORD value);
-    void out32(WORD port, DWORD value);
+    u8 in8(u16 port);
+    u16 in16(u16 port);
+    u32 in32(u16 port);
+    void out8(u16 port, u8 value);
+    void out16(u16 port, u16 value);
+    void out32(u16 port, u32 value);
 
-    const BYTE* memoryPointer(LinearAddress);
-    const BYTE* memoryPointer(LogicalAddress);
-    const BYTE* memoryPointer(SegmentRegisterIndex, DWORD offset);
-    const BYTE* memoryPointer(const SegmentDescriptor&, DWORD offset);
+    const u8* memoryPointer(LinearAddress);
+    const u8* memoryPointer(LogicalAddress);
+    const u8* memoryPointer(SegmentRegisterIndex, u32 offset);
+    const u8* memoryPointer(const SegmentDescriptor&, u32 offset);
 
-    DWORD getEFlags() const;
-    WORD getFlags() const;
-    void setEFlags(DWORD flags);
-    void setFlags(WORD flags);
-    void setEFlagsRespectfully(DWORD flags, BYTE effectiveCPL);
+    u32 getEFlags() const;
+    u16 getFlags() const;
+    void setEFlags(u32 flags);
+    void setFlags(u16 flags);
+    void setEFlagsRespectfully(u32 flags, u8 effectiveCPL);
 
-    bool evaluate(BYTE) const;
+    bool evaluate(u8) const;
 
     template<typename T>
     void updateFlags(T);
-    void updateFlags32(DWORD value);
-    void updateFlags16(WORD value);
-    void updateFlags8(BYTE value);
+    void updateFlags32(u32 value);
+    void updateFlags16(u16 value);
+    void updateFlags8(u8 value);
     template<typename T>
     void mathFlags(typename TypeDoubler<T>::type result, T dest, T src);
     template<typename T>
     void cmpFlags(typename TypeDoubler<T>::type result, T dest, T src);
 
-    void adjustFlag(QWORD result, DWORD src, DWORD dest)
+    void adjustFlag(u64 result, u32 src, u32 dest)
     {
         setAF((((result ^ (src ^ dest)) & 0x10) >> 4) & 1);
     }
@@ -698,65 +698,65 @@ public:
     template<typename T>
     void writeRegister(int registerIndex, T value);
 
-    DWORD readRegisterForAddressSize(int registerIndex);
-    void writeRegisterForAddressSize(int registerIndex, DWORD);
-    void stepRegisterForAddressSize(int registerIndex, DWORD stepSize);
+    u32 readRegisterForAddressSize(int registerIndex);
+    void writeRegisterForAddressSize(int registerIndex, u32);
+    void stepRegisterForAddressSize(int registerIndex, u32 stepSize);
     bool decrementCXForAddressSize();
 
     template<typename T>
-    LogicalAddress readLogicalAddress(SegmentRegisterIndex, DWORD offset);
+    LogicalAddress readLogicalAddress(SegmentRegisterIndex, u32 offset);
 
     template<typename T>
     bool validatePhysicalAddress(PhysicalAddress, MemoryAccessType);
     template<typename T>
-    void validateAddress(const SegmentDescriptor&, DWORD offset, MemoryAccessType);
+    void validateAddress(const SegmentDescriptor&, u32 offset, MemoryAccessType);
     template<typename T>
-    void validateAddress(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
+    void validateAddress(SegmentRegisterIndex, u32 offset, MemoryAccessType);
     template<typename T>
     T readPhysicalMemory(PhysicalAddress);
     template<typename T>
     void writePhysicalMemory(PhysicalAddress, T);
-    const BYTE* pointerToPhysicalMemory(PhysicalAddress);
+    const u8* pointerToPhysicalMemory(PhysicalAddress);
     template<typename T>
     T readMemoryMetal(LinearAddress address);
     template<typename T>
-    T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, BYTE effectiveCPL = 0xff);
+    T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, u8 effectiveCPL = 0xff);
     template<typename T>
-    T readMemory(const SegmentDescriptor&, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    T readMemory(const SegmentDescriptor&, u32 offset, MemoryAccessType accessType = MemoryAccessType::Read);
     template<typename T>
-    T readMemory(SegmentRegisterIndex, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    T readMemory(SegmentRegisterIndex, u32 offset, MemoryAccessType accessType = MemoryAccessType::Read);
     template<typename T>
     void writeMemoryMetal(LinearAddress, T);
     template<typename T>
-    void writeMemory(LinearAddress, T, BYTE effectiveCPL = 0xff);
+    void writeMemory(LinearAddress, T, u8 effectiveCPL = 0xff);
     template<typename T>
-    void writeMemory(const SegmentDescriptor&, DWORD offset, T);
+    void writeMemory(const SegmentDescriptor&, u32 offset, T);
     template<typename T>
-    void writeMemory(SegmentRegisterIndex, DWORD offset, T);
+    void writeMemory(SegmentRegisterIndex, u32 offset, T);
 
-    PhysicalAddress translateAddress(LinearAddress, MemoryAccessType, BYTE effectiveCPL = 0xff);
+    PhysicalAddress translateAddress(LinearAddress, MemoryAccessType, u8 effectiveCPL = 0xff);
     void snoop(LinearAddress, MemoryAccessType);
-    void snoop(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
+    void snoop(SegmentRegisterIndex, u32 offset, MemoryAccessType);
 
     template<typename T>
-    void validateIOAccess(WORD port);
+    void validateIOAccess(u16 port);
 
-    BYTE readMemory8(LinearAddress);
-    BYTE readMemory8(SegmentRegisterIndex, DWORD offset);
-    WORD readMemory16(LinearAddress);
-    WORD readMemory16(SegmentRegisterIndex, DWORD offset);
-    DWORD readMemory32(LinearAddress);
-    DWORD readMemory32(SegmentRegisterIndex, DWORD offset);
-    WORD readMemoryMetal16(LinearAddress);
-    DWORD readMemoryMetal32(LinearAddress);
-    void writeMemory8(LinearAddress, BYTE);
-    void writeMemory8(SegmentRegisterIndex, DWORD offset, BYTE data);
-    void writeMemory16(LinearAddress, WORD);
-    void writeMemory16(SegmentRegisterIndex, DWORD offset, WORD data);
-    void writeMemory32(LinearAddress, DWORD);
-    void writeMemory32(SegmentRegisterIndex, DWORD offset, DWORD data);
-    void writeMemoryMetal16(LinearAddress, WORD);
-    void writeMemoryMetal32(LinearAddress, DWORD);
+    u8 readMemory8(LinearAddress);
+    u8 readMemory8(SegmentRegisterIndex, u32 offset);
+    u16 readMemory16(LinearAddress);
+    u16 readMemory16(SegmentRegisterIndex, u32 offset);
+    u32 readMemory32(LinearAddress);
+    u32 readMemory32(SegmentRegisterIndex, u32 offset);
+    u16 readMemoryMetal16(LinearAddress);
+    u32 readMemoryMetal32(LinearAddress);
+    void writeMemory8(LinearAddress, u8);
+    void writeMemory8(SegmentRegisterIndex, u32 offset, u8 data);
+    void writeMemory16(LinearAddress, u16);
+    void writeMemory16(SegmentRegisterIndex, u32 offset, u16 data);
+    void writeMemory32(LinearAddress, u32);
+    void writeMemory32(SegmentRegisterIndex, u32 offset, u32 data);
+    void writeMemoryMetal16(LinearAddress, u16);
+    void writeMemoryMetal32(LinearAddress, u32);
 
     enum State { Dead,
         Alive,
@@ -778,13 +778,13 @@ public:
     void dumpGDT();
 
     void dumpMemory(LogicalAddress, int rows);
-    void dumpFlatMemory(DWORD address);
-    void dumpRawMemory(BYTE*);
+    void dumpFlatMemory(u32 address);
+    void dumpRawMemory(u8*);
     unsigned dumpDisassembled(LogicalAddress, unsigned count = 1);
 
-    void dumpMemory(SegmentDescriptor&, DWORD offset, int rows);
-    unsigned dumpDisassembled(SegmentDescriptor&, DWORD offset, unsigned count = 1);
-    unsigned dumpDisassembledInternal(SegmentDescriptor&, DWORD offset);
+    void dumpMemory(SegmentDescriptor&, u32 offset, int rows);
+    unsigned dumpDisassembled(SegmentDescriptor&, u32 offset, unsigned count = 1);
+    unsigned dumpDisassembledInternal(SegmentDescriptor&, u32 offset);
 
     void dumpTSS(const TSS&);
 
@@ -1424,9 +1424,9 @@ private:
 
     template<typename T>
     T readInstructionStream();
-    BYTE readInstruction8() override;
-    WORD readInstruction16() override;
-    DWORD readInstruction32() override;
+    u8 readInstruction8() override;
+    u16 readInstruction16() override;
+    u32 readInstruction32() override;
 
     void initWatches();
     void hardReboot();
@@ -1436,7 +1436,7 @@ private:
     void updateCodeSegmentCache();
     void makeNextInstructionUninterruptible();
 
-    PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType, BYTE effectiveCPL);
+    PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType, u8 effectiveCPL);
 
     template<typename T>
     T doSAR(T, unsigned steps);
@@ -1473,13 +1473,13 @@ private:
     T doBSR(T);
 
     template<typename T>
-    QWORD doADD(T, T);
+    u64 doADD(T, T);
     template<typename T>
-    QWORD doADC(T, T);
+    u64 doADC(T, T);
     template<typename T>
-    QWORD doSUB(T, T);
+    u64 doSUB(T, T);
     template<typename T>
-    QWORD doSBB(T, T);
+    u64 doSBB(T, T);
     template<typename T>
     void doIMUL(T f1, T f2, T& resultHigh, T& resultLow);
     template<typename T>
@@ -1495,25 +1495,25 @@ private:
         m_baseEIP = getEIP();
     }
 
-    void setLDT(WORD segment);
-    void taskSwitch(WORD task, JumpType);
-    void taskSwitch(WORD task_selector, TSSDescriptor&, JumpType);
+    void setLDT(u16 segment);
+    void taskSwitch(u16 task, JumpType);
+    void taskSwitch(u16 task_selector, TSSDescriptor&, JumpType);
     TSS currentTSS();
 
     void writeToGDT(Descriptor&);
 
     void dumpSelector(const char* prefix, SegmentRegisterIndex);
-    void writeSegmentRegister(SegmentRegisterIndex, WORD selector);
-    void validateSegmentLoad(SegmentRegisterIndex, WORD selector, const Descriptor&);
+    void writeSegmentRegister(SegmentRegisterIndex, u16 selector);
+    void validateSegmentLoad(SegmentRegisterIndex, u16 selector, const Descriptor&);
 
     SegmentDescriptor m_descriptor[6];
 
     PartAddressableRegister m_generalPurposeRegister[8];
-    BYTE* m_byteRegisters[8];
+    u8* m_byteRegisters[8];
 
-    DWORD m_EIP { 0 };
+    u32 m_EIP { 0 };
 
-    WORD CS, DS, ES, SS, FS, GS;
+    u16 CS, DS, ES, SS, FS, GS;
     mutable bool CF, PF, AF, ZF, SF, OF;
     bool DF, IF, TF;
 
@@ -1530,30 +1530,30 @@ private:
     DescriptorTableRegister m_IDTR { "IDT" };
     DescriptorTableRegister m_LDTR { "LDT" };
 
-    DWORD m_CR0 { 0 };
-    DWORD m_CR2 { 0 };
-    DWORD m_CR3 { 0 };
-    DWORD m_CR4 { 0 };
+    u32 m_CR0 { 0 };
+    u32 m_CR2 { 0 };
+    u32 m_CR3 { 0 };
+    u32 m_CR4 { 0 };
 
-    DWORD m_DR0, m_DR1, m_DR2, m_DR3, m_DR4, m_DR5, m_DR6, m_DR7;
+    u32 m_DR0, m_DR1, m_DR2, m_DR3, m_DR4, m_DR5, m_DR6, m_DR7;
 
     struct {
-        WORD selector { 0 };
+        u16 selector { 0 };
         LinearAddress base { 0 };
-        WORD limit { 0 };
+        u16 limit { 0 };
         bool is32Bit { false };
     } TR;
 
     State m_state { Dead };
 
     // Actual CS:EIP (when we started fetching the instruction)
-    WORD m_baseCS { 0 };
-    DWORD m_baseEIP { 0 };
+    u16 m_baseCS { 0 };
+    u32 m_baseEIP { 0 };
 
     SegmentRegisterIndex m_segmentPrefix { SegmentRegisterIndex::None };
 
-    DWORD m_baseMemorySize { 0 };
-    DWORD m_extendedMemorySize { 0 };
+    u32 m_baseMemorySize { 0 };
+    u32 m_extendedMemorySize { 0 };
 
     std::set<LogicalAddress> m_breakpoints;
 
@@ -1566,12 +1566,12 @@ private:
     static const size_t memoryProviderBlockSize = 16384;
     MemoryProvider* m_memoryProviders[1048576 / memoryProviderBlockSize];
 
-    BYTE* m_memory { nullptr };
+    u8* m_memory { nullptr };
     size_t m_memorySize { 0 };
 
-    WORD* m_segmentMap[8];
-    DWORD* m_controlRegisterMap[8];
-    DWORD* m_debugRegisterMap[8];
+    u16* m_segmentMap[8];
+    u32* m_controlRegisterMap[8];
+    u32* m_debugRegisterMap[8];
 
     Machine& m_machine;
 
@@ -1592,8 +1592,8 @@ private:
     QVector<WatchedAddress> m_watches;
 
 #ifdef SYMBOLIC_TRACING
-    QHash<DWORD, QString> m_symbols;
-    QHash<QString, DWORD> m_symbols_reverse;
+    QHash<u32, QString> m_symbols;
+    QHash<QString, u32> m_symbols_reverse;
 #endif
 
 #ifdef VMM_TRACING
@@ -1602,10 +1602,10 @@ private:
 
     bool m_isForAutotest { false };
 
-    QWORD m_cycle { 0 };
+    u64 m_cycle { 0 };
 
-    mutable DWORD m_dirtyFlags { 0 };
-    QWORD m_lastResult { 0 };
+    mutable u32 m_dirtyFlags { 0 };
+    u64 m_lastResult { 0 };
     unsigned m_lastOpSize { ByteSize };
 };
 
@@ -1613,7 +1613,7 @@ extern CPU* g_cpu;
 
 #include "debug.h"
 
-ALWAYS_INLINE bool CPU::evaluate(BYTE conditionCode) const
+ALWAYS_INLINE bool CPU::evaluate(u8 conditionCode) const
 {
     ASSERT(conditionCode <= 0xF);
 
@@ -1654,7 +1654,7 @@ ALWAYS_INLINE bool CPU::evaluate(BYTE conditionCode) const
     return 0;
 }
 
-ALWAYS_INLINE BYTE& Instruction::reg8()
+ALWAYS_INLINE u8& Instruction::reg8()
 {
 #ifdef DEBUG_INSTRUCTION
     ASSERT(m_cpu);
@@ -1662,7 +1662,7 @@ ALWAYS_INLINE BYTE& Instruction::reg8()
     return *m_cpu->m_byteRegisters[registerIndex()];
 }
 
-ALWAYS_INLINE WORD& Instruction::reg16()
+ALWAYS_INLINE u16& Instruction::reg16()
 {
 #ifdef DEBUG_INSTRUCTION
     ASSERT(m_cpu);
@@ -1670,7 +1670,7 @@ ALWAYS_INLINE WORD& Instruction::reg16()
     return m_cpu->m_generalPurposeRegister[registerIndex()].lowWORD;
 }
 
-ALWAYS_INLINE WORD& Instruction::segreg()
+ALWAYS_INLINE u16& Instruction::segreg()
 {
 #ifdef DEBUG_INSTRUCTION
     ASSERT(m_cpu);
@@ -1679,7 +1679,7 @@ ALWAYS_INLINE WORD& Instruction::segreg()
     return *m_cpu->m_segmentMap[registerIndex()];
 }
 
-ALWAYS_INLINE DWORD& Instruction::reg32()
+ALWAYS_INLINE u32& Instruction::reg32()
 {
 #ifdef DEBUG_INSTRUCTION
     ASSERT(m_cpu);
@@ -1689,11 +1689,11 @@ ALWAYS_INLINE DWORD& Instruction::reg32()
 }
 
 template<>
-ALWAYS_INLINE BYTE& Instruction::reg<BYTE>() { return reg8(); }
+ALWAYS_INLINE u8& Instruction::reg<u8>() { return reg8(); }
 template<>
-ALWAYS_INLINE WORD& Instruction::reg<WORD>() { return reg16(); }
+ALWAYS_INLINE u16& Instruction::reg<u16>() { return reg16(); }
 template<>
-ALWAYS_INLINE DWORD& Instruction::reg<DWORD>() { return reg32(); }
+ALWAYS_INLINE u32& Instruction::reg<u32>() { return reg32(); }
 
 template<typename T>
 inline void CPU::updateFlags(T result)
@@ -1753,7 +1753,7 @@ ALWAYS_INLINE void CPU::writeRegister(int registerIndex, T value)
         ASSERT_NOT_REACHED();
 }
 
-inline DWORD MemoryOrRegisterReference::offset()
+inline u32 MemoryOrRegisterReference::offset()
 {
     ASSERT(!isRegister());
     if (m_a32)
@@ -1782,16 +1782,16 @@ inline void MemoryOrRegisterReference::write(T data)
     m_cpu->writeMemory<T>(segment(), offset(), data);
 }
 
-inline BYTE MemoryOrRegisterReference::read8() { return read<BYTE>(); }
-inline WORD MemoryOrRegisterReference::read16() { return read<WORD>(); }
-inline DWORD MemoryOrRegisterReference::read32()
+inline u8 MemoryOrRegisterReference::read8() { return read<u8>(); }
+inline u16 MemoryOrRegisterReference::read16() { return read<u16>(); }
+inline u32 MemoryOrRegisterReference::read32()
 {
     ASSERT(m_cpu->o32());
-    return read<DWORD>();
+    return read<u32>();
 }
-inline void MemoryOrRegisterReference::write8(BYTE data) { return write(data); }
-inline void MemoryOrRegisterReference::write16(WORD data) { return write(data); }
-inline void MemoryOrRegisterReference::write32(DWORD data)
+inline void MemoryOrRegisterReference::write8(u8 data) { return write(data); }
+inline void MemoryOrRegisterReference::write16(u16 data) { return write(data); }
+inline void MemoryOrRegisterReference::write32(u32 data)
 {
     ASSERT(m_cpu->o32());
     return write(data);

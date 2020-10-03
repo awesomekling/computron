@@ -33,11 +33,11 @@ public:
     virtual ~VomCtl();
 
     virtual void reset() override;
-    virtual void out8(WORD port, BYTE data) override;
-    virtual BYTE in8(WORD port) override;
+    virtual void out8(u16 port, u8 data) override;
+    virtual u8 in8(u16 port) override;
 
 private:
-    BYTE m_registerIndex;
+    u8 m_registerIndex;
 
     struct Private;
     OwnPtr<Private> d;

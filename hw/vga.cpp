@@ -31,47 +31,47 @@
 #include <QtGui/QColor>
 
 struct RGBColor {
-    BYTE red;
-    BYTE green;
-    BYTE blue;
+    u8 red;
+    u8 green;
+    u8 blue;
     operator QColor() const { return QColor::fromRgb(red << 2, green << 2, blue << 2); }
 };
 
 struct VGA::Private {
     QColor color[16];
     QBrush brush[16];
-    BYTE* memory { nullptr };
-    BYTE* plane[4];
-    BYTE latch[4];
+    u8* memory { nullptr };
+    u8* plane[4];
+    u8 latch[4];
 
     struct {
-        BYTE reg_index;
-        BYTE reg[0x19];
-        WORD vertical_display_end;
-        BYTE maximum_scanline;
+        u8 reg_index;
+        u8 reg[0x19];
+        u16 vertical_display_end;
+        u8 maximum_scanline;
     } crtc;
 
     struct {
         bool next_3c0_is_index;
         bool palette_address_source { false };
-        BYTE reg_index;
-        BYTE palette_reg[0x10];
-        BYTE mode_control;
-        BYTE overscan_color;
-        BYTE color_plane_enable;
-        BYTE horizontal_pixel_panning;
-        BYTE color_select;
+        u8 reg_index;
+        u8 palette_reg[0x10];
+        u8 mode_control;
+        u8 overscan_color;
+        u8 color_plane_enable;
+        u8 horizontal_pixel_panning;
+        u8 color_select;
     } attr;
 
     struct {
-        BYTE reg_index;
-        BYTE reg[5];
+        u8 reg_index;
+        u8 reg[5];
     } sequencer;
 
     struct {
-        BYTE reg_index;
-        BYTE reg[9];
-        BYTE memory_map_select;
+        u8 reg_index;
+        u8 reg[9];
+        u8 memory_map_select;
         bool alphanumeric_mode_disable;
     } graphics_ctrl;
 
@@ -79,22 +79,22 @@ struct VGA::Private {
         bool vertical_sync_polarity;
         bool horizontal_sync_polarity;
         bool odd_even_page_select;
-        BYTE clock_select;
+        u8 clock_select;
         bool ram_enable;
         bool input_output_address_select;
     } misc_output;
 
     struct {
-        BYTE data_read_index;
-        BYTE data_read_subindex;
-        BYTE data_write_index;
-        BYTE data_write_subindex;
+        u8 data_read_index;
+        u8 data_read_subindex;
+        u8 data_write_index;
+        u8 data_write_subindex;
         RGBColor color[256];
-        BYTE mask;
+        u8 mask;
     } dac;
 
-    BYTE columns;
-    BYTE rows;
+    u8 columns;
+    u8 rows;
 
     bool vga_enabled;
 
@@ -103,7 +103,7 @@ struct VGA::Private {
     bool write_protect;
 
     bool screenInRefresh { false };
-    BYTE statusRegister { 0 };
+    u8 statusRegister { 0 };
 };
 
 static const RGBColor default_vga_color_registers[256] = {
@@ -173,7 +173,7 @@ static const RGBColor default_vga_color_registers[256] = {
     { 0x3f, 0x3f, 0x3f },
 };
 
-const BYTE* VGA::text_memory() const
+const u8* VGA::text_memory() const
 {
     return d->memory;
 }
@@ -189,7 +189,7 @@ VGA::VGA(Machine& m)
     listen(0x3B5, IODevice::ReadWrite);
     listen(0x3BA, IODevice::ReadWrite);
 
-    for (WORD port = 0x3c0; port <= 0x3cf; ++port)
+    for (u16 port = 0x3c0; port <= 0x3cf; ++port)
         listen(port, IODevice::ReadWrite);
 
     listen(0x3D4, IODevice::ReadWrite);
@@ -259,7 +259,7 @@ void VGA::reset()
     d->screenInRefresh = false;
     d->statusRegister = 0;
 
-    d->memory = new BYTE[0x40000];
+    d->memory = new u8[0x40000];
     d->plane[0] = d->memory;
     d->plane[1] = d->plane[0] + 0x10000;
     d->plane[2] = d->plane[1] + 0x10000;
@@ -278,7 +278,7 @@ void VGA::reset()
     setPaletteDirty(true);
 }
 
-void VGA::out8(WORD port, BYTE data)
+void VGA::out8(u16 port, u8 data)
 {
     machine().notifyScreen();
 
@@ -474,7 +474,7 @@ void VGA::didRefreshScreen()
     d->statusRegister |= 0x08;
 }
 
-BYTE VGA::in8(WORD port)
+u8 VGA::in8(u16 port)
 {
     switch (port) {
     case 0x3C0:
@@ -512,7 +512,7 @@ BYTE VGA::in8(WORD port)
 
     case 0x3BA:
     case 0x3DA: {
-        BYTE value = d->statusRegister;
+        u8 value = d->statusRegister;
         // 6845 - Port 3DA Status Register
         //
         //  |7|6|5|4|3|2|1|0|  3DA Status Register
@@ -561,7 +561,7 @@ BYTE VGA::in8(WORD port)
         return d->sequencer.reg[d->sequencer.reg_index];
 
     case 0x3C9: {
-        BYTE data = 0;
+        u8 data = 0;
         RGBColor& color = d->dac.color[d->dac.data_read_index];
         switch (d->dac.data_read_subindex) {
         case 0:
@@ -608,17 +608,17 @@ BYTE VGA::in8(WORD port)
     }
 }
 
-WORD VGA::cursor_location() const
+u16 VGA::cursor_location() const
 {
     return (d->crtc.reg[0x0e] << 8) | d->crtc.reg[0x0f];
 }
 
-BYTE VGA::cursor_start_scanline() const
+u8 VGA::cursor_start_scanline() const
 {
     return d->crtc.reg[0x0a] & 0x1f;
 }
 
-BYTE VGA::cursor_end_scanline() const
+u8 VGA::cursor_end_scanline() const
 {
     return d->crtc.reg[0x0b] & 0x1f;
 }
@@ -628,7 +628,7 @@ bool VGA::cursor_enabled() const
     return (d->crtc.reg[0x0a] & 0x20) == 0;
 }
 
-BYTE VGA::readRegister(BYTE index) const
+u8 VGA::readRegister(u8 index) const
 {
     ASSERT(index <= 0x18);
     return d->crtc.reg[index];
@@ -659,16 +659,16 @@ QColor VGA::color(int index) const
     return c;
 }
 
-WORD VGA::start_address() const
+u16 VGA::start_address() const
 {
-    return weld<WORD>(d->crtc.reg[0x0C], d->crtc.reg[0x0D]);
+    return weld<u16>(d->crtc.reg[0x0C], d->crtc.reg[0x0D]);
 }
 
-BYTE VGA::currentVideoMode() const
+u8 VGA::currentVideoMode() const
 {
     // FIXME: This is not the correct way to obtain the video mode (BDA.)
     //        Need to find out how the 6845 stores this information.
-    return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x449)) & 0x7f;
+    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x449)) & 0x7f;
 }
 
 bool VGA::inChain4Mode() const
@@ -676,39 +676,39 @@ bool VGA::inChain4Mode() const
     return d->sequencer.reg[0x4] & 0x8;
 }
 
-BYTE VGA::write_mode() const
+u8 VGA::write_mode() const
 {
     return d->graphics_ctrl.reg[5] & 3;
 }
 
-BYTE VGA::read_mode() const
+u8 VGA::read_mode() const
 {
     return (d->graphics_ctrl.reg[5] >> 3) & 1;
 }
 
-BYTE VGA::rotate_count() const
+u8 VGA::rotate_count() const
 {
     return d->graphics_ctrl.reg[3] & 7;
 }
 
-BYTE VGA::logical_op() const
+u8 VGA::logical_op() const
 {
     return (d->graphics_ctrl.reg[3] >> 3) & 3;
 }
 
-BYTE VGA::bit_mask() const
+u8 VGA::bit_mask() const
 {
     return d->graphics_ctrl.reg[8];
 }
 
-BYTE VGA::read_map_select() const
+u8 VGA::read_map_select() const
 {
     return d->graphics_ctrl.reg[4] & 3;
 }
 
-void VGA::writeMemory8(DWORD address, BYTE value)
+void VGA::writeMemory8(u32 address, u8 value)
 {
-    DWORD offset;
+    u32 offset;
     switch (d->graphics_ctrl.memory_map_select) {
     case 0: // A0000h-BFFFFh (128K region)
         if (address < 0xa0000 || address > 0xbffff)
@@ -739,7 +739,7 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         return;
     }
 
-    BYTE new_val[4];
+    u8 new_val[4];
 
     if (write_mode() == 2) {
         new_val[0] = d->latch[0] & ~bit_mask();
@@ -759,9 +759,9 @@ void VGA::writeMemory8(DWORD address, BYTE value)
             hard_exit(1);
         }
     } else if (write_mode() == 0) {
-        BYTE set_reset = d->graphics_ctrl.reg[0];
-        BYTE enable_set_reset = d->graphics_ctrl.reg[1];
-        BYTE val = value;
+        u8 set_reset = d->graphics_ctrl.reg[0];
+        u8 enable_set_reset = d->graphics_ctrl.reg[1];
+        u8 val = value;
 
         if (rotate_count()) {
             vlog(LogVGA, "rotate_count non-zero!");
@@ -867,8 +867,8 @@ void VGA::writeMemory8(DWORD address, BYTE value)
             break;
         }
     } else if (write_mode() == 3) {
-        BYTE set_reset = d->graphics_ctrl.reg[0];
-        BYTE val = value;
+        u8 set_reset = d->graphics_ctrl.reg[0];
+        u8 val = value;
 
         if (rotate_count()) {
             vlog(LogVGA, "rotate_count non-zero!");
@@ -921,7 +921,7 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         return;
     }
 
-    BYTE map_mask = d->sequencer.reg[2] & 0x0f;
+    u8 map_mask = d->sequencer.reg[2] & 0x0f;
 
     if (map_mask & 0x01)
         d->plane[0][offset] = new_val[0];
@@ -933,9 +933,9 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         d->plane[3][offset] = new_val[3];
 }
 
-BYTE VGA::readMemory8(DWORD address)
+u8 VGA::readMemory8(u32 address)
 {
-    DWORD offset;
+    u32 offset;
     switch (d->graphics_ctrl.memory_map_select) {
     case 0: // A0000h-BFFFFh (128K region)
         offset = address & 0x1ffff;
@@ -973,7 +973,7 @@ BYTE VGA::readMemory8(DWORD address)
     return d->latch[read_map_select()];
 }
 
-const BYTE* VGA::plane(int index) const
+const u8* VGA::plane(int index) const
 {
     ASSERT(index >= 0 && index <= 3);
     return d->plane[index];

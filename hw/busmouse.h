@@ -35,26 +35,26 @@ public:
     virtual ~BusMouse() override;
 
     virtual void reset() override;
-    virtual void out8(WORD port, BYTE data) override;
-    virtual BYTE in8(WORD port) override;
+    virtual void out8(u16 port, u8 data) override;
+    virtual u8 in8(u16 port) override;
 
-    virtual void moveEvent(WORD x, WORD y) override;
-    virtual void buttonPressEvent(WORD x, WORD y, MouseButton) override;
-    virtual void buttonReleaseEvent(WORD x, WORD y, MouseButton) override;
+    virtual void moveEvent(u16 x, u16 y) override;
+    virtual void buttonPressEvent(u16 x, u16 y, MouseButton) override;
+    virtual void buttonReleaseEvent(u16 x, u16 y, MouseButton) override;
 
     static BusMouse* the();
 
 private:
     bool m_interrupts { true };
-    BYTE m_command { 0 };
-    BYTE m_buttons { 0 };
+    u8 m_command { 0 };
+    u8 m_buttons { 0 };
 
-    WORD m_currentX { 0 };
-    WORD m_currentY { 0 };
-    WORD m_lastX { 0 };
-    WORD m_lastY { 0 };
-    WORD m_deltaX { 0 };
-    WORD m_deltaY { 0 };
+    u16 m_currentX { 0 };
+    u16 m_currentY { 0 };
+    u16 m_lastX { 0 };
+    u16 m_lastY { 0 };
+    u16 m_deltaX { 0 };
+    u16 m_deltaY { 0 };
 
     QMutex m_mutex;
 };

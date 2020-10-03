@@ -42,7 +42,7 @@ void CPU::_LTR_RM16(Instruction& insn)
     if (getCPL() != 0)
         throw GeneralProtectionFault(0, "LTR with CPL != 0");
 
-    WORD selector = insn.modrm().read16();
+    u16 selector = insn.modrm().read16();
     auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull())
@@ -77,7 +77,7 @@ void CPU::_LTR_RM16(Instruction& insn)
         }                                           \
     } while (0)
 
-void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
+void CPU::taskSwitch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
 {
     ASSERT(incomingTSSDescriptor.is32Bit());
 
@@ -90,7 +90,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
     }
     EXCEPTION_ON(NotPresent, task_selector & 0xfffc, !incomingTSSDescriptor.present(), "Incoming TSS descriptor is not present");
 
-    DWORD minimum_tss_limit = incomingTSSDescriptor.is32Bit() ? 108 : 44;
+    u32 minimum_tss_limit = incomingTSSDescriptor.is32Bit() ? 108 : 44;
     EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, incomingTSSDescriptor.limit() < minimum_tss_limit, "Incoming TSS descriptor limit too small");
 
     if (source == JumpType::IRET) {
@@ -128,7 +128,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
         writeToGDT(outgoingTSSDescriptor);
     }
 
-    DWORD outgoingEFlags = getEFlags();
+    u32 outgoingEFlags = getEFlags();
 
     if (source == JumpType::IRET) {
         outgoingEFlags &= ~Flag::NT;
@@ -171,7 +171,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
     GS = incomingTSS.getGS();
     SS = incomingTSS.getSS();
 
-    DWORD incomingEFlags = incomingTSS.getEFlags();
+    u32 incomingEFlags = incomingTSS.getEFlags();
 
     if (incomingEFlags & Flag::VM) {
         vlog(LogCPU, "Incoming task is in VM86 mode, this needs work!");
@@ -261,7 +261,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
         throw InvalidTSS(getSS() & 0xfffc, "SS DPL != RPL");
 
     auto validateDataSegment = [&](SegmentRegisterIndex segreg) {
-        WORD selector = readSegmentRegister(segreg);
+        u16 selector = readSegmentRegister(segreg);
         auto descriptor = getDescriptor(selector);
         if (descriptor.isNull())
             return;
@@ -317,7 +317,7 @@ void CPU::dumpTSS(const TSS& tss)
     vlog(LogCPU, "stack2 { %04x:%08x }", tss.getSS2(), tss.getESP2());
 }
 
-void CPU::taskSwitch(WORD task_selector, JumpType source)
+void CPU::taskSwitch(u16 task_selector, JumpType source)
 {
     auto descriptor = getDescriptor(task_selector);
     auto& tssDescriptor = descriptor.asTSSDescriptor();
@@ -330,43 +330,43 @@ TSS CPU::currentTSS()
 }
 
 struct TSS32 {
-    WORD Backlink, __blh;
-    DWORD ESP0;
-    WORD SS0, __ss0h;
-    DWORD ESP1;
-    WORD SS1, __ss1h;
-    DWORD ESP2;
-    WORD SS2, __ss2h;
-    DWORD CR3, EIP, EFlags;
-    DWORD EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI;
-    WORD ES, __esh;
-    WORD CS, __csh;
-    WORD SS, __ssh;
-    WORD DS, __dsh;
-    WORD FS, __fsh;
-    WORD GS, __gsh;
-    WORD LDT, __ldth;
-    WORD trace, iomapbase;
+    u16 Backlink, __blh;
+    u32 ESP0;
+    u16 SS0, __ss0h;
+    u32 ESP1;
+    u16 SS1, __ss1h;
+    u32 ESP2;
+    u16 SS2, __ss2h;
+    u32 CR3, EIP, EFlags;
+    u32 EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI;
+    u16 ES, __esh;
+    u16 CS, __csh;
+    u16 SS, __ssh;
+    u16 DS, __dsh;
+    u16 FS, __fsh;
+    u16 GS, __gsh;
+    u16 LDT, __ldth;
+    u16 trace, iomapbase;
 } __attribute__((packed));
 
 struct TSS16 {
-    WORD Backlink;
-    WORD SP0;
-    WORD SS0;
-    WORD SP1;
-    WORD SS1;
-    WORD SP2;
-    WORD SS2;
-    WORD IP;
-    WORD Flags;
-    WORD AX, CX, DX, BX, SP, BP, SI, DI;
-    WORD ES;
-    WORD CS;
-    WORD SS;
-    WORD DS;
-    WORD FS;
-    WORD GS;
-    WORD LDT;
+    u16 Backlink;
+    u16 SP0;
+    u16 SS0;
+    u16 SP1;
+    u16 SS1;
+    u16 SP2;
+    u16 SS2;
+    u16 IP;
+    u16 Flags;
+    u16 AX, CX, DX, BX, SP, BP, SI, DI;
+    u16 ES;
+    u16 CS;
+    u16 SS;
+    u16 DS;
+    u16 FS;
+    u16 GS;
+    u16 LDT;
 } __attribute__((packed));
 
 TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
@@ -377,14 +377,14 @@ TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
 }
 
 #define TSS_FIELD_16(name)                                                         \
-    void TSS::set##name(WORD value)                                                \
+    void TSS::set##name(u16 value)                                                 \
     {                                                                              \
         if (m_is32Bit)                                                             \
             m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS32, name)), value); \
         else                                                                       \
             m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
     }                                                                              \
-    WORD TSS::get##name() const                                                    \
+    u16 TSS::get##name() const                                                     \
     {                                                                              \
         if (m_is32Bit)                                                             \
             return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, name)));  \
@@ -392,13 +392,13 @@ TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
     }
 
 #define TSS_FIELD_16OR32(name)                                                        \
-    DWORD TSS::getE##name() const                                                     \
+    u32 TSS::getE##name() const                                                       \
     {                                                                                 \
         if (m_is32Bit)                                                                \
             return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)));  \
         return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name)));         \
     }                                                                                 \
-    void TSS::setE##name(DWORD value)                                                 \
+    void TSS::setE##name(u32 value)                                                   \
     {                                                                                 \
         if (m_is32Bit)                                                                \
             m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)), value); \
@@ -406,13 +406,13 @@ TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
             m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value);    \
     }
 
-DWORD TSS::getCR3() const
+u32 TSS::getCR3() const
 {
     ASSERT(m_is32Bit);
     return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)));
 }
 
-void TSS::setCR3(DWORD value)
+void TSS::setCR3(u32 value)
 {
     ASSERT(m_is32Bit);
     m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, CR3)), value);
@@ -444,7 +444,7 @@ TSS_FIELD_16(SS0)
 TSS_FIELD_16(SS1)
 TSS_FIELD_16(SS2)
 
-DWORD TSS::getRingESP(BYTE ring) const
+u32 TSS::getRingESP(u8 ring) const
 {
     if (ring == 0)
         return getESP0();
@@ -456,7 +456,7 @@ DWORD TSS::getRingESP(BYTE ring) const
     return 0;
 }
 
-WORD TSS::getRingSS(BYTE ring) const
+u16 TSS::getRingSS(u8 ring) const
 {
     if (ring == 0)
         return getSS0();
@@ -468,7 +468,7 @@ WORD TSS::getRingSS(BYTE ring) const
     return 0;
 }
 
-WORD TSS::getIOMapBase() const
+u16 TSS::getIOMapBase() const
 {
     ASSERT(m_is32Bit);
     return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, iomapbase)));

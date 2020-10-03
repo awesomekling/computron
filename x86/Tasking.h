@@ -35,67 +35,67 @@ public:
 
     bool is32Bit() const { return m_is32Bit; }
 
-    WORD getIOMapBase() const;
+    u16 getIOMapBase() const;
 
-    DWORD getRingESP(BYTE) const;
-    WORD getRingSS(BYTE) const;
+    u32 getRingESP(u8) const;
+    u16 getRingSS(u8) const;
 
-    DWORD getESP0() const;
-    DWORD getESP1() const;
-    DWORD getESP2() const;
-    WORD getSS0() const;
-    WORD getSS1() const;
-    WORD getSS2() const;
+    u32 getESP0() const;
+    u32 getESP1() const;
+    u32 getESP2() const;
+    u16 getSS0() const;
+    u16 getSS1() const;
+    u16 getSS2() const;
 
-    void setSS0(WORD);
-    void setSS1(WORD);
-    void setSS2(WORD);
-    void setESP0(DWORD);
-    void setESP1(DWORD);
-    void setESP2(DWORD);
+    void setSS0(u16);
+    void setSS1(u16);
+    void setSS2(u16);
+    void setESP0(u32);
+    void setESP1(u32);
+    void setESP2(u32);
 
-    WORD getBacklink() const;
-    WORD getLDT() const;
-    DWORD getEIP() const;
+    u16 getBacklink() const;
+    u16 getLDT() const;
+    u32 getEIP() const;
 
-    void setCR3(DWORD);
-    DWORD getCR3() const;
+    void setCR3(u32);
+    u32 getCR3() const;
 
-    WORD getCS() const;
-    WORD getDS() const;
-    WORD getES() const;
-    WORD getSS() const;
-    WORD getFS() const;
-    WORD getGS() const;
+    u16 getCS() const;
+    u16 getDS() const;
+    u16 getES() const;
+    u16 getSS() const;
+    u16 getFS() const;
+    u16 getGS() const;
 
-    DWORD getEAX() const;
-    DWORD getEBX() const;
-    DWORD getECX() const;
-    DWORD getEDX() const;
-    DWORD getESI() const;
-    DWORD getEDI() const;
-    DWORD getESP() const;
-    DWORD getEBP() const;
-    DWORD getEFlags() const;
+    u32 getEAX() const;
+    u32 getEBX() const;
+    u32 getECX() const;
+    u32 getEDX() const;
+    u32 getESI() const;
+    u32 getEDI() const;
+    u32 getESP() const;
+    u32 getEBP() const;
+    u32 getEFlags() const;
 
-    void setCS(WORD);
-    void setDS(WORD);
-    void setES(WORD);
-    void setSS(WORD);
-    void setFS(WORD);
-    void setGS(WORD);
-    void setLDT(WORD);
-    void setEIP(DWORD);
-    void setEAX(DWORD);
-    void setEBX(DWORD);
-    void setECX(DWORD);
-    void setEDX(DWORD);
-    void setEBP(DWORD);
-    void setESP(DWORD);
-    void setESI(DWORD);
-    void setEDI(DWORD);
-    void setEFlags(DWORD);
-    void setBacklink(WORD);
+    void setCS(u16);
+    void setDS(u16);
+    void setES(u16);
+    void setSS(u16);
+    void setFS(u16);
+    void setGS(u16);
+    void setLDT(u16);
+    void setEIP(u32);
+    void setEAX(u32);
+    void setEBX(u32);
+    void setECX(u32);
+    void setEDX(u32);
+    void setEBP(u32);
+    void setESP(u32);
+    void setESI(u32);
+    void setEDI(u32);
+    void setEFlags(u32);
+    void setBacklink(u16);
 
 private:
     CPU& m_cpu;

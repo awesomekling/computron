@@ -48,7 +48,7 @@ enum DiskCallFunction { ReadSectors,
 void bios_disk_call(CPU&, DiskCallFunction);
 static void vm_handleE6(CPU& cpu);
 
-void vm_call8(CPU& cpu, WORD port, BYTE data)
+void vm_call8(CPU& cpu, u16 port, u8 data)
 {
     if (cpu.getPE() && !cpu.getVM())
         return;
@@ -78,7 +78,7 @@ void vm_call8(CPU& cpu, WORD port, BYTE data)
     }
 }
 
-static DiskDrive* diskDriveForBIOSIndex(Machine& machine, BYTE index)
+static DiskDrive* diskDriveForBIOSIndex(Machine& machine, u8 index)
 {
     switch (index) {
     case 0x00:
@@ -99,13 +99,13 @@ static DiskDrive* diskDriveForBIOSIndex(Machine& machine, BYTE index)
 
 void vm_handleE6(CPU& cpu)
 {
-    extern WORD kbd_hit();
-    extern WORD kbd_getc();
+    extern u16 kbd_hit();
+    extern u16 kbd_getc();
 
     struct tm* t;
     time_t curtime;
     struct timeval timv;
-    DWORD tick_count;
+    u32 tick_count;
     DiskDrive* drive;
 
     switch (cpu.getAX()) {
@@ -129,9 +129,9 @@ void vm_handleE6(CPU& cpu)
 #ifdef CT_DETERMINISTIC
         tick_count = 0x12345678;
 #endif
-        cpu.setCX(mostSignificant<WORD>(tick_count));
-        cpu.setDX(leastSignificant<WORD>(tick_count));
-        cpu.writePhysicalMemory<DWORD>(PhysicalAddress(0x046c), tick_count);
+        cpu.setCX(mostSignificant<u16>(tick_count));
+        cpu.setDX(leastSignificant<u16>(tick_count));
+        cpu.writePhysicalMemory<u32>(PhysicalAddress(0x046c), tick_count);
         break;
     case 0x1300:
         drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
@@ -142,13 +142,13 @@ void vm_handleE6(CPU& cpu)
             cpu.setAH(FD_CHANGED_OR_REMOVED);
             cpu.setCF(1);
         }
-        cpu.writePhysicalMemory<BYTE>(PhysicalAddress(cpu.getDL() < 2 ? 0x0441 : 0x0474), cpu.getAH());
+        cpu.writePhysicalMemory<u8>(PhysicalAddress(cpu.getDL() < 2 ? 0x0441 : 0x0474), cpu.getAH());
         break;
     case 0x1308:
         drive = diskDriveForBIOSIndex(cpu.machine(), cpu.getDL());
         if (drive && drive->present()) {
             bool isFloppy = cpu.getDL() < 2;
-            DWORD trax = drive->cylinders() - 1;
+            u32 trax = drive->cylinders() - 1;
             cpu.setAL(0);
             cpu.setAH(FD_NO_ERROR);
             cpu.setBL(drive->floppyTypeForCMOS());
@@ -230,7 +230,7 @@ void vm_handleE6(CPU& cpu)
 
     case 0x1A01:
         // Interrupt 1A, 01: Set RTC tick count
-        vlog(LogAlert, "INT 1A,01: Attempt to set tick counter to %lu", (DWORD)(cpu.getCX() << 16) | cpu.getDX());
+        vlog(LogAlert, "INT 1A,01: Attempt to set tick counter to %lu", (u32)(cpu.getCX() << 16) | cpu.getDX());
         break;
 
     case 0x1A05:
@@ -265,7 +265,7 @@ void vm_handleE6(CPU& cpu)
     }
 }
 
-static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
+static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
     auto lba = drive.toLBA(cylinder, head, sector);
 
@@ -276,10 +276,10 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, 
     fread(data.data(), drive.bytesPerSector(), count, fp);
     LinearAddress dest((segment << 4) + offset);
     for (int i = 0; i < data.size(); ++i)
-        cpu.writeMemory<BYTE>(dest.offset(i), data[i]);
+        cpu.writeMemory<u8>(dest.offset(i), data[i]);
 }
 
-static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
+static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
     auto lba = drive.toLBA(cylinder, head, sector);
 
@@ -290,15 +290,15 @@ static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder,
     fwrite(source, drive.bytesPerSector(), count, fp);
 }
 
-static void bios_disk_verify(CPU&, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
+static void bios_disk_verify(CPU&, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
     auto lba = drive.toLBA(cylinder, head, sector);
 
     if (options.disklog)
         vlog(LogDisk, "%s verifying %u sectors at %u/%u/%u (LBA %u)", qPrintable(drive.name()), count, cylinder, head, sector, lba);
 
-    BYTE dummy[count * drive.bytesPerSector()];
-    WORD veri = fread(dummy, drive.bytesPerSector(), count, fp);
+    u8 dummy[count * drive.bytesPerSector()];
+    u16 veri = fread(dummy, drive.bytesPerSector(), count, fp);
     if (veri != count)
         vlog(LogAlert, "veri != count, something went wrong");
 
@@ -312,16 +312,16 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
     // This is a hack to support the custom Computron BIOS. We should not be here in (PE=1 && VM=0) mode.
     ASSERT(!cpu.getPE() || cpu.getVM());
 
-    WORD cylinder = cpu.getCH() | (((WORD)cpu.getCL() << 2) & 0x300);
-    WORD sector = cpu.getCL() & 0x3f;
-    BYTE driveIndex = cpu.getDL();
-    BYTE head = cpu.getDH();
-    WORD sectorCount = cpu.getAL();
+    u16 cylinder = cpu.getCH() | (((u16)cpu.getCL() << 2) & 0x300);
+    u16 sector = cpu.getCL() & 0x3f;
+    u8 driveIndex = cpu.getDL();
+    u8 head = cpu.getDH();
+    u16 sectorCount = cpu.getAL();
     FILE* fp;
-    DWORD lba;
+    u32 lba;
 
     auto* drive = diskDriveForBIOSIndex(cpu.machine(), driveIndex);
-    BYTE error = FD_NO_ERROR;
+    u8 error = FD_NO_ERROR;
 
     if (!drive || !drive->present()) {
         if (options.disklog)
@@ -381,5 +381,5 @@ epilogue:
     }
 
     cpu.setAH(error);
-    cpu.writePhysicalMemory<BYTE>(PhysicalAddress(0x441), error);
+    cpu.writePhysicalMemory<u8>(PhysicalAddress(0x441), error);
 }

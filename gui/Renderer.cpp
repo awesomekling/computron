@@ -31,7 +31,7 @@
 #include <QPainter>
 
 struct fontcharbitmap_t {
-    BYTE data[16];
+    u8 data[16];
 };
 
 const Screen& Renderer::screen() const
@@ -61,7 +61,7 @@ Mode04Renderer::Mode04Renderer(Screen& screen)
     m_buffer.setColor(3, QColor(Qt::white).rgb());
 }
 
-void TextRenderer::putCharacter(QPainter& p, int row, int column, BYTE color, BYTE character)
+void TextRenderer::putCharacter(QPainter& p, int row, int column, u8 color, u8 character)
 {
     int x = column * m_characterWidth;
     int y = row * m_characterHeight;
@@ -74,10 +74,10 @@ void TextRenderer::putCharacter(QPainter& p, int row, int column, BYTE color, BY
 
 void Mode04Renderer::render()
 {
-    const BYTE* video_memory = vga().text_memory() + vga().start_address();
+    const u8* video_memory = vga().text_memory() + vga().start_address();
     for (unsigned scanLine = 0; scanLine < 200; ++scanLine) {
-        BYTE* out = m_buffer.scanLine(scanLine);
-        const BYTE* in = video_memory;
+        u8* out = m_buffer.scanLine(scanLine);
+        const u8* in = video_memory;
         if ((scanLine & 1))
             in += 0x2000;
         in += (scanLine / 2) * 80;
@@ -92,16 +92,16 @@ void Mode04Renderer::render()
 
 void Mode12Renderer::render()
 {
-    const BYTE* p0 = vga().plane(0);
-    const BYTE* p1 = vga().plane(1);
-    const BYTE* p2 = vga().plane(2);
-    const BYTE* p3 = vga().plane(3);
+    const u8* p0 = vga().plane(0);
+    const u8* p1 = vga().plane(1);
+    const u8* p2 = vga().plane(2);
+    const u8* p3 = vga().plane(3);
 
     int offset = 0;
 
-    BYTE* bits = bufferBits();
+    u8* bits = bufferBits();
     for (int y = 0; y < 480; ++y) {
-        BYTE* px = &bits[y * 640];
+        u8* px = &bits[y * 640];
 
         for (int x = 0; x < 640; x += 8, ++offset) {
 #define D(i) ((p0[offset] >> i) & 1) | (((p1[offset] >> i) & 1) << 1) | (((p2[offset] >> i) & 1) << 2) | (((p3[offset] >> i) & 1) << 3)
@@ -119,22 +119,22 @@ void Mode12Renderer::render()
 
 void Mode0DRenderer::render()
 {
-    const BYTE* p0 = vga().plane(0);
-    const BYTE* p1 = vga().plane(1);
-    const BYTE* p2 = vga().plane(2);
-    const BYTE* p3 = vga().plane(3);
+    const u8* p0 = vga().plane(0);
+    const u8* p1 = vga().plane(1);
+    const u8* p2 = vga().plane(2);
+    const u8* p3 = vga().plane(3);
 
-    WORD start_address = vga().start_address();
+    u16 start_address = vga().start_address();
     p0 += start_address;
     p1 += start_address;
     p2 += start_address;
     p3 += start_address;
 
-    BYTE* bits = bufferBits();
+    u8* bits = bufferBits();
     int offset = 0;
 
     for (int y = 0; y < 200; ++y) {
-        BYTE* px = &bits[y * 320];
+        u8* px = &bits[y * 320];
 #define A0D(i) ((p0[offset] >> i) & 1) | (((p1[offset] >> i) & 1) << 1) | (((p2[offset] >> i) & 1) << 2) | (((p3[offset] >> i) & 1) << 3)
         for (int x = 0; x < 320; x += 8, ++offset) {
             *(px++) = D(7);
@@ -179,10 +179,10 @@ void Mode13Renderer::synchronizeColors()
 
 void Mode13Renderer::render()
 {
-    const BYTE* videoMemory = vga().plane(0) + vga().start_address();
+    const u8* videoMemory = vga().plane(0) + vga().start_address();
 
     ValueSize mode;
-    DWORD lineOffset = vga().readRegister(0x13);
+    u32 lineOffset = vga().readRegister(0x13);
 
     if (vga().readRegister(0x14) & 0x40) {
         mode = DWordSize;
@@ -201,24 +201,24 @@ void Mode13Renderer::render()
     if (mode == ByteSize) {
         for (unsigned y = 0; y < 200; ++y) {
             for (unsigned x = 0; x < 320; ++x) {
-                BYTE plane = x % 4;
-                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + (x >> 2);
+                u8 plane = x % 4;
+                u32 byteOffset = (plane * 65536) + (y * lineOffset) + (x >> 2);
                 *(bit++) = videoMemory[byteOffset];
             }
         }
     } else if (mode == WordSize) {
         for (unsigned y = 0; y < 200; ++y) {
             for (unsigned x = 0; x < 320; ++x) {
-                BYTE plane = x % 4;
-                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + ((x >> 1) & ~1);
+                u8 plane = x % 4;
+                u32 byteOffset = (plane * 65536) + (y * lineOffset) + ((x >> 1) & ~1);
                 *(bit++) = videoMemory[byteOffset];
             }
         }
     } else if (mode == DWordSize) {
         for (unsigned y = 0; y < 200; ++y) {
             for (unsigned x = 0; x < 320; ++x) {
-                BYTE plane = x % 4;
-                DWORD byteOffset = (plane * 65536) + (y * lineOffset) + (x & ~3);
+                u8 plane = x % 4;
+                u32 byteOffset = (plane * 65536) + (y * lineOffset) + (x & ~3);
                 *(bit++) = videoMemory[byteOffset];
             }
         }
@@ -243,12 +243,12 @@ void TextRenderer::paint(QPainter& p)
     }
 
     if (vga().cursor_enabled()) {
-        WORD raw_cursor = vga().cursor_location() - vga().start_address();
-        WORD screen_columns = screen().currentColumnCount();
-        WORD row = screen_columns ? (raw_cursor / screen_columns) : 0;
-        WORD column = screen_columns ? (raw_cursor % screen_columns) : 0;
-        BYTE cursor_start = vga().cursor_start_scanline();
-        BYTE cursor_end = vga().cursor_end_scanline();
+        u16 raw_cursor = vga().cursor_location() - vga().start_address();
+        u16 screen_columns = screen().currentColumnCount();
+        u16 row = screen_columns ? (raw_cursor / screen_columns) : 0;
+        u16 column = screen_columns ? (raw_cursor % screen_columns) : 0;
+        u8 cursor_start = vga().cursor_start_scanline();
+        u8 cursor_end = vga().cursor_end_scanline();
 
         p.fillRect(
             column * m_characterWidth,

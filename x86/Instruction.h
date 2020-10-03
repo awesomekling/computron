@@ -48,25 +48,25 @@ struct Prefix {
 
 class InstructionStream {
 public:
-    virtual BYTE readInstruction8() = 0;
-    virtual WORD readInstruction16() = 0;
-    virtual DWORD readInstruction32() = 0;
-    DWORD readBytes(unsigned count);
+    virtual u8 readInstruction8() = 0;
+    virtual u16 readInstruction16() = 0;
+    virtual u32 readInstruction32() = 0;
+    u32 readBytes(unsigned count);
 };
 
 class SimpleInstructionStream final : public InstructionStream {
 public:
-    SimpleInstructionStream(const BYTE* data)
+    SimpleInstructionStream(const u8* data)
         : m_data(data)
     {
     }
 
-    virtual BYTE readInstruction8() override { return *(m_data++); }
-    virtual WORD readInstruction16() override;
-    virtual DWORD readInstruction32() override;
+    virtual u8 readInstruction8() override { return *(m_data++); }
+    virtual u16 readInstruction16() override;
+    virtual u32 readInstruction32() override;
 
 private:
-    const BYTE* m_data { nullptr };
+    const u8* m_data { nullptr };
 };
 
 template<typename T>
@@ -93,19 +93,19 @@ public:
     template<typename T>
     void write(T);
 
-    BYTE read8();
-    WORD read16();
-    DWORD read32();
-    void write8(BYTE);
-    void write16(WORD);
-    void write32(DWORD);
-    void writeSpecial(DWORD, bool o32);
+    u8 read8();
+    u16 read16();
+    u32 read32();
+    void write8(u8);
+    void write16(u16);
+    void write32(u32);
+    void writeSpecial(u32, bool o32);
 
     template<typename T>
     class Accessor;
-    Accessor<BYTE> accessor8();
-    Accessor<WORD> accessor16();
-    Accessor<DWORD> accessor32();
+    Accessor<u8> accessor8();
+    Accessor<u16> accessor16();
+    Accessor<u32> accessor32();
 
     QString toStringO8() const;
     QString toStringO16() const;
@@ -117,7 +117,7 @@ public:
         ASSERT(!isRegister());
         return m_segment;
     }
-    DWORD offset();
+    u32 offset();
 
 private:
     MemoryOrRegisterReference() { }
@@ -134,24 +134,24 @@ private:
     void decode16(InstructionStream&);
     void decode32(InstructionStream&);
 
-    DWORD evaluateSIB();
+    u32 evaluateSIB();
 
     unsigned m_registerIndex { 0xffffffff };
     SegmentRegisterIndex m_segment { SegmentRegisterIndex::None };
     union {
-        DWORD m_offset32 { 0 };
-        WORD m_offset16;
+        u32 m_offset32 { 0 };
+        u16 m_offset16;
     };
 
-    BYTE m_a32 { false };
+    u8 m_a32 { false };
 
-    BYTE m_rm { 0 };
-    BYTE m_sib { 0 };
-    BYTE m_displacementBytes { 0 };
+    u8 m_rm { 0 };
+    u8 m_sib { 0 };
+    u8 m_displacementBytes { 0 };
 
     union {
-        DWORD m_displacement32 { 0 };
-        WORD m_displacement16;
+        u32 m_displacement32 { 0 };
+        u16 m_displacement16;
     };
 
     bool m_hasSIB { false };
@@ -177,7 +177,7 @@ public:
     bool hasOperandSizeOverridePrefix() const { return m_hasOperandSizeOverridePrefix; }
     bool hasLockPrefix() const { return m_hasLockPrefix; }
     bool hasRepPrefix() const { return m_repPrefix; }
-    BYTE repPrefix() const { return m_repPrefix; }
+    u8 repPrefix() const { return m_repPrefix; }
 
     bool isValid() const { return m_descriptor; }
 
@@ -185,60 +185,60 @@ public:
 
     QString mnemonic() const;
 
-    BYTE op() const { return m_op; }
-    BYTE subOp() const { return m_subOp; }
-    BYTE rm() const { return m_modrm.m_rm; }
-    BYTE slash() const
+    u8 op() const { return m_op; }
+    u8 subOp() const { return m_subOp; }
+    u8 rm() const { return m_modrm.m_rm; }
+    u8 slash() const
     {
         ASSERT(hasRM());
         return (rm() >> 3) & 7;
     }
 
-    BYTE imm8() const
+    u8 imm8() const
     {
         ASSERT(m_imm1Bytes == 1);
         return m_imm1;
     }
-    WORD imm16() const
+    u16 imm16() const
     {
         ASSERT(m_imm1Bytes == 2);
         return m_imm1;
     }
-    DWORD imm32() const
+    u32 imm32() const
     {
         ASSERT(m_imm1Bytes == 4);
         return m_imm1;
     }
 
-    BYTE imm8_1() const { return imm8(); }
-    BYTE imm8_2() const
+    u8 imm8_1() const { return imm8(); }
+    u8 imm8_2() const
     {
         ASSERT(m_imm2Bytes == 1);
         return m_imm2;
     }
-    WORD imm16_1() const { return imm16(); }
-    WORD imm16_2() const
+    u16 imm16_1() const { return imm16(); }
+    u16 imm16_2() const
     {
         ASSERT(m_imm2Bytes == 2);
         return m_imm2;
     }
-    DWORD imm32_1() const { return imm32(); }
-    DWORD imm32_2() const
+    u32 imm32_1() const { return imm32(); }
+    u32 imm32_2() const
     {
         ASSERT(m_imm2Bytes == 4);
         return m_imm2;
     }
 
-    DWORD immAddress() const { return m_a32 ? imm32() : imm16(); }
+    u32 immAddress() const { return m_a32 ? imm32() : imm16(); }
 
     LogicalAddress immAddress16_16() const { return LogicalAddress(imm16_1(), imm16_2()); }
     LogicalAddress immAddress16_32() const { return LogicalAddress(imm16_1(), imm32_2()); }
 
     // These functions assume that the Instruction is bound to a CPU.
-    BYTE& reg8();
-    WORD& reg16();
-    DWORD& reg32();
-    WORD& segreg();
+    u8& reg8();
+    u16& reg16();
+    u32& reg32();
+    u16& segreg();
 
     template<typename T>
     T& reg();
@@ -249,24 +249,24 @@ public:
     unsigned registerIndex() const { return m_registerIndex; }
     SegmentRegisterIndex segmentRegisterIndex() const { return static_cast<SegmentRegisterIndex>(registerIndex()); }
 
-    BYTE cc() const { return m_hasSubOp ? m_subOp & 0xf : m_op & 0xf; }
+    u8 cc() const { return m_hasSubOp ? m_subOp & 0xf : m_op & 0xf; }
 
-    QString toString(DWORD origin, bool x32) const;
+    QString toString(u32 origin, bool x32) const;
 
 private:
     Instruction(InstructionStream&, bool o32, bool a32);
 
-    QString toStringInternal(DWORD origin, bool x32) const;
+    QString toStringInternal(u32 origin, bool x32) const;
 
     const char* reg8Name() const;
     const char* reg16Name() const;
     const char* reg32Name() const;
 
-    BYTE m_op { 0 };
-    BYTE m_subOp { 0 };
-    DWORD m_imm1 { 0 };
-    DWORD m_imm2 { 0 };
-    BYTE m_registerIndex { 0 };
+    u8 m_op { 0 };
+    u8 m_subOp { 0 };
+    u32 m_imm1 { 0 };
+    u32 m_imm2 { 0 };
+    u8 m_registerIndex { 0 };
     bool m_a32 { false };
     bool m_o32 { false };
     bool m_hasLockPrefix { false };
@@ -281,7 +281,7 @@ private:
     SegmentRegisterIndex m_segmentPrefix { SegmentRegisterIndex::None };
     bool m_hasOperandSizeOverridePrefix { false };
     bool m_hasAddressSizeOverridePrefix { false };
-    BYTE m_repPrefix { 0 };
+    u8 m_repPrefix { 0 };
 
     MemoryOrRegisterReference m_modrm;
 
@@ -305,8 +305,8 @@ private:
     MemoryOrRegisterReference& m_modrm;
 };
 
-inline MemoryOrRegisterReference::Accessor<BYTE> MemoryOrRegisterReference::accessor8() { return Accessor<BYTE>(*this); }
-inline MemoryOrRegisterReference::Accessor<WORD> MemoryOrRegisterReference::accessor16() { return Accessor<WORD>(*this); }
-inline MemoryOrRegisterReference::Accessor<DWORD> MemoryOrRegisterReference::accessor32() { return Accessor<DWORD>(*this); }
+inline MemoryOrRegisterReference::Accessor<u8> MemoryOrRegisterReference::accessor8() { return Accessor<u8>(*this); }
+inline MemoryOrRegisterReference::Accessor<u16> MemoryOrRegisterReference::accessor16() { return Accessor<u16>(*this); }
+inline MemoryOrRegisterReference::Accessor<u32> MemoryOrRegisterReference::accessor32() { return Accessor<u32>(*this); }
 
 void buildOpcodeTablesIfNeeded();

@@ -135,7 +135,7 @@ void CPU::_MOV_reg32_CR(Instruction& insn)
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
     }
 
-    writeRegister<DWORD>(insn.rm() & 7, getControlRegister(crIndex));
+    writeRegister<u32>(insn.rm() & 7, getControlRegister(crIndex));
 }
 
 void CPU::_MOV_CR_reg32(Instruction& insn)
@@ -170,7 +170,7 @@ void CPU::_MOV_CR_reg32(Instruction& insn)
         // (such as setting the PG flag to 1 when the PE flag is set to 0).
     }
 
-    auto value = readRegister<DWORD>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7));
+    auto value = readRegister<u32>(static_cast<CPU::RegisterIndex32>(insn.rm() & 7));
 
     if (crIndex == 4) {
         vlog(LogCPU, "CR4 written (%08x) but not supported!", value);
@@ -219,23 +219,23 @@ void CPU::_MOV_DR_reg32(Instruction& insn)
         }
     }
 
-    setDebugRegister(drIndex, readRegister<DWORD>(registerIndex));
+    setDebugRegister(drIndex, readRegister<u32>(registerIndex));
     //vlog(LogCPU, "MOV DR%u <- %08X", drIndex, getDebugRegister(drIndex));
 }
 
 void CPU::_MOV_reg8_imm8(Instruction& insn)
 {
-    writeRegister<BYTE>(insn.registerIndex(), insn.imm8());
+    writeRegister<u8>(insn.registerIndex(), insn.imm8());
 }
 
 void CPU::_MOV_reg16_imm16(Instruction& insn)
 {
-    writeRegister<WORD>(insn.registerIndex(), insn.imm16());
+    writeRegister<u16>(insn.registerIndex(), insn.imm16());
 }
 
 void CPU::_MOV_reg32_imm32(Instruction& insn)
 {
-    writeRegister<DWORD>(insn.registerIndex(), insn.imm32());
+    writeRegister<u32>(insn.registerIndex(), insn.imm32());
 }
 
 template<typename T>
@@ -246,17 +246,17 @@ void CPU::doMOV_Areg_moff(Instruction& insn)
 
 void CPU::_MOV_AL_moff8(Instruction& insn)
 {
-    doMOV_Areg_moff<BYTE>(insn);
+    doMOV_Areg_moff<u8>(insn);
 }
 
 void CPU::_MOV_AX_moff16(Instruction& insn)
 {
-    doMOV_Areg_moff<WORD>(insn);
+    doMOV_Areg_moff<u16>(insn);
 }
 
 void CPU::_MOV_EAX_moff32(Instruction& insn)
 {
-    doMOV_Areg_moff<DWORD>(insn);
+    doMOV_Areg_moff<u32>(insn);
 }
 
 template<typename T>
@@ -267,17 +267,17 @@ void CPU::doMOV_moff_Areg(Instruction& insn)
 
 void CPU::_MOV_moff8_AL(Instruction& insn)
 {
-    doMOV_moff_Areg<BYTE>(insn);
+    doMOV_moff_Areg<u8>(insn);
 }
 
 void CPU::_MOV_moff16_AX(Instruction& insn)
 {
-    doMOV_moff_Areg<WORD>(insn);
+    doMOV_moff_Areg<u16>(insn);
 }
 
 void CPU::_MOV_moff32_EAX(Instruction& insn)
 {
-    doMOV_moff_Areg<DWORD>(insn);
+    doMOV_moff_Areg<u32>(insn);
 }
 
 void CPU::_MOVZX_reg16_RM8(Instruction& insn)
@@ -297,17 +297,17 @@ void CPU::_MOVZX_reg32_RM16(Instruction& insn)
 
 void CPU::_MOVSX_reg16_RM8(Instruction& insn)
 {
-    insn.reg16() = signExtendedTo<WORD>(insn.modrm().read8());
+    insn.reg16() = signExtendedTo<u16>(insn.modrm().read8());
 }
 
 void CPU::_MOVSX_reg32_RM8(Instruction& insn)
 {
-    insn.reg32() = signExtendedTo<DWORD>(insn.modrm().read8());
+    insn.reg32() = signExtendedTo<u32>(insn.modrm().read8());
 }
 
 void CPU::_MOVSX_reg32_RM16(Instruction& insn)
 {
-    insn.reg32() = signExtendedTo<DWORD>(insn.modrm().read16());
+    insn.reg32() = signExtendedTo<u32>(insn.modrm().read16());
 }
 
 void CPU::_CMPXCHG_RM32_reg32(Instruction& insn)

@@ -28,14 +28,14 @@
 #include <stdint.h>
 #include <type_traits>
 
-typedef uint8_t BYTE;
-typedef uint16_t WORD;
-typedef uint32_t DWORD;
-typedef uint64_t QWORD;
-typedef int8_t SIGNED_BYTE;
-typedef int16_t SIGNED_WORD;
-typedef int32_t SIGNED_DWORD;
-typedef int64_t SIGNED_QWORD;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
 
 enum class SegmentRegisterIndex {
     ES = 0,
@@ -58,38 +58,38 @@ class LogicalAddress;
 class PhysicalAddress {
 public:
     PhysicalAddress() { }
-    explicit PhysicalAddress(DWORD address)
+    explicit PhysicalAddress(u32 address)
         : m_address(address)
     {
     }
 
-    DWORD get() const { return m_address; }
-    void set(DWORD address) { m_address = address; }
-    void mask(DWORD m) { m_address &= m; }
+    u32 get() const { return m_address; }
+    void set(u32 address) { m_address = address; }
+    void mask(u32 m) { m_address &= m; }
 
     static PhysicalAddress fromRealMode(LogicalAddress);
 
 private:
-    DWORD m_address { 0 };
+    u32 m_address { 0 };
 };
 
 class LinearAddress {
 public:
     LinearAddress() { }
-    explicit LinearAddress(DWORD address)
+    explicit LinearAddress(u32 address)
         : m_address(address)
     {
     }
 
-    LinearAddress offset(DWORD o) const { return LinearAddress(m_address + o); }
-    DWORD get() const { return m_address; }
-    void set(DWORD address) { m_address = address; }
-    void mask(DWORD m) { m_address &= m; }
+    LinearAddress offset(u32 o) const { return LinearAddress(m_address + o); }
+    u32 get() const { return m_address; }
+    void set(u32 address) { m_address = address; }
+    void mask(u32 m) { m_address &= m; }
 
     bool operator==(const LinearAddress& other) const { return m_address == other.m_address; }
 
 private:
-    DWORD m_address { 0 };
+    u32 m_address { 0 };
 };
 
 template<typename T>
@@ -103,56 +103,56 @@ template<typename T>
 struct TypeDoubler {
 };
 template<>
-struct TypeDoubler<BYTE> {
-    typedef WORD type;
+struct TypeDoubler<u8> {
+    typedef u16 type;
 };
 template<>
-struct TypeDoubler<WORD> {
-    typedef DWORD type;
+struct TypeDoubler<u16> {
+    typedef u32 type;
 };
 template<>
-struct TypeDoubler<DWORD> {
-    typedef QWORD type;
+struct TypeDoubler<u32> {
+    typedef u64 type;
 };
 template<>
-struct TypeDoubler<SIGNED_BYTE> {
-    typedef SIGNED_WORD type;
+struct TypeDoubler<i8> {
+    typedef i16 type;
 };
 template<>
-struct TypeDoubler<SIGNED_WORD> {
-    typedef SIGNED_DWORD type;
+struct TypeDoubler<i16> {
+    typedef i32 type;
 };
 template<>
-struct TypeDoubler<SIGNED_DWORD> {
-    typedef SIGNED_QWORD type;
+struct TypeDoubler<i32> {
+    typedef i64 type;
 };
 
 template<typename T>
 struct TypeHalver {
 };
 template<>
-struct TypeHalver<WORD> {
-    typedef BYTE type;
+struct TypeHalver<u16> {
+    typedef u8 type;
 };
 template<>
-struct TypeHalver<DWORD> {
-    typedef WORD type;
+struct TypeHalver<u32> {
+    typedef u16 type;
 };
 template<>
-struct TypeHalver<QWORD> {
-    typedef DWORD type;
+struct TypeHalver<u64> {
+    typedef u32 type;
 };
 template<>
-struct TypeHalver<SIGNED_WORD> {
-    typedef SIGNED_BYTE type;
+struct TypeHalver<i16> {
+    typedef i8 type;
 };
 template<>
-struct TypeHalver<SIGNED_DWORD> {
-    typedef SIGNED_WORD type;
+struct TypeHalver<i32> {
+    typedef i16 type;
 };
 template<>
-struct TypeHalver<SIGNED_QWORD> {
-    typedef SIGNED_DWORD type;
+struct TypeHalver<i64> {
+    typedef i32 type;
 };
 
 template<typename DT>
@@ -186,22 +186,22 @@ inline constexpr T mostSignificant(typename TypeDoubler<T>::type whole)
 class LogicalAddress {
 public:
     LogicalAddress() { }
-    LogicalAddress(WORD selector, DWORD offset)
+    LogicalAddress(u16 selector, u32 offset)
         : m_selector(selector)
         , m_offset(offset)
     {
     }
 
-    WORD selector() const { return m_selector; }
-    DWORD offset() const { return m_offset; }
-    void setSelector(WORD selector) { m_selector = selector; }
-    void setOffset(DWORD offset) { m_offset = offset; }
+    u16 selector() const { return m_selector; }
+    u32 offset() const { return m_offset; }
+    void setSelector(u16 selector) { m_selector = selector; }
+    void setOffset(u32 offset) { m_offset = offset; }
 
-    bool operator<(const LogicalAddress& other) const { return weld<QWORD>(selector(), offset()) < weld<QWORD>(other.selector(), other.offset()); }
+    bool operator<(const LogicalAddress& other) const { return weld<u64>(selector(), offset()) < weld<u64>(other.selector(), other.offset()); }
 
 private:
-    WORD m_selector { 0 };
-    DWORD m_offset { 0 };
+    u16 m_selector { 0 };
+    u32 m_offset { 0 };
 };
 
 inline PhysicalAddress PhysicalAddress::fromRealMode(LogicalAddress logical)

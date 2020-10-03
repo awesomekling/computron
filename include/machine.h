@@ -87,11 +87,11 @@ public:
 
     void forEachIODevice(std::function<void(IODevice&)>);
 
-    IODevice* inputDeviceForPort(WORD port);
-    IODevice* outputDeviceForPort(WORD port);
+    IODevice* inputDeviceForPort(u16 port);
+    IODevice* outputDeviceForPort(u16 port);
 
-    void registerInputDevice(Badge<IODevice>, WORD port, IODevice&);
-    void registerOutputDevice(Badge<IODevice>, WORD port, IODevice&);
+    void registerInputDevice(Badge<IODevice>, u16 port, IODevice&);
+    void registerOutputDevice(Badge<IODevice>, u16 port, IODevice&);
     void registerDevice(Badge<IODevice>, IODevice&);
     void unregisterDevice(Badge<IODevice>, IODevice&);
 
@@ -109,15 +109,15 @@ private slots:
     void onWorkerFinished();
 
 private:
-    bool loadFile(DWORD address, const QString& fileName);
-    bool loadROMImage(DWORD address, const QString& fileName);
+    bool loadFile(u32 address, const QString& fileName);
+    bool loadROMImage(u32 address, const QString& fileName);
 
     void applySettings();
 
     Worker& worker() { return *m_worker; }
 
-    IODevice* inputDeviceForPortSlowCase(WORD port);
-    IODevice* outputDeviceForPortSlowCase(WORD port);
+    IODevice* inputDeviceForPortSlowCase(u16 port);
+    IODevice* outputDeviceForPortSlowCase(u16 port);
 
     OwnPtr<Settings> m_settings;
     OwnPtr<CPU> m_cpu;
@@ -151,20 +151,20 @@ private:
     IODevice* m_fastInputDevices[1024];
     IODevice* m_fastOutputDevices[1024];
 
-    QHash<WORD, IODevice*> m_allInputDevices;
-    QHash<WORD, IODevice*> m_allOutputDevices;
+    QHash<u16, IODevice*> m_allInputDevices;
+    QHash<u16, IODevice*> m_allOutputDevices;
 
     QVector<ROM*> m_roms;
 };
 
-inline IODevice* Machine::inputDeviceForPort(WORD port)
+inline IODevice* Machine::inputDeviceForPort(u16 port)
 {
     if (port < 1024)
         return m_fastInputDevices[port];
     return inputDeviceForPortSlowCase(port);
 }
 
-inline IODevice* Machine::outputDeviceForPort(WORD port)
+inline IODevice* Machine::outputDeviceForPort(u16 port)
 {
     if (port < 1024)
         return m_fastOutputDevices[port];

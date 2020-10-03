@@ -77,12 +77,12 @@ struct RuntimeOptions {
 
 extern RuntimeOptions options;
 
-inline PhysicalAddress realModeAddressToPhysicalAddress(WORD segment, DWORD offset)
+inline PhysicalAddress realModeAddressToPhysicalAddress(u16 segment, u32 offset)
 {
     return PhysicalAddress((segment << 4) + offset);
 }
 
-inline void write16ToPointer(WORD* pointer, WORD value)
+inline void write16ToPointer(u16* pointer, u16 value)
 {
 #ifdef CT_BIG_ENDIAN
     *pointer = V_BYTESWAP(value);
@@ -91,7 +91,7 @@ inline void write16ToPointer(WORD* pointer, WORD value)
 #endif
 }
 
-inline DWORD read32FromPointer(DWORD* pointer)
+inline u32 read32FromPointer(u32* pointer)
 {
 #ifdef CT_BIG_ENDIAN
     return V_BYTESWAP(*pointer);
@@ -100,7 +100,7 @@ inline DWORD read32FromPointer(DWORD* pointer)
 #endif
 }
 
-inline WORD read16FromPointer(WORD* pointer)
+inline u16 read16FromPointer(u16* pointer)
 {
 #ifdef CT_BIG_ENDIAN
     return V_BYTESWAP(*pointer);

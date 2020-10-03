@@ -25,30 +25,30 @@
 #include "SimpleMemoryProvider.h"
 #include "Common.h"
 
-SimpleMemoryProvider::SimpleMemoryProvider(PhysicalAddress baseAddress, DWORD size, bool allowDirectReadAccess)
+SimpleMemoryProvider::SimpleMemoryProvider(PhysicalAddress baseAddress, u32 size, bool allowDirectReadAccess)
     : MemoryProvider(baseAddress)
 {
     m_data.resize(size);
     setSize(size);
     if (allowDirectReadAccess)
-        m_pointerForDirectReadAccess = reinterpret_cast<const BYTE*>(m_data.data());
+        m_pointerForDirectReadAccess = reinterpret_cast<const u8*>(m_data.data());
 }
 
 SimpleMemoryProvider::~SimpleMemoryProvider()
 {
 }
 
-BYTE SimpleMemoryProvider::readMemory8(DWORD address)
+u8 SimpleMemoryProvider::readMemory8(u32 address)
 {
     return m_data.data()[address - baseAddress().get()];
 }
 
-void SimpleMemoryProvider::writeMemory8(DWORD address, BYTE data)
+void SimpleMemoryProvider::writeMemory8(u32 address, u8 data)
 {
     m_data.data()[address - baseAddress().get()] = data;
 }
 
-const BYTE* SimpleMemoryProvider::memoryPointer(DWORD address) const
+const u8* SimpleMemoryProvider::memoryPointer(u32 address) const
 {
-    return reinterpret_cast<const BYTE*>(&m_data.data()[address - baseAddress().get()]);
+    return reinterpret_cast<const u8*>(&m_data.data()[address - baseAddress().get()]);
 }

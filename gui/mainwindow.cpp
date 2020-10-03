@@ -41,7 +41,7 @@ struct MainWindow::Private {
     QLabel* numLockLabel;
     QLabel* capsLockLabel;
     QTimer ipsTimer;
-    QWORD cycleCount { 0 };
+    u64 cycleCount { 0 };
     QTime cycleTimer;
     CPU* cpu { nullptr };
 };
@@ -115,7 +115,7 @@ void MainWindow::updateIPS()
     auto cycles = cpuCycles - d->cycleCount;
     double elapsed = d->cycleTimer.elapsed() / 1000.0;
     double ips = cycles / elapsed;
-    d->messageLabel->setText(QString("Op/s: %1").arg((QWORD)ips));
+    d->messageLabel->setText(QString("Op/s: %1").arg((u64)ips));
     d->cycleCount = cpuCycles;
     d->cycleTimer.start();
 }

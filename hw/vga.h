@@ -40,32 +40,32 @@ public:
 
     // IODevice
     virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
+    virtual u8 in8(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
 
     // MemoryProvider
-    virtual void writeMemory8(DWORD address, BYTE value) override;
-    virtual BYTE readMemory8(DWORD address) override;
+    virtual void writeMemory8(u32 address, u8 value) override;
+    virtual u8 readMemory8(u32 address) override;
 
-    const BYTE* plane(int index) const;
-    const BYTE* text_memory() const;
+    const u8* plane(int index) const;
+    const u8* text_memory() const;
 
     void setPaletteDirty(bool);
     bool isPaletteDirty();
 
-    BYTE readRegister(BYTE index) const;
+    u8 readRegister(u8 index) const;
 
-    WORD cursor_location() const;
-    BYTE cursor_start_scanline() const;
-    BYTE cursor_end_scanline() const;
+    u16 cursor_location() const;
+    u8 cursor_start_scanline() const;
+    u8 cursor_end_scanline() const;
     bool cursor_enabled() const;
 
     QColor color(int index) const;
     QColor paletteColor(int paletteIndex) const;
 
-    BYTE currentVideoMode() const;
+    u8 currentVideoMode() const;
 
-    WORD start_address() const;
+    u16 start_address() const;
 
     void willRefreshScreen();
     void didRefreshScreen();
@@ -79,12 +79,12 @@ signals:
 
 private:
     void synchronizeColors();
-    BYTE read_mode() const;
-    BYTE write_mode() const;
-    BYTE rotate_count() const;
-    BYTE logical_op() const;
-    BYTE bit_mask() const;
-    BYTE read_map_select() const;
+    u8 read_mode() const;
+    u8 write_mode() const;
+    u8 rotate_count() const;
+    u8 logical_op() const;
+    u8 bit_mask() const;
+    u8 read_map_select() const;
 
     struct Private;
     OwnPtr<Private> d;

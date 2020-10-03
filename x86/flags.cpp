@@ -51,21 +51,21 @@ bool CPU::getSF() const
     return SF;
 }
 
-void CPU::updateFlags32(DWORD data)
+void CPU::updateFlags32(u32 data)
 {
     m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
     m_lastResult = data;
     m_lastOpSize = DWordSize;
 }
 
-void CPU::updateFlags16(WORD data)
+void CPU::updateFlags16(u16 data)
 {
     m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
     m_lastResult = data;
     m_lastOpSize = WordSize;
 }
 
-void CPU::updateFlags8(BYTE data)
+void CPU::updateFlags8(u8 data)
 {
     m_dirtyFlags |= Flag::PF | Flag::ZF | Flag::SF;
     m_lastResult = data;
@@ -142,7 +142,7 @@ void CPU::_SAHF(Instruction&)
     setSF(getAH() & Flag::SF);
 }
 
-void CPU::setFlags(WORD flags)
+void CPU::setFlags(u16 flags)
 {
     setCF(flags & Flag::CF);
     setPF(flags & Flag::PF);
@@ -157,7 +157,7 @@ void CPU::setFlags(WORD flags)
     setNT(flags & Flag::NT);
 }
 
-WORD CPU::getFlags() const
+u16 CPU::getFlags() const
 {
     return 0x0002
         | (getCF() * Flag::CF)
@@ -173,7 +173,7 @@ WORD CPU::getFlags() const
         | (getNT() * Flag::NT);
 }
 
-void CPU::setEFlags(DWORD eflags)
+void CPU::setEFlags(u32 eflags)
 {
     setFlags(eflags & 0xffff);
     setRF(eflags & Flag::RF);
@@ -184,9 +184,9 @@ void CPU::setEFlags(DWORD eflags)
     //    this->ID = (eflags & 0x200000) != 0;
 }
 
-DWORD CPU::getEFlags() const
+u32 CPU::getEFlags() const
 {
-    DWORD eflags = getFlags()
+    u32 eflags = getFlags()
         | (this->RF * Flag::RF)
         | (this->VM * Flag::VM)
         //         | (this->AC << 18)

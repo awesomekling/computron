@@ -65,7 +65,7 @@ void VomCtl::reset()
     d->consoleWriteBuffer = QString();
 }
 
-BYTE VomCtl::in8(WORD port)
+u8 VomCtl::in8(u16 port)
 {
     switch (port) {
     case 0xD6: // VOMCTL_REGISTER
@@ -76,9 +76,9 @@ BYTE VomCtl::in8(WORD port)
         case 0x01: // Get CPU type
             return 3;
         case 0x02: // RAM size LSB
-            return leastSignificant<BYTE>(machine().cpu().baseMemorySize() / 1024);
+            return leastSignificant<u8>(machine().cpu().baseMemorySize() / 1024);
         case 0x03: // RAM size MSB
-            return mostSignificant<BYTE>(machine().cpu().baseMemorySize() / 1024);
+            return mostSignificant<u8>(machine().cpu().baseMemorySize() / 1024);
         }
         vlog(LogVomCtl, "Invalid register %02X read", m_registerIndex);
         return IODevice::JunkValue;
@@ -91,9 +91,9 @@ BYTE VomCtl::in8(WORD port)
     }
 }
 
-void VomCtl::out8(WORD port, BYTE data)
+void VomCtl::out8(u16 port, u8 data)
 {
-    extern void vm_call8(CPU&, WORD port, BYTE value);
+    extern void vm_call8(CPU&, u16 port, u8 value);
 
     switch (port) {
     case 0xD6: // VOMCTL_REGISTER

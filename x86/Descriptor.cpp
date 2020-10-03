@@ -26,12 +26,12 @@
 #include "CPU.h"
 #include "debugger.h"
 
-SegmentDescriptor CPU::getRealModeOrVM86Descriptor(WORD selector, SegmentRegisterIndex segmentRegister)
+SegmentDescriptor CPU::getRealModeOrVM86Descriptor(u16 selector, SegmentRegisterIndex segmentRegister)
 {
     ASSERT(!getPE() || getVM());
     SegmentDescriptor descriptor;
     descriptor.m_index = selector;
-    descriptor.m_segmentBase = (DWORD)selector << 4;
+    descriptor.m_segmentBase = (u32)selector << 4;
     descriptor.m_segmentLimit = 0xffff;
     descriptor.m_effectiveLimit = 0xffff;
     descriptor.m_RPL = 0;
@@ -49,7 +49,7 @@ SegmentDescriptor CPU::getRealModeOrVM86Descriptor(WORD selector, SegmentRegiste
     return descriptor;
 }
 
-Descriptor CPU::getDescriptor(WORD selector)
+Descriptor CPU::getDescriptor(u16 selector)
 {
     if ((selector & 0xfffc) == 0)
         return ErrorDescriptor(Descriptor::NullSelector);
@@ -60,13 +60,13 @@ Descriptor CPU::getDescriptor(WORD selector)
     return getDescriptor(m_LDTR, selector, true);
 }
 
-Descriptor CPU::getInterruptDescriptor(BYTE number)
+Descriptor CPU::getInterruptDescriptor(u8 number)
 {
     ASSERT(getPE());
     return getDescriptor(m_IDTR, number, false);
 }
 
-SegmentDescriptor CPU::getSegmentDescriptor(WORD selector)
+SegmentDescriptor CPU::getSegmentDescriptor(u16 selector)
 {
     if (!getPE() || getVM())
         return getRealModeOrVM86Descriptor(selector);
@@ -76,13 +76,13 @@ SegmentDescriptor CPU::getSegmentDescriptor(WORD selector)
     return descriptor.asSegmentDescriptor();
 }
 
-Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, WORD index, bool indexIsSelector)
+Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, u16 index, bool indexIsSelector)
 {
     if (indexIsSelector && (index & 0xfffc) == 0)
         return ErrorDescriptor(Descriptor::NullSelector);
 
     Descriptor descriptor;
-    DWORD tableIndex;
+    u32 tableIndex;
 
     if (indexIsSelector) {
         descriptor.m_isGlobal = (index & 0x04) == 0;
@@ -98,8 +98,8 @@ Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, WORD index
         return ErrorDescriptor(Descriptor::LimitExceeded);
     }
 
-    DWORD hi = readMemoryMetal32(tableRegister.base().offset(tableIndex + 4));
-    DWORD lo = readMemoryMetal32(tableRegister.base().offset(tableIndex));
+    u32 hi = readMemoryMetal32(tableRegister.base().offset(tableIndex + 4));
+    u32 lo = readMemoryMetal32(tableRegister.base().offset(tableIndex));
 
     descriptor.m_G = (hi >> 23) & 1; // Limit granularity, 0=1b, 1=4kB
     descriptor.m_D = (hi >> 22) & 1;

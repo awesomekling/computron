@@ -29,12 +29,12 @@
 
 class SimpleMemoryProvider : public MemoryProvider {
 public:
-    SimpleMemoryProvider(PhysicalAddress baseAddress, DWORD size, bool allowDirectReadAccess);
+    SimpleMemoryProvider(PhysicalAddress baseAddress, u32 size, bool allowDirectReadAccess);
     virtual ~SimpleMemoryProvider();
 
-    virtual const BYTE* memoryPointer(DWORD address) const override;
-    virtual BYTE readMemory8(DWORD address) override;
-    virtual void writeMemory8(DWORD address, BYTE) override;
+    virtual const u8* memoryPointer(u32 address) const override;
+    virtual u8 readMemory8(u32 address) override;
+    virtual void writeMemory8(u32 address, u8) override;
 
 private:
     QByteArray m_data;

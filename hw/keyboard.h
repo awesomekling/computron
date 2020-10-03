@@ -40,8 +40,8 @@ public:
     virtual ~Keyboard();
 
     virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
+    virtual u8 in8(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
 
     bool isEnabled() const { return m_enabled; }
 
@@ -51,11 +51,11 @@ signals:
     void ledsChanged(int);
 
 private:
-    BYTE m_systemControlPortData;
-    BYTE m_ram[64];
-    BYTE m_command;
+    u8 m_systemControlPortData;
+    u8 m_ram[64];
+    u8 m_command;
     bool m_hasCommand;
     bool m_lastWasCommand;
-    BYTE m_leds { 0 };
+    u8 m_leds { 0 };
     bool m_enabled { true };
 };

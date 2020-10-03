@@ -43,7 +43,7 @@ void CPU::_AAM(Instruction& insn)
         throw DivideError("AAM with 0 immediate");
     }
 
-    BYTE tempAL = getAL();
+    u8 tempAL = getAL();
     setAH(tempAL / insn.imm8());
     setAL(tempAL % insn.imm8());
     updateFlags8(getAL());
@@ -52,8 +52,8 @@ void CPU::_AAM(Instruction& insn)
 
 void CPU::_AAD(Instruction& insn)
 {
-    BYTE tempAL = getAL();
-    BYTE tempAH = getAH();
+    u8 tempAL = getAL();
+    u8 tempAH = getAH();
 
     setAL((tempAL + (tempAH * insn.imm8())) & 0xff);
     setAH(0x00);
@@ -78,7 +78,7 @@ void CPU::_AAS(Instruction&)
 void CPU::_DAS(Instruction&)
 {
     bool oldCF = getCF();
-    BYTE oldAL = getAL();
+    u8 oldAL = getAL();
 
     setCF(0);
 
@@ -102,7 +102,7 @@ void CPU::_DAS(Instruction&)
 void CPU::_DAA(Instruction&)
 {
     bool oldCF = getCF();
-    BYTE oldAL = getAL();
+    u8 oldAL = getAL();
 
     setCF(0);
 

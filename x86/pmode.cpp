@@ -34,7 +34,7 @@ void CPU::doSGDTorSIDT(Instruction& insn, DescriptorTableRegister& table)
 
     snoop(insn.modrm().segment(), insn.modrm().offset(), MemoryAccessType::Write);
     snoop(insn.modrm().segment(), insn.modrm().offset() + 6, MemoryAccessType::Write);
-    DWORD maskedBase = o16() ? (table.base().get() & 0x00ffffff) : table.base().get();
+    u32 maskedBase = o16() ? (table.base().get() & 0x00ffffff) : table.base().get();
     writeMemory16(insn.modrm().segment(), insn.modrm().offset(), table.limit());
     writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
 }
@@ -57,11 +57,11 @@ void CPU::_SLDT_RM16(Instruction& insn)
     insn.modrm().writeSpecial(m_LDTR.selector(), o32());
 }
 
-void CPU::setLDT(WORD selector)
+void CPU::setLDT(u16 selector)
 {
     auto descriptor = getDescriptor(selector);
     LinearAddress base;
-    WORD limit = 0;
+    u16 limit = 0;
     if (!descriptor.isNull()) {
         if (descriptor.isLDT()) {
             auto& ldtDescriptor = descriptor.asLDTDescriptor();
@@ -114,9 +114,9 @@ void CPU::doLGDTorLIDT(Instruction& insn, DescriptorTableRegister& table)
     if (getCPL() != 0)
         throw GeneralProtectionFault(0, QString("%1 with CPL != 0").arg(insn.mnemonic()));
 
-    DWORD base = readMemory32(insn.modrm().segment(), insn.modrm().offset() + 2);
-    WORD limit = readMemory16(insn.modrm().segment(), insn.modrm().offset());
-    DWORD baseMask = o32() ? 0xffffffff : 0x00ffffff;
+    u32 base = readMemory32(insn.modrm().segment(), insn.modrm().offset() + 2);
+    u16 limit = readMemory16(insn.modrm().segment(), insn.modrm().offset());
+    u32 baseMask = o32() ? 0xffffffff : 0x00ffffff;
     table.setBase(LinearAddress(base & baseMask));
     table.setLimit(limit);
 }
@@ -150,7 +150,7 @@ void CPU::dumpIDT()
 {
     vlog(LogDump, "IDT { base:%08X, limit:%08X }", m_IDTR.base().get(), m_IDTR.limit());
     if (getPE()) {
-        for (DWORD isr = 0; isr < (m_IDTR.limit() / 16); ++isr) {
+        for (u32 isr = 0; isr < (m_IDTR.limit() / 16); ++isr) {
             dumpDescriptor(getInterruptDescriptor(isr));
         }
     }
@@ -174,7 +174,7 @@ void CPU::_LMSW_RM16(Instruction& insn)
         }
     }
 
-    WORD msw = insn.modrm().read16();
+    u16 msw = insn.modrm().read16();
 
     if (getPE()) {
         // LMSW cannot exit protected mode.
@@ -201,8 +201,8 @@ void CPU::_LAR_reg16_RM16(Instruction& insn)
         throw InvalidOpcode("LAR not recognized in real/VM86 mode");
 
     // FIXME: This has various ways it can fail, implement them.
-    WORD selector = insn.modrm().read16() & 0xffff;
-    WORD selectorRPL = selector & 3;
+    u16 selector = insn.modrm().read16() & 0xffff;
+    u16 selectorRPL = selector & 3;
     auto descriptor = getDescriptor(selector);
     if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.DPL() < getCPL() || descriptor.DPL() < selectorRPL) {
         setZF(0);
@@ -218,8 +218,8 @@ void CPU::_LAR_reg32_RM32(Instruction& insn)
         throw InvalidOpcode("LAR not recognized in real/VM86 mode");
 
     // FIXME: This has various ways it can fail, implement them.
-    WORD selector = insn.modrm().read32() & 0xffff;
-    WORD selectorRPL = selector & 3;
+    u16 selector = insn.modrm().read32() & 0xffff;
+    u16 selectorRPL = selector & 3;
     auto descriptor = getDescriptor(selector);
     if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.DPL() < getCPL() || descriptor.DPL() < selectorRPL) {
         setZF(0);
@@ -255,7 +255,7 @@ void CPU::_LSL_reg16_RM16(Instruction& insn)
     if (!getPE() || getVM())
         throw InvalidOpcode("LSL not recognized in real/VM86 mode");
 
-    WORD selector = insn.modrm().read16() & 0xffff;
+    u16 selector = insn.modrm().read16() & 0xffff;
     auto descriptor = getDescriptor(selector);
     // FIXME: This should also fail for conforming code segments somehow.
     if (!isValidDescriptorForLSL(descriptor)) {
@@ -263,7 +263,7 @@ void CPU::_LSL_reg16_RM16(Instruction& insn)
         return;
     }
 
-    DWORD effectiveLimit;
+    u32 effectiveLimit;
     if (descriptor.isLDT())
         effectiveLimit = descriptor.asLDTDescriptor().effectiveLimit();
     else if (descriptor.isTSS())
@@ -279,14 +279,14 @@ void CPU::_LSL_reg32_RM32(Instruction& insn)
     if (!getPE() || getVM())
         throw InvalidOpcode("LSL not recognized in real/VM86 mode");
 
-    WORD selector = insn.modrm().read16() & 0xffff;
+    u16 selector = insn.modrm().read16() & 0xffff;
     auto descriptor = getDescriptor(selector);
     // FIXME: This should also fail for conforming code segments somehow.
     if (descriptor.isOutsideTableLimits()) {
         setZF(0);
         return;
     }
-    DWORD effectiveLimit;
+    u32 effectiveLimit;
     if (descriptor.isLDT())
         effectiveLimit = descriptor.asLDTDescriptor().effectiveLimit();
     else if (descriptor.isTSS())
@@ -338,9 +338,9 @@ void CPU::raiseException(const Exception& e)
     }
 }
 
-Exception CPU::GeneralProtectionFault(WORD code, const QString& reason)
+Exception CPU::GeneralProtectionFault(u16 code, const QString& reason)
 {
-    WORD selector = code & 0xfff8;
+    u16 selector = code & 0xfff8;
     bool TI = code & 4;
     bool I = code & 2;
     bool EX = code & 1;
@@ -355,14 +355,14 @@ Exception CPU::GeneralProtectionFault(WORD code, const QString& reason)
     return Exception(0xd, code, reason);
 }
 
-Exception CPU::StackFault(WORD selector, const QString& reason)
+Exception CPU::StackFault(u16 selector, const QString& reason)
 {
     if (options.log_exceptions)
         vlog(LogCPU, "Exception: #SS(%04x) :: %s", selector, qPrintable(reason));
     return Exception(0xc, selector, reason);
 }
 
-Exception CPU::NotPresent(WORD selector, const QString& reason)
+Exception CPU::NotPresent(u16 selector, const QString& reason)
 {
     if (options.log_exceptions)
         vlog(LogCPU, "Exception: #NP(%04x) :: %s", selector, qPrintable(reason));
@@ -383,7 +383,7 @@ Exception CPU::BoundRangeExceeded(const QString& reason)
     return Exception(0x5, reason);
 }
 
-Exception CPU::InvalidTSS(WORD selector, const QString& reason)
+Exception CPU::InvalidTSS(u16 selector, const QString& reason)
 {
     if (options.log_exceptions)
         vlog(LogCPU, "Exception: #TS(%04x) :: %s", selector, qPrintable(reason));
@@ -397,12 +397,12 @@ Exception CPU::DivideError(const QString& reason)
     return Exception(0x0, reason);
 }
 
-void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Descriptor& descriptor)
+void CPU::validateSegmentLoad(SegmentRegisterIndex reg, u16 selector, const Descriptor& descriptor)
 {
     if (!getPE() || getVM())
         return;
 
-    BYTE selectorRPL = selector & 3;
+    u8 selectorRPL = selector & 3;
 
     if (descriptor.isOutsideTableLimits()) {
         throw GeneralProtectionFault(selector & 0xfffc, "Selector outside table limits");
@@ -456,7 +456,7 @@ void CPU::validateSegmentLoad(SegmentRegisterIndex reg, WORD selector, const Des
     }
 }
 
-void CPU::writeSegmentRegister(SegmentRegisterIndex segreg, WORD selector)
+void CPU::writeSegmentRegister(SegmentRegisterIndex segreg, u16 selector)
 {
     if ((int)segreg >= 6) {
         throw InvalidOpcode("Write to invalid segment register");
@@ -515,8 +515,8 @@ void CPU::_VERR_RM16(Instruction& insn)
     if (!getPE() || getVM())
         throw InvalidOpcode("VERR not recognized in real/VM86 mode");
 
-    WORD selector = insn.modrm().read16();
-    WORD RPL = selector & 3;
+    u16 selector = insn.modrm().read16();
+    u16 RPL = selector & 3;
     auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || !descriptor.asSegmentDescriptor().readable() || (!descriptor.isConformingCode() && (descriptor.DPL() < getCPL() || descriptor.DPL() < RPL))) {
@@ -532,8 +532,8 @@ void CPU::_VERW_RM16(Instruction& insn)
     if (!getPE() || getVM())
         throw InvalidOpcode("VERW not recognized in real/VM86 mode");
 
-    WORD selector = insn.modrm().read16();
-    WORD RPL = selector & 3;
+    u16 selector = insn.modrm().read16();
+    u16 RPL = selector & 3;
     auto descriptor = getDescriptor(selector);
 
     if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || descriptor.DPL() < getCPL() || descriptor.DPL() < RPL || !descriptor.asSegmentDescriptor().writable()) {
@@ -549,8 +549,8 @@ void CPU::_ARPL(Instruction& insn)
     if (!getPE() || getVM()) {
         throw InvalidOpcode("ARPL not recognized in real/VM86 mode");
     }
-    WORD dest = insn.modrm().read16();
-    WORD src = insn.reg16();
+    u16 dest = insn.modrm().read16();
+    u16 src = insn.reg16();
 
     if ((dest & 3) < (src & 3)) {
         setZF(1);

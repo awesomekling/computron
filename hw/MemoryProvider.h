@@ -32,41 +32,41 @@ public:
     virtual ~MemoryProvider() { }
 
     PhysicalAddress baseAddress() const { return m_baseAddress; }
-    DWORD size() const { return m_size; }
+    u32 size() const { return m_size; }
 
     // pls no use :(
-    virtual const BYTE* memoryPointer(DWORD address) const;
+    virtual const u8* memoryPointer(u32 address) const;
 
-    virtual BYTE readMemory8(DWORD address);
-    virtual WORD readMemory16(DWORD address);
-    virtual DWORD readMemory32(DWORD address);
-    virtual void writeMemory8(DWORD address, BYTE);
-    virtual void writeMemory16(DWORD address, WORD);
-    virtual void writeMemory32(DWORD address, DWORD);
+    virtual u8 readMemory8(u32 address);
+    virtual u16 readMemory16(u32 address);
+    virtual u32 readMemory32(u32 address);
+    virtual void writeMemory8(u32 address, u8);
+    virtual void writeMemory16(u32 address, u16);
+    virtual void writeMemory32(u32 address, u32);
 
-    const BYTE* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
+    const u8* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
 
     template<typename T>
-    T read(DWORD address);
+    T read(u32 address);
     template<typename T>
-    void write(DWORD address, T);
+    void write(u32 address, T);
 
 protected:
-    MemoryProvider(PhysicalAddress baseAddress, DWORD size = 0)
+    MemoryProvider(PhysicalAddress baseAddress, u32 size = 0)
         : m_baseAddress(baseAddress)
     {
         setSize(size);
     }
-    void setSize(DWORD);
-    const BYTE* m_pointerForDirectReadAccess { nullptr };
+    void setSize(u32);
+    const u8* m_pointerForDirectReadAccess { nullptr };
 
 private:
     PhysicalAddress m_baseAddress;
-    DWORD m_size { 0 };
+    u32 m_size { 0 };
 };
 
 template<typename T>
-inline T MemoryProvider::read(DWORD address)
+inline T MemoryProvider::read(u32 address)
 {
     if (sizeof(T) == 1)
         return readMemory8(address);
@@ -77,7 +77,7 @@ inline T MemoryProvider::read(DWORD address)
 }
 
 template<typename T>
-inline void MemoryProvider::write(DWORD address, T data)
+inline void MemoryProvider::write(u32 address, T data)
 {
     if (sizeof(T) == 1)
         return writeMemory8(address, data);

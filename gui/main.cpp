@@ -168,20 +168,20 @@ void parseArguments(const QStringList& arguments)
 #endif
 }
 
-static_assert(TypeTrivia<BYTE>::mask == 0xff, "TypeTrivia<BYTE>::mask");
-static_assert(TypeTrivia<WORD>::mask == 0xffff, "TypeTrivia<WORD>::mask");
-static_assert(TypeTrivia<DWORD>::mask == 0xffffffff, "TypeTrivia<DWORD>::mask");
-static_assert(TypeTrivia<QWORD>::mask == 0xffffffffffffffff, "TypeTrivia<QWORD>::mask");
-static_assert(weld<WORD>(0xf0, 0x0f) == 0xf00f, "weld<WORD>");
-static_assert(weld<DWORD>(0xbeef, 0xbabe) == 0xbeefbabe, "weld<DWORD>");
-static_assert(weld<QWORD>(0xcafebabe, 0xdeadbeef) == 0xcafebabedeadbeef, "weld<QWORD>");
-static_assert(std::numeric_limits<SIGNED_BYTE>::min() == -0x80, "min SIGNED_BYTE");
-static_assert(std::numeric_limits<SIGNED_BYTE>::max() == 0x7f, "max SIGNED_BYTE");
-static_assert(std::numeric_limits<SIGNED_WORD>::min() == -0x8000, "min SIGNED_WORD");
-static_assert(std::numeric_limits<SIGNED_WORD>::max() == 0x7fff, "max SIGNED_WORD");
-static_assert(std::numeric_limits<SIGNED_DWORD>::min() == -0x80000000L, "min SIGNED_DWORD");
-static_assert(std::numeric_limits<SIGNED_DWORD>::max() == 0x7fffffff, "max SIGNED_DWORD");
-static_assert(signExtendedTo<SIGNED_WORD>(BYTE(0x80)) == -128, "signExtendedTo<SIGNED_WORD> -");
-static_assert(signExtendedTo<SIGNED_DWORD>(BYTE(0x80)) == -128, "signExtendedTo<SIGNED_DWORD> -");
-static_assert(signExtendedTo<SIGNED_WORD>(BYTE(0x7f)) == 127, "signExtendedTo<SIGNED_WORD> +");
-static_assert(signExtendedTo<SIGNED_DWORD>(BYTE(0x7f)) == 127, "signExtendedTo<SIGNED_DWORD> +");
+static_assert(TypeTrivia<u8>::mask == 0xff, "TypeTrivia<u8>::mask");
+static_assert(TypeTrivia<u16>::mask == 0xffff, "TypeTrivia<u16>::mask");
+static_assert(TypeTrivia<u32>::mask == 0xffffffff, "TypeTrivia<u32>::mask");
+static_assert(TypeTrivia<u64>::mask == 0xffffffffffffffff, "TypeTrivia<u64>::mask");
+static_assert(weld<u16>(0xf0, 0x0f) == 0xf00f, "weld<u16>");
+static_assert(weld<u32>(0xbeef, 0xbabe) == 0xbeefbabe, "weld<u32>");
+static_assert(weld<u64>(0xcafebabe, 0xdeadbeef) == 0xcafebabedeadbeef, "weld<u64>");
+static_assert(std::numeric_limits<i8>::min() == -0x80, "min i8");
+static_assert(std::numeric_limits<i8>::max() == 0x7f, "max i8");
+static_assert(std::numeric_limits<i16>::min() == -0x8000, "min i16");
+static_assert(std::numeric_limits<i16>::max() == 0x7fff, "max i16");
+static_assert(std::numeric_limits<i32>::min() == -0x80000000L, "min i32");
+static_assert(std::numeric_limits<i32>::max() == 0x7fffffff, "max i32");
+static_assert(signExtendedTo<i16>(u8(0x80)) == -128, "signExtendedTo<i16> -");
+static_assert(signExtendedTo<i32>(u8(0x80)) == -128, "signExtendedTo<i32> -");
+static_assert(signExtendedTo<i16>(u8(0x7f)) == 127, "signExtendedTo<i16> +");
+static_assert(signExtendedTo<i32>(u8(0x7f)) == 127, "signExtendedTo<i32> +");

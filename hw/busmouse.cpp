@@ -57,7 +57,7 @@ void BusMouse::reset()
     m_deltaY = 0;
 }
 
-void BusMouse::out8(WORD port, BYTE data)
+void BusMouse::out8(u16 port, u8 data)
 {
     switch (port) {
     case 0x23e:
@@ -87,7 +87,7 @@ void BusMouse::out8(WORD port, BYTE data)
     }
 }
 
-void BusMouse::moveEvent(WORD x, WORD y)
+void BusMouse::moveEvent(u16 x, u16 y)
 {
     {
         QMutexLocker locker(&m_mutex);
@@ -104,7 +104,7 @@ void BusMouse::moveEvent(WORD x, WORD y)
         raiseIRQ();
 }
 
-void BusMouse::buttonPressEvent(WORD x, WORD y, MouseButton button)
+void BusMouse::buttonPressEvent(u16 x, u16 y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);
@@ -126,7 +126,7 @@ void BusMouse::buttonPressEvent(WORD x, WORD y, MouseButton button)
         raiseIRQ();
 }
 
-void BusMouse::buttonReleaseEvent(WORD x, WORD y, MouseButton button)
+void BusMouse::buttonReleaseEvent(u16 x, u16 y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);
@@ -148,11 +148,11 @@ void BusMouse::buttonReleaseEvent(WORD x, WORD y, MouseButton button)
         raiseIRQ();
 }
 
-BYTE BusMouse::in8(WORD port)
+u8 BusMouse::in8(u16 port)
 {
-    static BYTE interrupt_val = 0x01;
+    static u8 interrupt_val = 0x01;
 
-    BYTE ret = 0;
+    u8 ret = 0;
 
     QMutexLocker locker(&m_mutex);
 

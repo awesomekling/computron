@@ -35,8 +35,8 @@ public:
     virtual ~PIT();
 
     virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
+    virtual u8 in8(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
 
     void boot();
 
@@ -45,11 +45,11 @@ public:
 private:
     friend class CPU;
 
-    BYTE readCounter(BYTE index);
-    void writeCounter(BYTE index, BYTE data);
+    u8 readCounter(u8 index);
+    void writeCounter(u8 index, u8 data);
 
-    void modeControl(int timerIndex, BYTE data);
-    void reconfigureTimer(BYTE index);
+    void modeControl(int timerIndex, u8 data);
+    void reconfigureTimer(u8 index);
 
     struct Private;
     OwnPtr<Private> d;

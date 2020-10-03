@@ -25,13 +25,13 @@
 #include "CPU.h"
 #include "debug.h"
 
-void CPU::pushSegmentRegisterValue(WORD value)
+void CPU::pushSegmentRegisterValue(u16 value)
 {
     if (o16()) {
         push16(value);
         return;
     }
-    DWORD new_esp = currentStackPointer() - 4;
+    u32 new_esp = currentStackPointer() - 4;
     if (s16())
         new_esp &= 0xffff;
     writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
@@ -40,9 +40,9 @@ void CPU::pushSegmentRegisterValue(WORD value)
         vlog(LogCPU, "push32: %04x (at esp=%08x, special 16-bit write for segment registers)", value, getESP());
 }
 
-void CPU::push32(DWORD value)
+void CPU::push32(u32 value)
 {
-    DWORD new_esp = currentStackPointer() - 4;
+    u32 new_esp = currentStackPointer() - 4;
     if (s16())
         new_esp &= 0xffff;
     writeMemory32(SegmentRegisterIndex::SS, new_esp, value);
@@ -51,9 +51,9 @@ void CPU::push32(DWORD value)
         vlog(LogCPU, "push32: %08x (at esp=%08x)", value, currentStackPointer());
 }
 
-void CPU::push16(WORD value)
+void CPU::push16(u16 value)
 {
-    DWORD new_esp = currentStackPointer() - 2;
+    u32 new_esp = currentStackPointer() - 2;
     if (s16())
         new_esp &= 0xffff;
     writeMemory16(SegmentRegisterIndex::SS, new_esp, value);
@@ -62,18 +62,18 @@ void CPU::push16(WORD value)
         vlog(LogCPU, "push16: %04x (at esp=%08x)", value, currentStackPointer());
 }
 
-DWORD CPU::pop32()
+u32 CPU::pop32()
 {
-    DWORD data = readMemory32(SegmentRegisterIndex::SS, currentStackPointer());
+    u32 data = readMemory32(SegmentRegisterIndex::SS, currentStackPointer());
     if (UNLIKELY(options.stacklog))
         vlog(LogCPU, "pop32: %08x (from esp=%08x)", data, currentStackPointer());
     adjustStackPointer(4);
     return data;
 }
 
-WORD CPU::pop16()
+u16 CPU::pop16()
 {
-    WORD data = readMemory16(SegmentRegisterIndex::SS, currentStackPointer());
+    u16 data = readMemory16(SegmentRegisterIndex::SS, currentStackPointer());
     if (UNLIKELY(options.stacklog))
         vlog(LogCPU, "pop16: %04x (from esp=%08x)", data, currentStackPointer());
     adjustStackPointer(2);
@@ -219,10 +219,10 @@ void CPU::_POPFD(Instruction&)
     setEFlagsRespectfully(pop32(), getCPL());
 }
 
-void CPU::setEFlagsRespectfully(DWORD newFlags, BYTE effectiveCPL)
+void CPU::setEFlagsRespectfully(u32 newFlags, u8 effectiveCPL)
 {
-    DWORD oldFlags = getEFlags();
-    DWORD flagsToKeep = Flag::VIP | Flag::VIF | Flag::RF;
+    u32 oldFlags = getEFlags();
+    u32 flagsToKeep = Flag::VIP | Flag::VIF | Flag::RF;
     if (o16())
         flagsToKeep |= 0xffff0000;
     if (getVM())
@@ -242,9 +242,9 @@ void CPU::setEFlagsRespectfully(DWORD newFlags, BYTE effectiveCPL)
 void CPU::_PUSH_imm8(Instruction& insn)
 {
     if (o32())
-        push32(signExtendedTo<DWORD>(insn.imm8()));
+        push32(signExtendedTo<u32>(insn.imm8()));
     else
-        push16(signExtendedTo<WORD>(insn.imm8()));
+        push16(signExtendedTo<u16>(insn.imm8()));
 }
 
 void CPU::_PUSH_imm16(Instruction& insn)
@@ -255,14 +255,14 @@ void CPU::_PUSH_imm16(Instruction& insn)
 template<typename T>
 void CPU::doENTER(Instruction& insn)
 {
-    WORD size = insn.imm16_2();
-    BYTE nestingLevel = insn.imm8_1() & 31;
+    u16 size = insn.imm16_2();
+    u8 nestingLevel = insn.imm8_1() & 31;
     push<T>(readRegister<T>(RegisterBP));
     T frameTemp = readRegister<T>(RegisterSP);
 
     if (nestingLevel > 0) {
-        DWORD tempBasePointer = currentBasePointer();
-        for (BYTE i = 1; i < nestingLevel; ++i) {
+        u32 tempBasePointer = currentBasePointer();
+        for (u8 i = 1; i < nestingLevel; ++i) {
             tempBasePointer -= sizeof(T);
             push<T>(readMemory<T>(SegmentRegisterIndex::SS, tempBasePointer));
         }
@@ -275,12 +275,12 @@ void CPU::doENTER(Instruction& insn)
 
 void CPU::_ENTER16(Instruction& insn)
 {
-    doENTER<WORD>(insn);
+    doENTER<u16>(insn);
 }
 
 void CPU::_ENTER32(Instruction& insn)
 {
-    doENTER<DWORD>(insn);
+    doENTER<u32>(insn);
 }
 
 template<typename T>
@@ -296,18 +296,18 @@ void CPU::doLEAVE()
 
 void CPU::_LEAVE16(Instruction&)
 {
-    doLEAVE<WORD>();
+    doLEAVE<u16>();
 }
 
 void CPU::_LEAVE32(Instruction&)
 {
-    doLEAVE<DWORD>();
+    doLEAVE<u32>();
 }
 
 template<typename T>
 void CPU::doPUSHA()
 {
-    DWORD new_esp = currentStackPointer() - sizeof(T) * 8;
+    u32 new_esp = currentStackPointer() - sizeof(T) * 8;
     if (s16())
         new_esp &= 0xffff;
 
@@ -327,18 +327,18 @@ void CPU::doPUSHA()
 
 void CPU::_PUSHA(Instruction&)
 {
-    doPUSHA<WORD>();
+    doPUSHA<u16>();
 }
 
 void CPU::_PUSHAD(Instruction&)
 {
-    doPUSHA<DWORD>();
+    doPUSHA<u32>();
 }
 
 template<typename T>
 void CPU::doPOPA()
 {
-    DWORD new_esp = currentStackPointer() + sizeof(T) * 8;
+    u32 new_esp = currentStackPointer() + sizeof(T) * 8;
     if (s16())
         new_esp &= 0xffff;
 
@@ -357,10 +357,10 @@ void CPU::doPOPA()
 
 void CPU::_POPA(Instruction&)
 {
-    doPOPA<WORD>();
+    doPOPA<u16>();
 }
 
 void CPU::_POPAD(Instruction&)
 {
-    doPOPA<DWORD>();
+    doPOPA<u32>();
 }

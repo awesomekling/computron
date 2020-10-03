@@ -36,21 +36,21 @@ struct IDEController {
     unsigned controllerIndex { 0xffffffff };
     DiskDrive* drivePtr { nullptr };
 
-    WORD cylinderIndex { 0 };
-    BYTE sectorIndex { 0 };
-    BYTE headIndex { 0 };
-    BYTE sectorCount { 0 };
-    BYTE error { 0 };
+    u16 cylinderIndex { 0 };
+    u8 sectorIndex { 0 };
+    u8 headIndex { 0 };
+    u8 sectorCount { 0 };
+    u8 error { 0 };
     bool inLBAMode { false };
 
     void identify(IDE&);
     void readSectors(IDE&);
     void writeSectors();
 
-    DWORD lba()
+    u32 lba()
     {
         if (inLBAMode) {
-            return ((DWORD)cylinderIndex << 8) | sectorIndex;
+            return ((u32)cylinderIndex << 8) | sectorIndex;
         }
         return drive().toLBA(cylinderIndex, headIndex, sectorIndex);
     }
@@ -69,7 +69,7 @@ struct IDEController {
 
 void IDEController::identify(IDE& ide)
 {
-    WORD data[256];
+    u16 data[256];
     memset(data, 0, sizeof(data));
     data[1] = drive().sectors() / (drive().sectorsPerTrack() * drive().heads());
     data[3] = drive().heads();
@@ -200,7 +200,7 @@ void IDE::reset()
     d->controller[1].drivePtr = &machine().fixed1();
 }
 
-void IDE::out8(WORD port, BYTE data)
+void IDE::out8(u16 port, u8 data)
 {
 #ifdef IDE_DEBUG
     vlog(LogIDE, "out8 %03x, %02x", port, data);
@@ -211,7 +211,7 @@ void IDE::out8(WORD port, BYTE data)
 
     switch (port & 0xF) {
     case 0x0:
-        controller.writeToSectorBuffer<BYTE>(*this, data);
+        controller.writeToSectorBuffer<u8>(*this, data);
         break;
     case 0x2:
 #ifdef IDE_DEBUG
@@ -229,13 +229,13 @@ void IDE::out8(WORD port, BYTE data)
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder LSB set: %u", controllerIndex, data);
 #endif
-        controller.cylinderIndex = weld<WORD>(mostSignificant<BYTE>(controller.cylinderIndex), data);
+        controller.cylinderIndex = weld<u16>(mostSignificant<u8>(controller.cylinderIndex), data);
         break;
     case 0x5:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder MSB set: %u", controllerIndex, data);
 #endif
-        controller.cylinderIndex = weld<WORD>(data, leastSignificant<BYTE>(controller.cylinderIndex));
+        controller.cylinderIndex = weld<u16>(data, leastSignificant<u8>(controller.cylinderIndex));
         break;
     case 0x6:
         controller.headIndex = data & 0xf;
@@ -257,7 +257,7 @@ void IDE::out8(WORD port, BYTE data)
     }
 }
 
-BYTE IDE::in8(WORD port)
+u8 IDE::in8(u16 port)
 {
     int controllerIndex = (((port)&0x1F0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
@@ -272,7 +272,7 @@ BYTE IDE::in8(WORD port)
 
     switch (port & 0xF) {
     case 0:
-        return controller.readFromSectorBuffer<BYTE>();
+        return controller.readFromSectorBuffer<u8>();
     case 0x1:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d error queried: %02X", controllerIndex, controller.error);
@@ -292,19 +292,19 @@ BYTE IDE::in8(WORD port)
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder LSB queried: %02X", controllerIndex, leastSignificant<BYTE>(controller.cylinderIndex));
 #endif
-        return leastSignificant<BYTE>(controller.cylinderIndex);
+        return leastSignificant<u8>(controller.cylinderIndex);
     case 0x5:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d cylinder MSB queried: %02X", controllerIndex, mostSignificant<BYTE>(controller.cylinderIndex));
 #endif
-        return mostSignificant<BYTE>(controller.cylinderIndex);
+        return mostSignificant<u8>(controller.cylinderIndex);
     case 0x6:
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d head index queried: %u", controllerIndex, controller.headIndex);
 #endif
         return controller.headIndex;
     case 0x7: {
-        BYTE ret = status(controller);
+        u8 ret = status(controller);
 #ifdef IDE_DEBUG
         vlog(LogIDE, "Controller %d status queried: %02X", controllerIndex, ret);
 #endif
@@ -315,33 +315,33 @@ BYTE IDE::in8(WORD port)
     }
 }
 
-WORD IDE::in16(WORD port)
+u16 IDE::in16(u16 port)
 {
     int controllerIndex = (((port)&0x1f0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
     case 0:
-        return controller.readFromSectorBuffer<WORD>();
+        return controller.readFromSectorBuffer<u16>();
     default:
         return IODevice::in16(port);
     }
 }
 
-DWORD IDE::in32(WORD port)
+u32 IDE::in32(u16 port)
 {
     int controllerIndex = (((port)&0x1f0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
     case 0:
-        return controller.readFromSectorBuffer<DWORD>();
+        return controller.readFromSectorBuffer<u32>();
     default:
         return IODevice::in16(port);
     }
 }
 
-void IDE::out16(WORD port, WORD data)
+void IDE::out16(u16 port, u16 data)
 {
 #ifdef IDE_DEBUG
     vlog(LogIDE, "out16 %03x, %04x", port, data);
@@ -352,14 +352,14 @@ void IDE::out16(WORD port, WORD data)
 
     switch (port & 0xF) {
     case 0x0:
-        controller.writeToSectorBuffer<WORD>(*this, data);
+        controller.writeToSectorBuffer<u16>(*this, data);
         break;
     default:
         return IODevice::out16(port, data);
     }
 }
 
-void IDE::out32(WORD port, DWORD data)
+void IDE::out32(u16 port, u32 data)
 {
 #ifdef IDE_DEBUG
     vlog(LogIDE, "out32 %03x, %08x", port, data);
@@ -370,14 +370,14 @@ void IDE::out32(WORD port, DWORD data)
 
     switch (port & 0xF) {
     case 0x0:
-        controller.writeToSectorBuffer<DWORD>(*this, data);
+        controller.writeToSectorBuffer<u32>(*this, data);
         break;
     default:
         return IODevice::out16(port, data);
     }
 }
 
-void IDE::executeCommand(IDEController& controller, BYTE command)
+void IDE::executeCommand(IDEController& controller, u8 command)
 {
     switch (command) {
     case 0x20:

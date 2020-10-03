@@ -46,15 +46,15 @@ public:
     virtual ~IDE();
 
     virtual void reset() override;
-    virtual BYTE in8(WORD port) override;
-    virtual WORD in16(WORD port) override;
-    virtual DWORD in32(WORD port) override;
-    virtual void out8(WORD port, BYTE data) override;
-    virtual void out16(WORD port, WORD data) override;
-    virtual void out32(WORD port, DWORD data) override;
+    virtual u8 in8(u16 port) override;
+    virtual u16 in16(u16 port) override;
+    virtual u32 in32(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
+    virtual void out16(u16 port, u16 data) override;
+    virtual void out32(u16 port, u32 data) override;
 
 private:
-    void executeCommand(IDEController&, BYTE);
+    void executeCommand(IDEController&, u8);
     Status status(const IDEController&) const;
 
     struct Private;

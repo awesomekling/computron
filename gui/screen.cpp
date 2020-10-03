@@ -41,7 +41,7 @@
 #include <QtGui/QPainter>
 
 struct fontcharbitmap_t {
-    BYTE data[16];
+    u8 data[16];
 };
 
 static Screen* s_self = 0L;
@@ -49,8 +49,8 @@ static Screen* s_self = 0L;
 struct Screen::Private {
     QMutex keyQueueLock;
 
-    QQueue<WORD> keyQueue;
-    QQueue<BYTE> rawQueue;
+    QQueue<u16> keyQueue;
+    QQueue<u8> rawQueue;
 
     QTimer refreshTimer;
     QTimer periodicRefreshTimer;
@@ -136,7 +136,7 @@ private:
     Machine& m_machine;
 };
 
-inline bool isVideoModeUsingVGAMemory(BYTE videoMode)
+inline bool isVideoModeUsingVGAMemory(u8 videoMode)
 {
     return videoMode == 0x0D || videoMode == 0x12 || videoMode == 0x13;
 }
@@ -145,7 +145,7 @@ void Screen::refresh()
 {
     RefreshGuard guard(machine());
 
-    BYTE videoMode = currentVideoMode();
+    u8 videoMode = currentVideoMode();
     bool videoModeChanged = false;
 
     if (m_videoModeInLastRefresh != videoMode) {
@@ -215,21 +215,21 @@ void Screen::paintEvent(QPaintEvent*)
     renderer().paint(p);
 }
 
-BYTE Screen::currentVideoMode() const
+u8 Screen::currentVideoMode() const
 {
     return machine().vga().currentVideoMode();
 }
 
-BYTE Screen::currentRowCount() const
+u8 Screen::currentRowCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x484)) + 1;
+    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x484)) + 1;
 }
 
-BYTE Screen::currentColumnCount() const
+u8 Screen::currentColumnCount() const
 {
     // FIXME: Don't get through BDA.
-    return machine().cpu().readPhysicalMemory<BYTE>(PhysicalAddress(0x44a));
+    return machine().cpu().readPhysicalMemory<u8>(PhysicalAddress(0x44a));
 }
 
 void Screen::mouseMoveEvent(QMouseEvent* e)
@@ -276,15 +276,15 @@ void Screen::mouseReleaseEvent(QMouseEvent* e)
 #include <QKeyEvent>
 #include <QMutexLocker>
 
-static QHash<QString, WORD> normals;
-static QHash<QString, WORD> shifts;
-static QHash<QString, WORD> ctrls;
-static QHash<QString, WORD> alts;
-static QHash<QString, BYTE> makeCode;
-static QHash<QString, BYTE> breakCode;
+static QHash<QString, u16> normals;
+static QHash<QString, u16> shifts;
+static QHash<QString, u16> ctrls;
+static QHash<QString, u16> alts;
+static QHash<QString, u8> makeCode;
+static QHash<QString, u8> breakCode;
 static QHash<QString, bool> extended;
 
-static void addKey(const QString& keyName, WORD normal, WORD shift, WORD ctrl, WORD alt, bool isExtended = false)
+static void addKey(const QString& keyName, u16 normal, u16 shift, u16 ctrl, u16 alt, bool isExtended = false)
 {
     normals.insert(keyName, normal);
     shifts.insert(keyName, shift);
@@ -313,7 +313,7 @@ bool Screen::loadKeymap(const QString& filename)
             continue;
 
         bool ok;
-        BYTE nativeKey;
+        u8 nativeKey;
         if (pieces[1].startsWith("0x"))
             nativeKey = pieces[1].toUInt(&ok, 16);
         else
@@ -436,7 +436,7 @@ void Screen::init()
         loadKeymap(keymap);
 }
 
-WORD Screen::scanCodeFromKeyEvent(const QKeyEvent* event) const
+u16 Screen::scanCodeFromKeyEvent(const QKeyEvent* event) const
 {
     QString keyName = keyNameFromKeyEvent(event);
 
@@ -506,7 +506,7 @@ void Screen::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    WORD scancode = scanCodeFromKeyEvent(event);
+    u16 scancode = scanCodeFromKeyEvent(event);
 
     if (!machine().keyboard().isEnabled()) {
         vlog(LogScreen, "KeyPress event while keyboard disabled");
@@ -559,7 +559,7 @@ void Screen::keyReleaseEvent(QKeyEvent* event)
     event->ignore();
 }
 
-WORD Screen::nextKey()
+u16 Screen::nextKey()
 {
     QMutexLocker l(&d->keyQueueLock);
 
@@ -570,7 +570,7 @@ WORD Screen::nextKey()
     return 0;
 }
 
-WORD Screen::peekKey()
+u16 Screen::peekKey()
 {
     QMutexLocker l(&d->keyQueueLock);
 
@@ -581,11 +581,11 @@ WORD Screen::peekKey()
     return 0;
 }
 
-BYTE Screen::popKeyData()
+u8 Screen::popKeyData()
 {
     QMutexLocker l(&d->keyQueueLock);
 
-    BYTE key = 0;
+    u8 key = 0;
     if (!d->rawQueue.isEmpty())
         key = d->rawQueue.dequeue();
     return key;
@@ -612,21 +612,21 @@ bool kbd_has_data()
     return s_self->hasRawKey();
 }
 
-WORD kbd_getc()
+u16 kbd_getc()
 {
     if (!s_self)
         return 0x0000;
     return s_self->nextKey();
 }
 
-WORD kbd_hit()
+u16 kbd_hit()
 {
     if (!s_self)
         return 0x0000;
     return s_self->peekKey();
 }
 
-BYTE kbd_pop_raw()
+u8 kbd_pop_raw()
 {
     if (!s_self)
         return 0x00;

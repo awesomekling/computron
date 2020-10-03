@@ -32,7 +32,7 @@ void CPU::_INT_imm8(Instruction& insn)
 {
 #ifdef VMM_TRACING
     if (insn.imm8() == 0x20) {
-        WORD service_id = readMemory16(SegmentRegisterIndex::CS, getEIP());
+        u16 service_id = readMemory16(SegmentRegisterIndex::CS, getEIP());
         if (service_id < m_vmm_names.size())
             vlog(LogCPU, "VMM %04x: %s", service_id, qPrintable(m_vmm_names.at(service_id)));
         else {
@@ -62,12 +62,12 @@ void CPU::iretFromVM86Mode()
     if (getIOPL() != 3)
         throw GeneralProtectionFault(0, "IRET in VM86 mode with IOPL != 3");
 
-    BYTE originalCPL = getCPL();
+    u8 originalCPL = getCPL();
 
     TransactionalPopper popper(*this);
-    DWORD offset = popper.popOperandSizedValue();
-    WORD selector = popper.popOperandSizedValue();
-    DWORD flags = popper.popOperandSizedValue();
+    u32 offset = popper.popOperandSizedValue();
+    u16 selector = popper.popOperandSizedValue();
+    u32 flags = popper.popOperandSizedValue();
 
     if (offset & 0xffff0000)
         throw GeneralProtectionFault(0, "IRET in VM86 mode to EIP > 0xffff");
@@ -80,9 +80,9 @@ void CPU::iretFromVM86Mode()
 
 void CPU::iretFromRealMode()
 {
-    DWORD offset = popOperandSizedValue();
-    WORD selector = popOperandSizedValue();
-    DWORD flags = popOperandSizedValue();
+    u32 offset = popOperandSizedValue();
+    u16 selector = popOperandSizedValue();
+    u32 flags = popOperandSizedValue();
 
 #ifdef DEBUG_JUMPS
     vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), currentStackPointer());
@@ -106,7 +106,7 @@ void CPU::_IRET(Instruction&)
         return;
     }
 
-    WORD originalCPL = getCPL();
+    u16 originalCPL = getCPL();
 
     if (getNT()) {
         auto tss = currentTSS();
@@ -119,9 +119,9 @@ void CPU::_IRET(Instruction&)
 
     TransactionalPopper popper(*this);
 
-    DWORD offset = popper.popOperandSizedValue();
-    WORD selector = popper.popOperandSizedValue();
-    DWORD flags = popper.popOperandSizedValue();
+    u32 offset = popper.popOperandSizedValue();
+    u16 selector = popper.popOperandSizedValue();
+    u32 flags = popper.popOperandSizedValue();
 #ifdef DEBUG_JUMPS
     vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), popper.adjustedStackPointer());
 #endif
@@ -139,14 +139,14 @@ void CPU::_IRET(Instruction&)
     setEFlagsRespectfully(flags, originalCPL);
 }
 
-static WORD makeErrorCode(WORD num, bool idt, CPU::InterruptSource source)
+static u16 makeErrorCode(u16 num, bool idt, CPU::InterruptSource source)
 {
     if (idt)
-        return (num << 3) | 2 | (WORD)source;
-    return (num & 0xfc) | (WORD)source;
+        return (num << 3) | 2 | (u16)source;
+    return (num & 0xfc) | (u16)source;
 }
 
-void CPU::interruptToTaskGate(BYTE, InterruptSource source, QVariant errorCode, Gate& gate)
+void CPU::interruptToTaskGate(u8, InterruptSource source, QVariant errorCode, Gate& gate)
 {
     auto descriptor = getDescriptor(gate.selector());
     if (options.trapint) {
@@ -168,25 +168,25 @@ void CPU::interruptToTaskGate(BYTE, InterruptSource source, QVariant errorCode, 
     taskSwitch(gate.selector(), tssDescriptor, JumpType::INT);
     if (errorCode.isValid()) {
         if (tssDescriptor.is32Bit())
-            push32(errorCode.value<WORD>());
+            push32(errorCode.value<u16>());
         else
-            push16(errorCode.value<WORD>());
+            push16(errorCode.value<u16>());
     }
 }
 
-LogicalAddress CPU::getRealModeInterruptVector(BYTE index)
+LogicalAddress CPU::getRealModeInterruptVector(u8 index)
 {
-    WORD selector = readPhysicalMemory<WORD>(PhysicalAddress(index * 4 + 2));
-    WORD offset = readPhysicalMemory<WORD>(PhysicalAddress(index * 4));
+    u16 selector = readPhysicalMemory<u16>(PhysicalAddress(index * 4 + 2));
+    u16 offset = readPhysicalMemory<u16>(PhysicalAddress(index * 4));
     return { selector, offset };
 }
 
-void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
+void CPU::realModeInterrupt(u8 isr, InterruptSource source)
 {
     ASSERT(!getPE());
-    WORD originalCS = getCS();
-    WORD originalIP = getIP();
-    WORD flags = getFlags();
+    u16 originalCS = getCS();
+    u16 originalIP = getIP();
+    u16 flags = getFlags();
     auto vector = getRealModeInterruptVector(isr);
 
     if (options.trapint)
@@ -219,7 +219,7 @@ static void logSerenitySyscall(CPU& cpu)
 
 static const int ignoredInterrupt = -1;
 
-void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant errorCode)
+void CPU::protectedModeInterrupt(u8 isr, InterruptSource source, QVariant errorCode)
 {
     ASSERT(getPE());
 
@@ -296,14 +296,14 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
         throw NotPresent(makeErrorCode(gate.selector(), 0, source), "Interrupt to non-present segment");
     }
 
-    DWORD offset = gate.offset();
-    DWORD flags = getEFlags();
+    u32 offset = gate.offset();
+    u32 flags = getEFlags();
 
-    WORD originalSS = getSS();
-    DWORD originalESP = getESP();
-    WORD originalCPL = getCPL();
-    WORD originalCS = getCS();
-    DWORD originalEIP = getEIP();
+    u16 originalSS = getSS();
+    u32 originalESP = getESP();
+    u16 originalCPL = getCPL();
+    u16 originalCS = getCS();
+    u32 originalEIP = getEIP();
 
     if (!gate.is32Bit() || !codeDescriptor.is32Bit()) {
         if (offset & 0xffff0000) {
@@ -328,8 +328,8 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
 #endif
         auto tss = currentTSS();
 
-        WORD newSS = tss.getRingSS(descriptor.DPL());
-        DWORD newESP = tss.getRingESP(descriptor.DPL());
+        u16 newSS = tss.getRingSS(descriptor.DPL());
+        u32 newESP = tss.getRingESP(descriptor.DPL());
         auto newSSDescriptor = getDescriptor(newSS);
 
         if (newSSDescriptor.isNull()) {
@@ -388,7 +388,7 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
     pushValueWithSize(originalCS, gate.size());
     pushValueWithSize(originalEIP, gate.size());
     if (errorCode.isValid()) {
-        pushValueWithSize(errorCode.value<WORD>(), gate.size());
+        pushValueWithSize(errorCode.value<u16>(), gate.size());
     }
 
     if (gate.isInterruptGate())
@@ -402,15 +402,15 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
     END_ASSERT_NO_EXCEPTIONS
 }
 
-void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor& codeDescriptor, InterruptSource source, QVariant errorCode)
+void CPU::interruptFromVM86Mode(Gate& gate, u32 offset, CodeSegmentDescriptor& codeDescriptor, InterruptSource source, QVariant errorCode)
 {
 #ifdef DEBUG_VM86
     vlog(LogCPU, "Interrupt from VM86 mode -> %04x:%08x", gate.selector(), offset);
 #endif
 
-    DWORD originalFlags = getEFlags();
-    WORD originalSS = getSS();
-    DWORD originalESP = getESP();
+    u32 originalFlags = getEFlags();
+    u16 originalSS = getSS();
+    u32 originalESP = getESP();
 
     if (codeDescriptor.DPL() != 0) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt from VM86 mode to descriptor with CPL != 0");
@@ -418,8 +418,8 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
 
     auto tss = currentTSS();
 
-    WORD newSS = tss.getSS0();
-    DWORD newESP = tss.getESP0();
+    u16 newSS = tss.getSS0();
+    u32 newESP = tss.getESP0();
     auto newSSDescriptor = getDescriptor(newSS);
 
     if (newSSDescriptor.isNull()) {
@@ -479,7 +479,7 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
     pushValueWithSize(getCS(), gate.size());
     pushValueWithSize(getEIP(), gate.size());
     if (errorCode.isValid()) {
-        pushValueWithSize(errorCode.value<WORD>(), gate.size());
+        pushValueWithSize(errorCode.value<u16>(), gate.size());
     }
     setGS(0);
     setFS(0);
@@ -491,7 +491,7 @@ void CPU::interruptFromVM86Mode(Gate& gate, DWORD offset, CodeSegmentDescriptor&
     END_ASSERT_NO_EXCEPTIONS
 }
 
-void CPU::interrupt(BYTE isr, InterruptSource source, QVariant errorCode)
+void CPU::interrupt(u8 isr, InterruptSource source, QVariant errorCode)
 {
     if (getPE())
         protectedModeInterrupt(isr, source, errorCode);
@@ -503,16 +503,16 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
 {
     ASSERT(getPE());
 #ifdef DEBUG_JUMPS
-    WORD originalSS = getSS();
-    DWORD originalESP = getESP();
-    WORD originalCS = getCS();
-    DWORD originalEIP = getEIP();
+    u16 originalSS = getSS();
+    u32 originalESP = getESP();
+    u16 originalCS = getCS();
+    u32 originalEIP = getEIP();
 #endif
 
-    WORD selector = address.selector();
-    DWORD offset = address.offset();
-    WORD originalCPL = getCPL();
-    BYTE selectorRPL = selector & 3;
+    u16 selector = address.selector();
+    u32 offset = address.offset();
+    u16 originalCPL = getCPL();
+    u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, PG=%u] IRET from %04x:%08x to %04x:%08x", getPE(), getPG(), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
@@ -556,8 +556,8 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
-    WORD newSS;
-    DWORD newESP;
+    u16 newSS;
+    u32 newESP;
     if (selectorRPL > originalCPL) {
         BEGIN_ASSERT_NO_EXCEPTIONS
         newESP = popper.popOperandSizedValue();
@@ -586,7 +586,7 @@ void CPU::protectedIRET(TransactionalPopper& popper, LogicalAddress address)
     }
 }
 
-void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, DWORD flags)
+void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, u32 flags)
 {
 #ifdef DEBUG_VM86
     vlog(LogCPU, "IRET (o%u) to VM86 mode -> %04x:%04x", o16() ? 16 : 32, entry.selector(), entry.offset());
@@ -603,8 +603,8 @@ void CPU::iretToVM86Mode(TransactionalPopper& popper, LogicalAddress entry, DWOR
     setCS(entry.selector());
     setEIP(entry.offset());
 
-    DWORD newESP = popper.pop32();
-    WORD newSS = popper.pop32();
+    u32 newESP = popper.pop32();
+    u16 newSS = popper.pop32();
     setES(popper.pop32());
     setDS(popper.pop32());
     setFS(popper.pop32());

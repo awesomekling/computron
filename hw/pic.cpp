@@ -31,7 +31,7 @@
 //#define PIC_DEBUG
 
 // FIXME: This should not be global.
-std::atomic<WORD> PIC::s_pendingRequests;
+std::atomic<u16> PIC::s_pendingRequests;
 static bool s_ignoringIRQs = false;
 
 bool PIC::isIgnoringAllIRQs()
@@ -46,8 +46,8 @@ void PIC::setIgnoreAllIRQs(bool b)
 
 void PIC::updatePendingRequests(Machine& machine)
 {
-    WORD masterRequests = (machine.masterPIC().getIRR() & ~machine.masterPIC().getIMR());
-    WORD slaveRequests = (machine.slavePIC().getIRR() & ~machine.slavePIC().getIMR());
+    u16 masterRequests = (machine.masterPIC().getIRR() & ~machine.masterPIC().getIMR());
+    u16 slaveRequests = (machine.slavePIC().getIRR() & ~machine.slavePIC().getIMR());
     s_pendingRequests = masterRequests | (slaveRequests << 8);
 #ifdef PIC_DEBUG
     if (machine.cpu().state() != CPU::Halted)
@@ -101,7 +101,7 @@ void PIC::unmaskAll()
     m_imr = 0;
 }
 
-void PIC::writePort0(BYTE data)
+void PIC::writePort0(u8 data)
 {
     if (data & 0x10) {
 #ifdef PIC_DEBUG
@@ -161,7 +161,7 @@ void PIC::writePort0(BYTE data)
     vlog(LogPIC, "Unhandled OCW2 %02X on port %02X", data, m_baseAddress + 0);
     ASSERT_NOT_REACHED();
 }
-void PIC::writePort1(BYTE data)
+void PIC::writePort1(u8 data)
 {
     if (((data & 0x07) == 0x00) && m_icw2Expected) {
 #ifdef PIC_DEBUG
@@ -182,14 +182,14 @@ void PIC::writePort1(BYTE data)
     updatePendingRequests(machine());
 }
 
-void PIC::out8(WORD port, BYTE data)
+void PIC::out8(u16 port, u8 data)
 {
     if (port & 1)
         return writePort1(data);
     writePort0(data);
 }
 
-BYTE PIC::in8(WORD port)
+u8 PIC::in8(u16 port)
 {
     if ((port & 1) == 0) {
         if (m_readISR) {
@@ -209,17 +209,17 @@ BYTE PIC::in8(WORD port)
     return m_imr;
 }
 
-void PIC::raise(BYTE num)
+void PIC::raise(u8 num)
 {
     m_irr |= 1 << num;
 }
 
-void PIC::lower(BYTE num)
+void PIC::lower(u8 num)
 {
     m_irr &= 1 << num;
 }
 
-void PIC::raiseIRQ(Machine& machine, BYTE num)
+void PIC::raiseIRQ(Machine& machine, u8 num)
 {
     if (num < 8) {
         machine.masterPIC().raise(num);
@@ -231,7 +231,7 @@ void PIC::raiseIRQ(Machine& machine, BYTE num)
     updatePendingRequests(machine);
 }
 
-void PIC::lowerIRQ(Machine& machine, BYTE num)
+void PIC::lowerIRQ(Machine& machine, u8 num)
 {
     if (num < 8)
         machine.masterPIC().lower(num);
@@ -241,7 +241,7 @@ void PIC::lowerIRQ(Machine& machine, BYTE num)
     updatePendingRequests(machine);
 }
 
-bool PIC::isIRQRaised(Machine& machine, BYTE num)
+bool PIC::isIRQRaised(Machine& machine, u8 num)
 {
     if (num < 8)
         return machine.masterPIC().m_irr & (1 << num);
@@ -254,15 +254,15 @@ void PIC::serviceIRQ(CPU& cpu)
     if (s_ignoringIRQs)
         return;
 
-    WORD pendingRequestsCopy = s_pendingRequests;
+    u16 pendingRequestsCopy = s_pendingRequests;
     if (!pendingRequestsCopy)
         return;
 
     Machine& machine = cpu.machine();
 
-    BYTE irqToService = 0xFF;
+    u8 irqToService = 0xFF;
 
-    for (BYTE i = 0; i < 16; ++i) {
+    for (u8 i = 0; i < 16; ++i) {
         if (i == 2)
             continue;
         if (pendingRequestsCopy & (1 << i)) {

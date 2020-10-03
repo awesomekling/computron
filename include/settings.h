@@ -40,14 +40,14 @@ public:
     unsigned memorySize() const { return m_memorySize; }
     void setMemorySize(unsigned size) { m_memorySize = size; }
 
-    WORD entryCS() const { return m_entryCS; }
-    WORD entryIP() const { return m_entryIP; }
-    WORD entryDS() const { return m_entryDS; }
-    WORD entrySS() const { return m_entrySS; }
-    WORD entrySP() const { return m_entrySP; }
+    u16 entryCS() const { return m_entryCS; }
+    u16 entryIP() const { return m_entryIP; }
+    u16 entryDS() const { return m_entryDS; }
+    u16 entrySS() const { return m_entrySS; }
+    u16 entrySP() const { return m_entrySP; }
 
-    QHash<DWORD, QString> files() const { return m_files; }
-    QHash<DWORD, QString> romImages() const { return m_romImages; }
+    QHash<u32, QString> files() const { return m_files; }
+    QHash<u32, QString> romImages() const { return m_romImages; }
     QString keymap() const { return m_keymap; }
 
     bool isForAutotest() const { return m_forAutotest; }
@@ -77,14 +77,14 @@ private:
     DiskDrive::Configuration m_fixed0;
     DiskDrive::Configuration m_fixed1;
 
-    QHash<DWORD, QString> m_files;
-    QHash<DWORD, QString> m_romImages;
+    QHash<u32, QString> m_files;
+    QHash<u32, QString> m_romImages;
     QString m_keymap;
     unsigned m_memorySize { 0 };
-    WORD m_entryCS { 0 };
-    WORD m_entryIP { 0 };
-    WORD m_entryDS { 0 };
-    WORD m_entrySS { 0 };
-    WORD m_entrySP { 0 };
+    u16 m_entryCS { 0 };
+    u16 m_entryIP { 0 };
+    u16 m_entryDS { 0 };
+    u16 m_entrySS { 0 };
+    u16 m_entrySP { 0 };
     bool m_forAutotest { false };
 };

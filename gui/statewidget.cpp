@@ -38,7 +38,7 @@ struct StateWidget::Private {
     QTimer syncTimer;
     Ui_StateWidget ui;
 
-    QWORD cycleCount { 0 };
+    u64 cycleCount { 0 };
     QTime cycleTimer;
 };
 
@@ -124,7 +124,7 @@ void StateWidget::sync()
     auto cycles = cpuCycles - d->cycleCount;
     double elapsed = d->cycleTimer.elapsed() / 1000.0;
     double ips = cycles / elapsed;
-    d->ui.lblIPS->setText(QString("%1").arg((QWORD)ips));
+    d->ui.lblIPS->setText(QString("%1").arg((u64)ips));
     d->cycleCount = cpuCycles;
     d->cycleTimer.start();
 }

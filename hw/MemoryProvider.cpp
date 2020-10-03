@@ -25,43 +25,43 @@
 #include "MemoryProvider.h"
 #include "CPU.h"
 
-const BYTE* MemoryProvider::memoryPointer(DWORD) const
+const u8* MemoryProvider::memoryPointer(u32) const
 {
     return nullptr;
 }
 
-void MemoryProvider::writeMemory8(DWORD, BYTE)
+void MemoryProvider::writeMemory8(u32, u8)
 {
 }
 
-void MemoryProvider::writeMemory16(DWORD address, WORD data)
+void MemoryProvider::writeMemory16(u32 address, u16 data)
 {
-    writeMemory8(address, leastSignificant<BYTE>(data));
-    writeMemory8(address + 1, mostSignificant<BYTE>(data));
+    writeMemory8(address, leastSignificant<u8>(data));
+    writeMemory8(address + 1, mostSignificant<u8>(data));
 }
 
-void MemoryProvider::writeMemory32(DWORD address, DWORD data)
+void MemoryProvider::writeMemory32(u32 address, u32 data)
 {
-    writeMemory16(address, leastSignificant<WORD>(data));
-    writeMemory16(address + 2, mostSignificant<WORD>(data));
+    writeMemory16(address, leastSignificant<u16>(data));
+    writeMemory16(address + 2, mostSignificant<u16>(data));
 }
 
-BYTE MemoryProvider::readMemory8(DWORD)
+u8 MemoryProvider::readMemory8(u32)
 {
     return 0;
 }
 
-WORD MemoryProvider::readMemory16(DWORD address)
+u16 MemoryProvider::readMemory16(u32 address)
 {
-    return weld<WORD>(readMemory8(address + 1), readMemory8(address));
+    return weld<u16>(readMemory8(address + 1), readMemory8(address));
 }
 
-DWORD MemoryProvider::readMemory32(DWORD address)
+u32 MemoryProvider::readMemory32(u32 address)
 {
-    return weld<DWORD>(readMemory16(address + 2), readMemory16(address));
+    return weld<u32>(readMemory16(address + 2), readMemory16(address));
 }
 
-void MemoryProvider::setSize(DWORD size)
+void MemoryProvider::setSize(u32 size)
 {
     RELEASE_ASSERT((size % 16384) == 0);
     m_size = size;

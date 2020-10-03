@@ -32,13 +32,13 @@
         m_segment = SegmentRegisterIndex::SS; \
     }
 
-void MemoryOrRegisterReference::writeSpecial(DWORD data, bool o32)
+void MemoryOrRegisterReference::writeSpecial(u32 data, bool o32)
 {
     if (o32 && isRegister()) {
-        m_cpu->writeRegister<DWORD>(m_registerIndex, data);
+        m_cpu->writeRegister<u32>(m_registerIndex, data);
         return;
     }
-    return write<WORD>(data & 0xffff);
+    return write<u16>(data & 0xffff);
 }
 
 FLATTEN void MemoryOrRegisterReference::resolve(CPU& cpu)
@@ -61,7 +61,7 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
         case 0:
             break;
         case 1:
-            m_displacement32 = signExtendedTo<DWORD>(stream.readInstruction8());
+            m_displacement32 = signExtendedTo<u32>(stream.readInstruction8());
             break;
         case 4:
             m_displacement32 = stream.readInstruction32();
@@ -76,7 +76,7 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
         case 0:
             break;
         case 1:
-            m_displacement16 = signExtendedTo<WORD>(stream.readInstruction8());
+            m_displacement16 = signExtendedTo<u16>(stream.readInstruction8());
             break;
         case 2:
             m_displacement16 = stream.readInstruction16();
@@ -242,9 +242,9 @@ ALWAYS_INLINE void MemoryOrRegisterReference::resolve32()
     }
 }
 
-ALWAYS_INLINE DWORD MemoryOrRegisterReference::evaluateSIB()
+ALWAYS_INLINE u32 MemoryOrRegisterReference::evaluateSIB()
 {
-    DWORD scale;
+    u32 scale;
     switch (m_sib & 0xC0) {
     case 0x00:
         scale = 1;
@@ -259,7 +259,7 @@ ALWAYS_INLINE DWORD MemoryOrRegisterReference::evaluateSIB()
         scale = 8;
         break;
     }
-    DWORD index;
+    u32 index;
     switch ((m_sib >> 3) & 0x07) {
     case 0:
         index = m_cpu->getEAX();
@@ -287,7 +287,7 @@ ALWAYS_INLINE DWORD MemoryOrRegisterReference::evaluateSIB()
         break;
     }
 
-    DWORD base = m_displacement32;
+    u32 base = m_displacement32;
     switch (m_sib & 0x07) {
     case 0:
         base += m_cpu->getEAX();

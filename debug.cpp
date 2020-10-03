@@ -137,7 +137,7 @@ void vlog(VLogChannel channel, const char* format, ...)
     if (g_cpu) {
 #ifdef DEBUG_SERENITY
         if (options.serenity)
-            printf("<%08x> ", g_cpu->readPhysicalMemory<DWORD>(PhysicalAddress(0x1000)));
+            printf("<%08x> ", g_cpu->readPhysicalMemory<u32>(PhysicalAddress(0x1000)));
 #endif
         printf("(\033[37;1m%u\033[0m)\033[32;1m%04x:%08x\033[0m ", g_cpu->x32() ? 32 : 16, g_cpu->getBaseCS(), g_cpu->currentBaseInstructionPointer());
     }

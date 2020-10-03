@@ -89,21 +89,21 @@ void Keyboard::reset()
     m_ram[0] |= CCB_KEYBOARD_INTERRUPT_ENABLE;
 }
 
-BYTE Keyboard::in8(WORD port)
+u8 Keyboard::in8(u16 port)
 {
-    extern BYTE kbd_pop_raw();
-    BYTE data = 0;
+    extern u8 kbd_pop_raw();
+    u8 data = 0;
 
     if (port == 0x60) {
         if (m_hasCommand && m_command <= 0x3F) {
-            BYTE ramIndex = m_command & 0x3F;
+            u8 ramIndex = m_command & 0x3F;
             m_hasCommand = false;
             vlog(LogKeyboard, "Reading 8042 RAM [%02x] = %02x", ramIndex, m_ram[ramIndex]);
             data = m_ram[ramIndex];
         } else if (m_lastWasCommand && m_command == CMD_SET_LEDS) {
             data = 0xFA; // ACK
         } else {
-            BYTE key = kbd_pop_raw();
+            u8 key = kbd_pop_raw();
 #ifdef KBD_DEBUG
             vlog(LogKeyboard, "keyboard_data = %02X", key);
 #endif
@@ -111,7 +111,7 @@ BYTE Keyboard::in8(WORD port)
         }
     } else if (port == 0x64) {
         // POST completed successfully.
-        BYTE status = (m_ram[0] & ATKBD_SYSTEM_FLAG);
+        u8 status = (m_ram[0] & ATKBD_SYSTEM_FLAG);
         status |= m_lastWasCommand ? ATKBD_CMD_DATA : 0;
         if (kbd_has_data())
             status |= ATKBD_OUTPUT_STATUS;
@@ -134,7 +134,7 @@ BYTE Keyboard::in8(WORD port)
     return data;
 }
 
-void Keyboard::out8(WORD port, BYTE data)
+void Keyboard::out8(u16 port, u8 data)
 {
 #ifdef KBD_DEBUG
     vlog(LogKeyboard, "out8 %03x, %02x", port, data);
@@ -195,7 +195,7 @@ void Keyboard::out8(WORD port, BYTE data)
         }
 
         if (m_command >= 0x60 && m_command <= 0x7F) {
-            BYTE ramIndex = m_command & 0x3F;
+            u8 ramIndex = m_command & 0x3F;
             m_ram[ramIndex] = data;
 
             switch (ramIndex) {

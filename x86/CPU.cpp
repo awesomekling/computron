@@ -75,14 +75,14 @@ static bool shouldLogMemoryRead(PhysicalAddress address)
 
 CPU* g_cpu = 0;
 
-DWORD CPU::readRegisterForAddressSize(int registerIndex)
+u32 CPU::readRegisterForAddressSize(int registerIndex)
 {
     if (a32())
         return m_generalPurposeRegister[registerIndex].fullDWORD;
     return m_generalPurposeRegister[registerIndex].lowWORD;
 }
 
-void CPU::writeRegisterForAddressSize(int registerIndex, DWORD data)
+void CPU::writeRegisterForAddressSize(int registerIndex, u32 data)
 {
     if (a32())
         m_generalPurposeRegister[registerIndex].fullDWORD = data;
@@ -90,7 +90,7 @@ void CPU::writeRegisterForAddressSize(int registerIndex, DWORD data)
         m_generalPurposeRegister[registerIndex].lowWORD = data;
 }
 
-void CPU::stepRegisterForAddressSize(int registerIndex, DWORD stepSize)
+void CPU::stepRegisterForAddressSize(int registerIndex, u32 stepSize)
 {
     if (a32())
         m_generalPurposeRegister[registerIndex].fullDWORD += getDF() ? -stepSize : stepSize;
@@ -108,12 +108,12 @@ bool CPU::decrementCXForAddressSize()
     return getCX() == 0;
 }
 
-template BYTE CPU::readRegister<BYTE>(int) const;
-template WORD CPU::readRegister<WORD>(int) const;
-template DWORD CPU::readRegister<DWORD>(int) const;
-template void CPU::writeRegister<BYTE>(int, BYTE);
-template void CPU::writeRegister<WORD>(int, WORD);
-template void CPU::writeRegister<DWORD>(int, DWORD);
+template u8 CPU::readRegister<u8>(int) const;
+template u16 CPU::readRegister<u16>(int) const;
+template u32 CPU::readRegister<u32>(int) const;
+template void CPU::writeRegister<u8>(int, u8);
+template void CPU::writeRegister<u16>(int, u16);
+template void CPU::writeRegister<u32>(int, u32);
 
 FLATTEN void CPU::decodeNext()
 {
@@ -198,13 +198,13 @@ void CPU::_VKILL(Instruction&)
     hard_exit(0);
 }
 
-void CPU::setMemorySizeAndReallocateIfNeeded(DWORD size)
+void CPU::setMemorySizeAndReallocateIfNeeded(u32 size)
 {
     if (m_memorySize == size)
         return;
     delete[] m_memory;
     m_memorySize = size;
-    m_memory = new BYTE[m_memorySize];
+    m_memory = new u8[m_memorySize];
     if (!m_memory) {
         vlog(LogInit, "Insufficient memory available.");
         hard_exit(1);
@@ -532,27 +532,27 @@ FLATTEN void CPU::mainLoop()
     }
 }
 
-void CPU::jumpRelative8(SIGNED_BYTE displacement)
+void CPU::jumpRelative8(i8 displacement)
 {
     m_EIP += displacement;
 }
 
-void CPU::jumpRelative16(SIGNED_WORD displacement)
+void CPU::jumpRelative16(i16 displacement)
 {
     m_EIP += displacement;
 }
 
-void CPU::jumpRelative32(SIGNED_DWORD displacement)
+void CPU::jumpRelative32(i32 displacement)
 {
     m_EIP += displacement;
 }
 
-void CPU::jumpAbsolute16(WORD address)
+void CPU::jumpAbsolute16(u16 address)
 {
     m_EIP = address;
 }
 
-void CPU::jumpAbsolute32(DWORD address)
+void CPU::jumpAbsolute32(u32 address)
 {
 #ifdef CRASH_ON_PE_JMP_00000000
     if (getPE() && !address) {
@@ -589,10 +589,10 @@ static const char* toString(JumpType type)
 void CPU::realModeFarJump(LogicalAddress address, JumpType type)
 {
     ASSERT(!getPE() || getVM());
-    WORD selector = address.selector();
-    DWORD offset = address.offset();
-    WORD originalCS = getCS();
-    DWORD originalEIP = getEIP();
+    u16 selector = address.selector();
+    u32 offset = address.offset();
+    u16 originalCS = getCS();
+    u32 originalEIP = getEIP();
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, VM=%u] %s from %04x:%08x to %04x:%08x", getPE(), getVM(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
@@ -622,8 +622,8 @@ void CPU::farJump(LogicalAddress address, JumpType type, Gate* gate)
 void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate)
 {
     ASSERT(getPE());
-    WORD selector = address.selector();
-    DWORD offset = address.offset();
+    u16 selector = address.selector();
+    u32 offset = address.offset();
     ValueSize pushSize = o32() ? DWordSize : WordSize;
 
     if (gate) {
@@ -631,13 +631,13 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
         pushSize = gate->is32Bit() ? DWordSize : WordSize;
     }
 
-    WORD originalSS = getSS();
-    DWORD originalESP = getESP();
-    WORD originalCPL = getCPL();
-    WORD originalCS = getCS();
-    DWORD originalEIP = getEIP();
+    u16 originalSS = getSS();
+    u32 originalESP = getESP();
+    u16 originalCPL = getCPL();
+    u16 originalCS = getCS();
+    u32 originalEIP = getEIP();
 
-    BYTE selectorRPL = selector & 3;
+    u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
     vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
@@ -756,8 +756,8 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
 #endif
             auto tss = currentTSS();
 
-            WORD newSS = tss.getRingSS(descriptor.DPL());
-            DWORD newESP = tss.getRingESP(descriptor.DPL());
+            u16 newSS = tss.getRingSS(descriptor.DPL());
+            u32 newESP = tss.getRingESP(descriptor.DPL());
             auto newSSDescriptor = getDescriptor(newSS);
 
             // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
@@ -827,22 +827,22 @@ void CPU::clearSegmentRegisterAfterReturnIfNeeded(SegmentRegisterIndex segreg, J
     }
 }
 
-void CPU::protectedFarReturn(WORD stackAdjustment)
+void CPU::protectedFarReturn(u16 stackAdjustment)
 {
     ASSERT(getPE());
 #ifdef DEBUG_JUMPS
-    WORD originalSS = getSS();
-    DWORD originalESP = getESP();
-    WORD originalCS = getCS();
-    DWORD originalEIP = getEIP();
+    u16 originalSS = getSS();
+    u32 originalESP = getESP();
+    u16 originalCS = getCS();
+    u32 originalEIP = getEIP();
 #endif
 
     TransactionalPopper popper(*this);
 
-    DWORD offset = popper.popOperandSizedValue();
-    WORD selector = popper.popOperandSizedValue();
-    WORD originalCPL = getCPL();
-    BYTE selectorRPL = selector & 3;
+    u32 offset = popper.popOperandSizedValue();
+    u16 selector = popper.popOperandSizedValue();
+    u16 originalCPL = getCPL();
+    u8 selectorRPL = selector & 3;
 
     popper.adjustStackPointer(stackAdjustment);
 
@@ -895,8 +895,8 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
 
     if (selectorRPL > originalCPL) {
         BEGIN_ASSERT_NO_EXCEPTIONS
-        DWORD newESP = popper.popOperandSizedValue();
-        WORD newSS = popper.popOperandSizedValue();
+        u32 newESP = popper.popOperandSizedValue();
+        u16 newSS = popper.popOperandSizedValue();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
         vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
@@ -918,16 +918,16 @@ void CPU::protectedFarReturn(WORD stackAdjustment)
         adjustStackPointer(stackAdjustment);
 }
 
-void CPU::realModeFarReturn(WORD stackAdjustment)
+void CPU::realModeFarReturn(u16 stackAdjustment)
 {
-    DWORD offset = popOperandSizedValue();
-    WORD selector = popOperandSizedValue();
+    u32 offset = popOperandSizedValue();
+    u16 selector = popOperandSizedValue();
     setCS(selector);
     setEIP(offset);
     adjustStackPointer(stackAdjustment);
 }
 
-void CPU::farReturn(WORD stackAdjustment)
+void CPU::farReturn(u16 stackAdjustment)
 {
     if (!getPE() || getVM()) {
         realModeFarReturn(stackAdjustment);
@@ -937,7 +937,7 @@ void CPU::farReturn(WORD stackAdjustment)
     protectedFarReturn(stackAdjustment);
 }
 
-void CPU::setCPL(BYTE cpl)
+void CPU::setCPL(u8 cpl)
 {
     if (getPE() && !getVM())
         CS = (CS & ~3) | cpl;
@@ -1029,52 +1029,52 @@ void CPU::doINC(Accessor accessor)
 
 void CPU::_DEC_reg16(Instruction& insn)
 {
-    doDEC<WORD>(RegisterAccessor<WORD>(insn.reg16()));
+    doDEC<u16>(RegisterAccessor<u16>(insn.reg16()));
 }
 
 void CPU::_DEC_reg32(Instruction& insn)
 {
-    doDEC<DWORD>(RegisterAccessor<DWORD>(insn.reg32()));
+    doDEC<u32>(RegisterAccessor<u32>(insn.reg32()));
 }
 
 void CPU::_INC_reg16(Instruction& insn)
 {
-    doINC<WORD>(RegisterAccessor<WORD>(insn.reg16()));
+    doINC<u16>(RegisterAccessor<u16>(insn.reg16()));
 }
 
 void CPU::_INC_reg32(Instruction& insn)
 {
-    doINC<DWORD>(RegisterAccessor<DWORD>(insn.reg32()));
+    doINC<u32>(RegisterAccessor<u32>(insn.reg32()));
 }
 
 void CPU::_INC_RM16(Instruction& insn)
 {
-    doINC<WORD>(insn.modrm().accessor16());
+    doINC<u16>(insn.modrm().accessor16());
 }
 
 void CPU::_INC_RM32(Instruction& insn)
 {
-    doINC<DWORD>(insn.modrm().accessor32());
+    doINC<u32>(insn.modrm().accessor32());
 }
 
 void CPU::_DEC_RM16(Instruction& insn)
 {
-    doDEC<WORD>(insn.modrm().accessor16());
+    doDEC<u16>(insn.modrm().accessor16());
 }
 
 void CPU::_DEC_RM32(Instruction& insn)
 {
-    doDEC<DWORD>(insn.modrm().accessor32());
+    doDEC<u32>(insn.modrm().accessor32());
 }
 
 void CPU::_INC_RM8(Instruction& insn)
 {
-    doINC<BYTE>(insn.modrm().accessor8());
+    doINC<u8>(insn.modrm().accessor8());
 }
 
 void CPU::_DEC_RM8(Instruction& insn)
 {
-    doDEC<BYTE>(insn.modrm().accessor8());
+    doDEC<u8>(insn.modrm().accessor8());
 }
 
 template<typename T>
@@ -1090,52 +1090,52 @@ void CPU::doLxS(Instruction& insn, SegmentRegisterIndex segreg)
 
 void CPU::_LDS_reg16_mem16(Instruction& insn)
 {
-    doLxS<WORD>(insn, SegmentRegisterIndex::DS);
+    doLxS<u16>(insn, SegmentRegisterIndex::DS);
 }
 
 void CPU::_LDS_reg32_mem32(Instruction& insn)
 {
-    doLxS<DWORD>(insn, SegmentRegisterIndex::DS);
+    doLxS<u32>(insn, SegmentRegisterIndex::DS);
 }
 
 void CPU::_LES_reg16_mem16(Instruction& insn)
 {
-    doLxS<WORD>(insn, SegmentRegisterIndex::ES);
+    doLxS<u16>(insn, SegmentRegisterIndex::ES);
 }
 
 void CPU::_LES_reg32_mem32(Instruction& insn)
 {
-    doLxS<DWORD>(insn, SegmentRegisterIndex::ES);
+    doLxS<u32>(insn, SegmentRegisterIndex::ES);
 }
 
 void CPU::_LFS_reg16_mem16(Instruction& insn)
 {
-    doLxS<WORD>(insn, SegmentRegisterIndex::FS);
+    doLxS<u16>(insn, SegmentRegisterIndex::FS);
 }
 
 void CPU::_LFS_reg32_mem32(Instruction& insn)
 {
-    doLxS<DWORD>(insn, SegmentRegisterIndex::FS);
+    doLxS<u32>(insn, SegmentRegisterIndex::FS);
 }
 
 void CPU::_LSS_reg16_mem16(Instruction& insn)
 {
-    doLxS<WORD>(insn, SegmentRegisterIndex::SS);
+    doLxS<u16>(insn, SegmentRegisterIndex::SS);
 }
 
 void CPU::_LSS_reg32_mem32(Instruction& insn)
 {
-    doLxS<DWORD>(insn, SegmentRegisterIndex::SS);
+    doLxS<u32>(insn, SegmentRegisterIndex::SS);
 }
 
 void CPU::_LGS_reg16_mem16(Instruction& insn)
 {
-    doLxS<WORD>(insn, SegmentRegisterIndex::GS);
+    doLxS<u16>(insn, SegmentRegisterIndex::GS);
 }
 
 void CPU::_LGS_reg32_mem32(Instruction& insn)
 {
-    doLxS<DWORD>(insn, SegmentRegisterIndex::GS);
+    doLxS<u32>(insn, SegmentRegisterIndex::GS);
 }
 
 void CPU::_LEA_reg32_mem32(Instruction& insn)
@@ -1170,14 +1170,14 @@ static const char* toString(CPU::MemoryAccessType type)
     }
 }
 
-PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
+PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
     if (!getPE() || !getPG())
         return PhysicalAddress(linearAddress.get());
     return translateAddressSlowCase(linearAddress, accessType, effectiveCPL);
 }
 
-static WORD makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
+static u16 makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
 {
     return flags
         | (accessType == CPU::MemoryAccessType::Write ? PageFaultFlags::Write : PageFaultFlags::Read)
@@ -1185,9 +1185,9 @@ static WORD makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType a
         | (accessType == CPU::MemoryAccessType::Execute ? PageFaultFlags::InstructionFetch : 0);
 }
 
-Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode, const char* faultTable, DWORD pde, DWORD pte)
+Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode, const char* faultTable, u32 pde, u32 pte)
 {
-    WORD error = makePFErrorCode(flags, accessType, inUserMode);
+    u16 error = makePFErrorCode(flags, accessType, inUserMode);
     if (options.log_exceptions) {
         vlog(LogCPU, "Exception: #PF(%04x) %s in %s for %s %s @%08x, PDBR=%08x, PDE=%08x, PTE=%08x",
             error,
@@ -1215,20 +1215,20 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
     return Exception(0xe, error, linearAddress.get(), "Page fault");
 }
 
-PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
+PhysicalAddress CPU::translateAddressSlowCase(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
     ASSERT(getCR3() < m_memorySize);
 
-    DWORD dir = (linearAddress.get() >> 22) & 0x3FF;
-    DWORD page = (linearAddress.get() >> 12) & 0x3FF;
-    DWORD offset = linearAddress.get() & 0xFFF;
+    u32 dir = (linearAddress.get() >> 22) & 0x3FF;
+    u32 page = (linearAddress.get() >> 12) & 0x3FF;
+    u32 offset = linearAddress.get() & 0xFFF;
 
     ASSERT(!(getCR3() & 0x03ff));
 
-    PhysicalAddress pdeAddress(getCR3() + dir * sizeof(DWORD));
-    DWORD pageDirectoryEntry = readPhysicalMemory<DWORD>(pdeAddress);
-    PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(DWORD));
-    DWORD pageTableEntry = readPhysicalMemory<DWORD>(pteAddress);
+    PhysicalAddress pdeAddress(getCR3() + dir * sizeof(u32));
+    u32 pageDirectoryEntry = readPhysicalMemory<u32>(pdeAddress);
+    PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(u32));
+    u32 pageTableEntry = readPhysicalMemory<u32>(pteAddress);
 
     bool inUserMode;
     if (effectiveCPL == 0xff)
@@ -1284,17 +1284,17 @@ void CPU::snoop(LinearAddress linearAddress, MemoryAccessType accessType)
     translateAddress(linearAddress, accessType);
 }
 
-void CPU::snoop(SegmentRegisterIndex segreg, DWORD offset, MemoryAccessType accessType)
+void CPU::snoop(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
     // FIXME: Support multi-byte snoops.
     if (getPE() && !getVM())
-        validateAddress<BYTE>(segreg, offset, accessType);
+        validateAddress<u8>(segreg, offset, accessType);
     auto linearAddress = cachedDescriptor(segreg).linearAddress(offset);
     snoop(linearAddress, accessType);
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWORD offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
 {
     if (!getVM()) {
         if (accessType != MemoryAccessType::Execute) {
@@ -1367,7 +1367,7 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validateAddress(SegmentRegisterIndex segreg, DWORD offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validateAddress(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
     validateAddress<T>(cachedDescriptor(segreg), offset, accessType);
 }
@@ -1400,9 +1400,9 @@ T CPU::readPhysicalMemory(PhysicalAddress physicalAddress)
     return *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]);
 }
 
-template BYTE CPU::readPhysicalMemory<BYTE>(PhysicalAddress);
-template WORD CPU::readPhysicalMemory<WORD>(PhysicalAddress);
-template DWORD CPU::readPhysicalMemory<DWORD>(PhysicalAddress);
+template u8 CPU::readPhysicalMemory<u8>(PhysicalAddress);
+template u16 CPU::readPhysicalMemory<u16>(PhysicalAddress);
+template u32 CPU::readPhysicalMemory<u32>(PhysicalAddress);
 
 template<typename T>
 void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
@@ -1421,27 +1421,27 @@ void CPU::writePhysicalMemory(PhysicalAddress physicalAddress, T data)
     }
 }
 
-template void CPU::writePhysicalMemory<BYTE>(PhysicalAddress, BYTE);
-template void CPU::writePhysicalMemory<WORD>(PhysicalAddress, WORD);
-template void CPU::writePhysicalMemory<DWORD>(PhysicalAddress, DWORD);
+template void CPU::writePhysicalMemory<u8>(PhysicalAddress, u8);
+template void CPU::writePhysicalMemory<u16>(PhysicalAddress, u16);
+template void CPU::writePhysicalMemory<u32>(PhysicalAddress, u32);
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, BYTE effectiveCPL)
+ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            BYTE b1 = readMemory<BYTE>(linearAddress.offset(0), accessType, effectiveCPL);
-            BYTE b2 = readMemory<BYTE>(linearAddress.offset(1), accessType, effectiveCPL);
-            BYTE b3 = readMemory<BYTE>(linearAddress.offset(2), accessType, effectiveCPL);
-            BYTE b4 = readMemory<BYTE>(linearAddress.offset(3), accessType, effectiveCPL);
-            return weld<DWORD>(weld<WORD>(b4, b3), weld<WORD>(b2, b1));
+            u8 b1 = readMemory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
+            u8 b2 = readMemory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
+            u8 b3 = readMemory<u8>(linearAddress.offset(2), accessType, effectiveCPL);
+            u8 b4 = readMemory<u8>(linearAddress.offset(3), accessType, effectiveCPL);
+            return weld<u32>(weld<u16>(b4, b3), weld<u16>(b2, b1));
         }
     } else if constexpr (sizeof(T) == 2) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            BYTE b1 = readMemory<BYTE>(linearAddress.offset(0), accessType, effectiveCPL);
-            BYTE b2 = readMemory<BYTE>(linearAddress.offset(1), accessType, effectiveCPL);
-            return weld<WORD>(b2, b1);
+            u8 b1 = readMemory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
+            u8 b2 = readMemory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
+            return weld<u16>(b2, b1);
         }
     }
 
@@ -1462,7 +1462,7 @@ ALWAYS_INLINE T CPU::readMemory(LinearAddress linearAddress, MemoryAccessType ac
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(const SegmentDescriptor& descriptor, DWORD offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::readMemory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
 {
     auto linearAddress = descriptor.linearAddress(offset);
     if (getPE() && !getVM())
@@ -1471,7 +1471,7 @@ ALWAYS_INLINE T CPU::readMemory(const SegmentDescriptor& descriptor, DWORD offse
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::readMemory(SegmentRegisterIndex segreg, DWORD offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::readMemory(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
 {
     return readMemory<T>(cachedDescriptor(segreg), offset, accessType);
 }
@@ -1488,30 +1488,30 @@ ALWAYS_INLINE void CPU::writeMemoryMetal(LinearAddress laddr, T value)
     return writeMemory<T>(laddr, value, 0);
 }
 
-template BYTE CPU::readMemory<BYTE>(SegmentRegisterIndex, DWORD, MemoryAccessType);
-template WORD CPU::readMemory<WORD>(SegmentRegisterIndex, DWORD, MemoryAccessType);
-template DWORD CPU::readMemory<DWORD>(SegmentRegisterIndex, DWORD, MemoryAccessType);
+template u8 CPU::readMemory<u8>(SegmentRegisterIndex, u32, MemoryAccessType);
+template u16 CPU::readMemory<u16>(SegmentRegisterIndex, u32, MemoryAccessType);
+template u32 CPU::readMemory<u32>(SegmentRegisterIndex, u32, MemoryAccessType);
 
-template void CPU::writeMemory<BYTE>(SegmentRegisterIndex, DWORD, BYTE);
-template void CPU::writeMemory<WORD>(SegmentRegisterIndex, DWORD, WORD);
-template void CPU::writeMemory<DWORD>(SegmentRegisterIndex, DWORD, DWORD);
+template void CPU::writeMemory<u8>(SegmentRegisterIndex, u32, u8);
+template void CPU::writeMemory<u16>(SegmentRegisterIndex, u32, u16);
+template void CPU::writeMemory<u32>(SegmentRegisterIndex, u32, u32);
 
-template void CPU::writeMemory<BYTE>(LinearAddress, BYTE, BYTE);
+template void CPU::writeMemory<u8>(LinearAddress, u8, u8);
 
-template WORD CPU::readMemoryMetal<WORD>(LinearAddress);
-template DWORD CPU::readMemoryMetal<DWORD>(LinearAddress);
+template u16 CPU::readMemoryMetal<u16>(LinearAddress);
+template u32 CPU::readMemoryMetal<u32>(LinearAddress);
 
-BYTE CPU::readMemory8(LinearAddress address) { return readMemory<BYTE>(address); }
-WORD CPU::readMemory16(LinearAddress address) { return readMemory<WORD>(address); }
-DWORD CPU::readMemory32(LinearAddress address) { return readMemory<DWORD>(address); }
-WORD CPU::readMemoryMetal16(LinearAddress address) { return readMemoryMetal<WORD>(address); }
-DWORD CPU::readMemoryMetal32(LinearAddress address) { return readMemoryMetal<DWORD>(address); }
-BYTE CPU::readMemory8(SegmentRegisterIndex segment, DWORD offset) { return readMemory<BYTE>(segment, offset); }
-WORD CPU::readMemory16(SegmentRegisterIndex segment, DWORD offset) { return readMemory<WORD>(segment, offset); }
-DWORD CPU::readMemory32(SegmentRegisterIndex segment, DWORD offset) { return readMemory<DWORD>(segment, offset); }
+u8 CPU::readMemory8(LinearAddress address) { return readMemory<u8>(address); }
+u16 CPU::readMemory16(LinearAddress address) { return readMemory<u16>(address); }
+u32 CPU::readMemory32(LinearAddress address) { return readMemory<u32>(address); }
+u16 CPU::readMemoryMetal16(LinearAddress address) { return readMemoryMetal<u16>(address); }
+u32 CPU::readMemoryMetal32(LinearAddress address) { return readMemoryMetal<u32>(address); }
+u8 CPU::readMemory8(SegmentRegisterIndex segment, u32 offset) { return readMemory<u8>(segment, offset); }
+u16 CPU::readMemory16(SegmentRegisterIndex segment, u32 offset) { return readMemory<u16>(segment, offset); }
+u32 CPU::readMemory32(SegmentRegisterIndex segment, u32 offset) { return readMemory<u32>(segment, offset); }
 
 template<typename T>
-LogicalAddress CPU::readLogicalAddress(SegmentRegisterIndex segreg, DWORD offset)
+LogicalAddress CPU::readLogicalAddress(SegmentRegisterIndex segreg, u32 offset)
 {
     LogicalAddress address;
     address.setOffset(readMemory<T>(segreg, offset));
@@ -1519,25 +1519,25 @@ LogicalAddress CPU::readLogicalAddress(SegmentRegisterIndex segreg, DWORD offset
     return address;
 }
 
-template LogicalAddress CPU::readLogicalAddress<WORD>(SegmentRegisterIndex, DWORD);
-template LogicalAddress CPU::readLogicalAddress<DWORD>(SegmentRegisterIndex, DWORD);
+template LogicalAddress CPU::readLogicalAddress<u16>(SegmentRegisterIndex, u32);
+template LogicalAddress CPU::readLogicalAddress<u32>(SegmentRegisterIndex, u32);
 
 template<typename T>
-void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
+void CPU::writeMemory(LinearAddress linearAddress, T value, u8 effectiveCPL)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
             return;
         }
     } else if constexpr (sizeof(T) == 2) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
+            writeMemory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
             return;
         }
     }
@@ -1558,7 +1558,7 @@ void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
 }
 
 template<typename T>
-void CPU::writeMemory(const SegmentDescriptor& descriptor, DWORD offset, T value)
+void CPU::writeMemory(const SegmentDescriptor& descriptor, u32 offset, T value)
 {
     auto linearAddress = descriptor.linearAddress(offset);
     if (getPE() && !getVM())
@@ -1567,19 +1567,19 @@ void CPU::writeMemory(const SegmentDescriptor& descriptor, DWORD offset, T value
 }
 
 template<typename T>
-void CPU::writeMemory(SegmentRegisterIndex segreg, DWORD offset, T value)
+void CPU::writeMemory(SegmentRegisterIndex segreg, u32 offset, T value)
 {
     return writeMemory<T>(cachedDescriptor(segreg), offset, value);
 }
 
-void CPU::writeMemory8(LinearAddress address, BYTE value) { writeMemory(address, value); }
-void CPU::writeMemory16(LinearAddress address, WORD value) { writeMemory(address, value); }
-void CPU::writeMemory32(LinearAddress address, DWORD value) { writeMemory(address, value); }
-void CPU::writeMemoryMetal16(LinearAddress address, WORD value) { writeMemoryMetal(address, value); }
-void CPU::writeMemoryMetal32(LinearAddress address, DWORD value) { writeMemoryMetal(address, value); }
-void CPU::writeMemory8(SegmentRegisterIndex segment, DWORD offset, BYTE value) { writeMemory(segment, offset, value); }
-void CPU::writeMemory16(SegmentRegisterIndex segment, DWORD offset, WORD value) { writeMemory(segment, offset, value); }
-void CPU::writeMemory32(SegmentRegisterIndex segment, DWORD offset, DWORD value) { writeMemory(segment, offset, value); }
+void CPU::writeMemory8(LinearAddress address, u8 value) { writeMemory(address, value); }
+void CPU::writeMemory16(LinearAddress address, u16 value) { writeMemory(address, value); }
+void CPU::writeMemory32(LinearAddress address, u32 value) { writeMemory(address, value); }
+void CPU::writeMemoryMetal16(LinearAddress address, u16 value) { writeMemoryMetal(address, value); }
+void CPU::writeMemoryMetal32(LinearAddress address, u32 value) { writeMemoryMetal(address, value); }
+void CPU::writeMemory8(SegmentRegisterIndex segment, u32 offset, u8 value) { writeMemory(segment, offset, value); }
+void CPU::writeMemory16(SegmentRegisterIndex segment, u32 offset, u16 value) { writeMemory(segment, offset, value); }
+void CPU::writeMemory32(SegmentRegisterIndex segment, u32 offset, u32 value) { writeMemory(segment, offset, value); }
 
 void CPU::updateDefaultSizes()
 {
@@ -1622,64 +1622,64 @@ void CPU::updateCodeSegmentCache()
     // FIXME: We need some kind of fast pointer for fetching from CS:EIP.
 }
 
-void CPU::setCS(WORD value)
+void CPU::setCS(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::CS, value);
 }
 
-void CPU::setDS(WORD value)
+void CPU::setDS(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::DS, value);
 }
 
-void CPU::setES(WORD value)
+void CPU::setES(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::ES, value);
 }
 
-void CPU::setSS(WORD value)
+void CPU::setSS(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::SS, value);
 }
 
-void CPU::setFS(WORD value)
+void CPU::setFS(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::FS, value);
 }
 
-void CPU::setGS(WORD value)
+void CPU::setGS(u16 value)
 {
     writeSegmentRegister(SegmentRegisterIndex::GS, value);
 }
 
-const BYTE* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
+const u8* CPU::pointerToPhysicalMemory(PhysicalAddress physicalAddress)
 {
-    if (!validatePhysicalAddress<BYTE>(physicalAddress, MemoryAccessType::InternalPointer))
+    if (!validatePhysicalAddress<u8>(physicalAddress, MemoryAccessType::InternalPointer))
         return nullptr;
     if (auto* provider = memoryProviderForAddress(physicalAddress))
         return provider->memoryPointer(physicalAddress.get());
     return &m_memory[physicalAddress.get()];
 }
 
-const BYTE* CPU::memoryPointer(SegmentRegisterIndex segreg, DWORD offset)
+const u8* CPU::memoryPointer(SegmentRegisterIndex segreg, u32 offset)
 {
     return memoryPointer(cachedDescriptor(segreg), offset);
 }
 
-const BYTE* CPU::memoryPointer(const SegmentDescriptor& descriptor, DWORD offset)
+const u8* CPU::memoryPointer(const SegmentDescriptor& descriptor, u32 offset)
 {
     auto linearAddress = descriptor.linearAddress(offset);
     if (getPE() && !getVM())
-        validateAddress<BYTE>(descriptor, offset, MemoryAccessType::InternalPointer);
+        validateAddress<u8>(descriptor, offset, MemoryAccessType::InternalPointer);
     return memoryPointer(linearAddress);
 }
 
-const BYTE* CPU::memoryPointer(LogicalAddress address)
+const u8* CPU::memoryPointer(LogicalAddress address)
 {
     return memoryPointer(getSegmentDescriptor(address.selector()), address.offset());
 }
 
-const BYTE* CPU::memoryPointer(LinearAddress linearAddress)
+const u8* CPU::memoryPointer(LinearAddress linearAddress)
 {
     auto physicalAddress = translateAddress(linearAddress, MemoryAccessType::InternalPointer);
 #ifdef A20_ENABLED
@@ -1696,19 +1696,19 @@ ALWAYS_INLINE T CPU::readInstructionStream()
     return data;
 }
 
-BYTE CPU::readInstruction8()
+u8 CPU::readInstruction8()
 {
-    return readInstructionStream<BYTE>();
+    return readInstructionStream<u8>();
 }
 
-WORD CPU::readInstruction16()
+u16 CPU::readInstruction16()
 {
-    return readInstructionStream<WORD>();
+    return readInstructionStream<u16>();
 }
 
-DWORD CPU::readInstruction32()
+u32 CPU::readInstruction32()
 {
-    return readInstructionStream<DWORD>();
+    return readInstructionStream<u32>();
 }
 
 void CPU::_CPUID(Instruction&)
@@ -1722,10 +1722,10 @@ void CPU::_CPUID(Instruction&)
     }
 
     if (getEAX() == 1) {
-        DWORD stepping = 0;
-        DWORD model = 1;
-        DWORD family = 3;
-        DWORD type = 0;
+        u32 stepping = 0;
+        u32 model = 1;
+        u32 family = 3;
+        u32 type = 0;
         setEAX(stepping | (model << 4) | (family << 8) | (type << 12));
         setEBX(0);
         setEDX((1 << 4) | (1 << 15)); // RDTSC + CMOV
@@ -1819,9 +1819,9 @@ void CPU::doBOUND(Instruction& insn)
 void CPU::_BOUND(Instruction& insn)
 {
     if (o16())
-        doBOUND<SIGNED_WORD>(insn);
+        doBOUND<i16>(insn);
     else
-        doBOUND<SIGNED_DWORD>(insn);
+        doBOUND<i32>(insn);
 }
 
 void CPU::_UD0(Instruction&)
