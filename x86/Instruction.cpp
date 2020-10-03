@@ -731,6 +731,8 @@ void buildOpcodeTablesIfNeeded()
     build0F(0x09, "WBINVD", OP,            &CPU::_WBINVD);
     build0F(0x0B, "UD2",   OP,             &CPU::_UD2);
 
+    build0F(0x1E, "NOP",   OP_RM16,        &CPU::_NOP);
+
     build0F(0x20, "MOV",   OP_reg32_CR,    &CPU::_MOV_reg32_CR);
     build0F(0x21, "MOV",   OP_reg32_DR,    &CPU::_MOV_reg32_DR);
     build0F(0x22, "MOV",   OP_CR_reg32,    &CPU::_MOV_CR_reg32);
