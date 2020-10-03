@@ -24,8 +24,8 @@
 
 #include "iodevice.h"
 #include "debug.h"
-#include "pic.h"
 #include "machine.h"
+#include "pic.h"
 #include <QList>
 
 //#define IODEVICE_DEBUG

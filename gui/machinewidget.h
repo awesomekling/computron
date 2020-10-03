@@ -24,14 +24,13 @@
 
 #pragma once
 
-#include <QtWidgets/QWidget>
 #include "OwnPtr.h"
+#include <QtWidgets/QWidget>
 
 class Machine;
 class Screen;
 
-class MachineWidget : public QWidget
-{
+class MachineWidget : public QWidget {
     Q_OBJECT
 public:
     explicit MachineWidget(Machine&);

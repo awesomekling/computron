@@ -23,31 +23,30 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "screen.h"
-#include "Common.h"
 #include "CPU.h"
-#include "machine.h"
-#include "debug.h"
-#include "vga.h"
-#include "busmouse.h"
-#include "keyboard.h"
-#include "settings.h"
+#include "Common.h"
 #include "Renderer.h"
-#include <QtGui/QPainter>
-#include <QtGui/QPaintEvent>
-#include <QtGui/QBitmap>
+#include "busmouse.h"
+#include "debug.h"
+#include "keyboard.h"
+#include "machine.h"
+#include "settings.h"
+#include "vga.h"
+#include <QtCore/QDebug>
 #include <QtCore/QMutex>
 #include <QtCore/QQueue>
-#include <QtCore/QDebug>
 #include <QtCore/QTimer>
+#include <QtGui/QBitmap>
+#include <QtGui/QPaintEvent>
+#include <QtGui/QPainter>
 
 struct fontcharbitmap_t {
     BYTE data[16];
 };
 
-static Screen *s_self = 0L;
+static Screen* s_self = 0L;
 
-struct Screen::Private
-{
+struct Screen::Private {
     QMutex keyQueueLock;
 
     QQueue<WORD> keyQueue;
@@ -65,9 +64,9 @@ struct Screen::Private
 };
 
 Screen::Screen(Machine& m)
-    : QOpenGLWidget(nullptr),
-      d(make<Private>()),
-      m_machine(m)
+    : QOpenGLWidget(nullptr)
+    , d(make<Private>())
+    , m_machine(m)
 {
     s_self = this;
 
@@ -126,7 +125,11 @@ void Screen::notify()
 
 class RefreshGuard {
 public:
-    RefreshGuard(Machine& machine) : m_machine(machine) { m_machine.vga().willRefreshScreen(); }
+    RefreshGuard(Machine& machine)
+        : m_machine(machine)
+    {
+        m_machine.vga().willRefreshScreen();
+    }
     ~RefreshGuard() { m_machine.vga().didRefreshScreen(); }
 
 private:
@@ -250,7 +253,7 @@ void Screen::mousePressEvent(QMouseEvent* e)
     }
 }
 
-void Screen::mouseReleaseEvent(QMouseEvent *e)
+void Screen::mouseReleaseEvent(QMouseEvent* e)
 {
     QOpenGLWidget::mouseReleaseEvent(e);
     switch (e->button()) {
@@ -268,9 +271,9 @@ void Screen::mouseReleaseEvent(QMouseEvent *e)
 // This sucks, any suggestions?
 
 #include "screen.h"
+#include <QDebug>
 #include <QHash>
 #include <QKeyEvent>
-#include <QDebug>
 #include <QMutexLocker>
 
 static QHash<QString, WORD> normals;
@@ -373,16 +376,16 @@ void Screen::init()
     addKey("Y", 0x1579, 0x1559, 0x1519, 0x1500);
     addKey("Z", 0x2C7A, 0x2C5A, 0x2C1A, 0x2C00);
 
-    addKey("1", 0x0231, 0x0221, 0,      0x7800);
+    addKey("1", 0x0231, 0x0221, 0, 0x7800);
     addKey("2", 0x0332, 0x0340, 0x0300, 0x7900);
-    addKey("3", 0x0433, 0x0423, 0,      0x7A00);
-    addKey("4", 0x0534, 0x0524, 0,      0x7B00);
-    addKey("5", 0x0635, 0x0625, 0,      0x7C00);
+    addKey("3", 0x0433, 0x0423, 0, 0x7A00);
+    addKey("4", 0x0534, 0x0524, 0, 0x7B00);
+    addKey("5", 0x0635, 0x0625, 0, 0x7C00);
     addKey("6", 0x0736, 0x075E, 0x071E, 0x7D00);
-    addKey("7", 0x0837, 0x0826, 0,      0x7E00);
-    addKey("8", 0x0938, 0x092A, 0,      0x7F00);
-    addKey("9", 0x0A39, 0x0a28, 0,      0x8000);
-    addKey("0", 0x0B30, 0x0B29, 0,      0x8100);
+    addKey("7", 0x0837, 0x0826, 0, 0x7E00);
+    addKey("8", 0x0938, 0x092A, 0, 0x7F00);
+    addKey("9", 0x0A39, 0x0a28, 0, 0x8000);
+    addKey("0", 0x0B30, 0x0B29, 0, 0x8100);
 
     addKey("F1", 0x3B00, 0x5400, 0x5E00, 0x6800);
     addKey("F2", 0x3C00, 0x5500, 0x5F00, 0x6900);

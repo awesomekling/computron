@@ -44,7 +44,10 @@ public:
     virtual void paint(QPainter&) = 0;
 
 protected:
-    explicit Renderer(Screen& screen) : m_screen(screen) { }
+    explicit Renderer(Screen& screen)
+        : m_screen(screen)
+    {
+    }
 
 private:
     Screen& m_screen;
@@ -52,7 +55,10 @@ private:
 
 class TextRenderer final : public Renderer {
 public:
-    explicit TextRenderer(Screen& screen) : Renderer(screen) { }
+    explicit TextRenderer(Screen& screen)
+        : Renderer(screen)
+    {
+    }
 
     virtual void synchronizeFont() override;
     virtual void synchronizeColors() override;
@@ -75,7 +81,10 @@ private:
 
 class DummyRenderer final : public Renderer {
 public:
-    explicit DummyRenderer(Screen& screen) : Renderer(screen) { }
+    explicit DummyRenderer(Screen& screen)
+        : Renderer(screen)
+    {
+    }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override { }
@@ -108,7 +117,10 @@ public:
 
 class Mode0DRenderer final : public BufferedRenderer {
 public:
-    explicit Mode0DRenderer(Screen& screen) : BufferedRenderer(screen, 320, 200, 2) { }
+    explicit Mode0DRenderer(Screen& screen)
+        : BufferedRenderer(screen, 320, 200, 2)
+    {
+    }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
@@ -117,7 +129,10 @@ public:
 
 class Mode12Renderer final : public BufferedRenderer {
 public:
-    explicit Mode12Renderer(Screen& screen) : BufferedRenderer(screen, 640, 480) { }
+    explicit Mode12Renderer(Screen& screen)
+        : BufferedRenderer(screen, 640, 480)
+    {
+    }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;
@@ -126,7 +141,10 @@ public:
 
 class Mode13Renderer final : public BufferedRenderer {
 public:
-    explicit Mode13Renderer(Screen& screen) : BufferedRenderer(screen, 320, 200, 2) { }
+    explicit Mode13Renderer(Screen& screen)
+        : BufferedRenderer(screen, 320, 200, 2)
+    {
+    }
 
     virtual void synchronizeFont() override { }
     virtual void synchronizeColors() override;

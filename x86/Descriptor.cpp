@@ -132,20 +132,34 @@ Descriptor CPU::getDescriptor(DescriptorTableRegister& tableRegister, WORD index
 const char* SystemDescriptor::typeName() const
 {
     switch (m_type) {
-    case SystemDescriptor::Invalid: return "Invalid";
-    case SystemDescriptor::AvailableTSS_16bit: return "AvailableTSS_16bit";
-    case SystemDescriptor::LDT: return "LDT";
-    case SystemDescriptor::BusyTSS_16bit: return "BusyTSS_16bit";
-    case SystemDescriptor::CallGate_16bit: return "CallGate_16bit";
-    case SystemDescriptor::TaskGate: return "TaskGate";
-    case SystemDescriptor::InterruptGate_16bit: return "InterruptGate_16bit";
-    case SystemDescriptor::TrapGate_16bit: return "TrapGate_16bit";
-    case SystemDescriptor::AvailableTSS_32bit: return "AvailableTSS_32bit";
-    case SystemDescriptor::BusyTSS_32bit: return "BusyTSS_32bit";
-    case SystemDescriptor::CallGate_32bit: return "CallGate_32bit";
-    case SystemDescriptor::InterruptGate_32bit: return "InterruptGate_32bit";
-    case SystemDescriptor::TrapGate_32bit: return "TrapGate_32bit";
-    default: return "(Reserved)";
+    case SystemDescriptor::Invalid:
+        return "Invalid";
+    case SystemDescriptor::AvailableTSS_16bit:
+        return "AvailableTSS_16bit";
+    case SystemDescriptor::LDT:
+        return "LDT";
+    case SystemDescriptor::BusyTSS_16bit:
+        return "BusyTSS_16bit";
+    case SystemDescriptor::CallGate_16bit:
+        return "CallGate_16bit";
+    case SystemDescriptor::TaskGate:
+        return "TaskGate";
+    case SystemDescriptor::InterruptGate_16bit:
+        return "InterruptGate_16bit";
+    case SystemDescriptor::TrapGate_16bit:
+        return "TrapGate_16bit";
+    case SystemDescriptor::AvailableTSS_32bit:
+        return "AvailableTSS_32bit";
+    case SystemDescriptor::BusyTSS_32bit:
+        return "BusyTSS_32bit";
+    case SystemDescriptor::CallGate_32bit:
+        return "CallGate_32bit";
+    case SystemDescriptor::InterruptGate_32bit:
+        return "InterruptGate_32bit";
+    case SystemDescriptor::TrapGate_32bit:
+        return "TrapGate_32bit";
+    default:
+        return "(Reserved)";
     }
 }
 

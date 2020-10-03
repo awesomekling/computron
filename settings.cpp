@@ -22,17 +22,16 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "settings.h"
 #include "Common.h"
 #include "debug.h"
-#include "settings.h"
 #include <QFile>
 #include <QStringList>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-struct FloppyType
-{
+struct FloppyType {
     const char* name;
     WORD sectorsPerTrack;
     WORD heads;
@@ -41,15 +40,14 @@ struct FloppyType
     BYTE mediaType;
 };
 
-static FloppyType gFloppyTypes[] =
-{
+static FloppyType gFloppyTypes[] = {
     { "1.44M", 18, 2, 2880, 512, 4 },
-    { "720kB",  9, 2, 1440, 512, 3 },
-    { "1.2M",  15, 2, 2400, 512, 2 },
-    { "360kB",  9, 2,  720, 512, 1 },
-    { "320kB",  8, 2,  640, 512, 0 },
-    { "160kB",  8, 1,  320, 512, 0 },
-    { 0L,       0, 0,    0,   0, 0 }
+    { "720kB", 9, 2, 1440, 512, 3 },
+    { "1.2M", 15, 2, 2400, 512, 2 },
+    { "360kB", 9, 2, 720, 512, 1 },
+    { "320kB", 8, 2, 640, 512, 0 },
+    { "160kB", 8, 1, 320, 512, 0 },
+    { 0L, 0, 0, 0, 0, 0 }
 };
 
 static bool parseAddress(const QString& string, DWORD* address)

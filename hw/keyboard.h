@@ -26,7 +26,8 @@
 
 #include "iodevice.h"
 
-class Keyboard final : public QObject, public IODevice {
+class Keyboard final : public QObject
+    , public IODevice {
     Q_OBJECT
 public:
     enum LED {

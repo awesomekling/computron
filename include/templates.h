@@ -24,246 +24,294 @@
 
 #pragma once
 
-#define DEFINE_INSTRUCTION_HANDLERS_GRP1(op) \
-    DEFAULT_RM8_reg8(op) \
-    DEFAULT_RM16_reg16(op) \
-    DEFAULT_RM32_reg32(op) \
-    DEFAULT_reg8_RM8(op) \
-    DEFAULT_reg16_RM16(op) \
-    DEFAULT_reg32_RM32(op) \
-    DEFAULT_RM8_imm8(op) \
-    DEFAULT_RM16_imm16(op) \
-    DEFAULT_RM32_imm32(op) \
-    DEFAULT_RM32_imm8(op) \
-    DEFAULT_RM16_imm8(op) \
-    DEFAULT_AL_imm8(op) \
-    DEFAULT_AX_imm16(op) \
-    DEFAULT_EAX_imm32(op)
+#define DEFINE_INSTRUCTION_HANDLERS_GRP1(op)                             \
+    DEFAULT_RM8_reg8(op)                                                 \
+        DEFAULT_RM16_reg16(op)                                           \
+            DEFAULT_RM32_reg32(op)                                       \
+                DEFAULT_reg8_RM8(op)                                     \
+                    DEFAULT_reg16_RM16(op)                               \
+                        DEFAULT_reg32_RM32(op)                           \
+                            DEFAULT_RM8_imm8(op)                         \
+                                DEFAULT_RM16_imm16(op)                   \
+                                    DEFAULT_RM32_imm32(op)               \
+                                        DEFAULT_RM32_imm8(op)            \
+                                            DEFAULT_RM16_imm8(op)        \
+                                                DEFAULT_AL_imm8(op)      \
+                                                    DEFAULT_AX_imm16(op) \
+                                                        DEFAULT_EAX_imm32(op)
 
 #define DEFINE_INSTRUCTION_HANDLERS_GRP2(op) \
-    DEFAULT_RM16_imm8(op) \
-    DEFAULT_RM32_imm8(op) \
-    DEFAULT_RM16_reg16(op) \
-    DEFAULT_RM32_reg32(op)
+    DEFAULT_RM16_imm8(op)                    \
+        DEFAULT_RM32_imm8(op)                \
+            DEFAULT_RM16_reg16(op)           \
+                DEFAULT_RM32_reg32(op)
 
-#define DEFINE_INSTRUCTION_HANDLERS_GRP3(op) \
-    DEFAULT_RM8_imm8(op) \
-    DEFAULT_RM16_imm8(op) \
-    DEFAULT_RM32_imm8(op) \
-    DEFAULT_RM8_1(op) \
-    DEFAULT_RM16_1(op) \
-    DEFAULT_RM32_1(op) \
-    DEFAULT_RM8_CL(op) \
-    DEFAULT_RM16_CL(op) \
-    DEFAULT_RM32_CL(op)
+#define DEFINE_INSTRUCTION_HANDLERS_GRP3(op)        \
+    DEFAULT_RM8_imm8(op)                            \
+        DEFAULT_RM16_imm8(op)                       \
+            DEFAULT_RM32_imm8(op)                   \
+                DEFAULT_RM8_1(op)                   \
+                    DEFAULT_RM16_1(op)              \
+                        DEFAULT_RM32_1(op)          \
+                            DEFAULT_RM8_CL(op)      \
+                                DEFAULT_RM16_CL(op) \
+                                    DEFAULT_RM32_CL(op)
 
-#define DEFINE_INSTRUCTION_HANDLERS_GRP4_READONLY(op, name) \
-    READONLY_RM8_reg8(op, name) \
-    READONLY_RM16_reg16(op, name) \
-    READONLY_RM32_reg32(op, name) \
-    READONLY_reg8_RM8(op, name) \
-    READONLY_reg16_RM16(op, name) \
-    READONLY_reg32_RM32(op, name) \
-    READONLY_RM8_imm8(op, name) \
-    READONLY_RM16_imm16(op, name) \
-    READONLY_RM32_imm32(op, name) \
-    READONLY_RM32_imm8(op, name) \
-    READONLY_RM16_imm8(op, name) \
-    READONLY_AL_imm8(op, name) \
-    READONLY_AX_imm16(op, name) \
-    READONLY_EAX_imm32(op, name)
+#define DEFINE_INSTRUCTION_HANDLERS_GRP4_READONLY(op, name)                     \
+    READONLY_RM8_reg8(op, name)                                                 \
+        READONLY_RM16_reg16(op, name)                                           \
+            READONLY_RM32_reg32(op, name)                                       \
+                READONLY_reg8_RM8(op, name)                                     \
+                    READONLY_reg16_RM16(op, name)                               \
+                        READONLY_reg32_RM32(op, name)                           \
+                            READONLY_RM8_imm8(op, name)                         \
+                                READONLY_RM16_imm16(op, name)                   \
+                                    READONLY_RM32_imm32(op, name)               \
+                                        READONLY_RM32_imm8(op, name)            \
+                                            READONLY_RM16_imm8(op, name)        \
+                                                READONLY_AL_imm8(op, name)      \
+                                                    READONLY_AX_imm16(op, name) \
+                                                        READONLY_EAX_imm32(op, name)
 
 #define DEFINE_INSTRUCTION_HANDLERS_GRP5_READONLY(op, name) \
-    READONLY_RM8_reg8(op, name) \
-    READONLY_RM16_reg16(op, name) \
-    READONLY_RM32_reg32(op, name) \
-    READONLY_RM8_imm8(op, name) \
-    READONLY_RM16_imm16(op, name) \
-    READONLY_RM32_imm32(op, name) \
-    READONLY_AL_imm8(op, name) \
-    READONLY_AX_imm16(op, name) \
-    READONLY_EAX_imm32(op, name)
+    READONLY_RM8_reg8(op, name)                             \
+        READONLY_RM16_reg16(op, name)                       \
+            READONLY_RM32_reg32(op, name)                   \
+                READONLY_RM8_imm8(op, name)                 \
+                    READONLY_RM16_imm16(op, name)           \
+                        READONLY_RM32_imm32(op, name)       \
+                            READONLY_AL_imm8(op, name)      \
+                                READONLY_AX_imm16(op, name) \
+                                    READONLY_EAX_imm32(op, name)
 
-#define DEFAULT_RM8_reg8(op) \
-    void CPU::_ ## op ## _RM8_reg8(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write8(do ## op(modrm.read8(), insn.reg8())); \
-	}
-
-#define DEFAULT_RM16_reg16(op) \
-    void CPU::_ ## op ## _RM16_reg16(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write16(do ## op(modrm.read16(), insn.reg16())); \
-	}
-
-#define DEFAULT_reg8_RM8(op) \
-    void CPU::_ ## op ## _reg8_RM8(Instruction& insn) { \
-        insn.reg8() = do ## op(insn.reg8(), insn.modrm().read8()); \
-	}
-
-#define DEFAULT_reg16_RM16(op) \
-    void CPU::_ ## op ## _reg16_RM16(Instruction& insn) { \
-        insn.reg16() = do ## op(insn.reg16(), insn.modrm().read16()); \
-	}
-
-#define DEFAULT_reg32_RM32(op) \
-    void CPU::_ ## op ## _reg32_RM32(Instruction& insn) { \
-        insn.reg32() = do ## op(insn.reg32(), insn.modrm().read32()); \
+#define DEFAULT_RM8_reg8(op)                              \
+    void CPU::_##op##_RM8_reg8(Instruction& insn)         \
+    {                                                     \
+        auto& modrm = insn.modrm();                       \
+        modrm.write8(do##op(modrm.read8(), insn.reg8())); \
     }
 
-#define DEFAULT_RM8_imm8(op) \
-    void CPU::_ ## op ## _RM8_imm8(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write8(do ## op(modrm.read8(), insn.imm8())); \
-	}
-
-#define DEFAULT_RM16_imm16(op) \
-    void CPU::_ ## op ## _RM16_imm16(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write16(do ## op(modrm.read16(), insn.imm16())); \
-	}
-
-#define DEFAULT_RM32_imm32(op) \
-    void CPU::_ ## op ## _RM32_imm32(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write32(do ## op(modrm.read32(), insn.imm32())); \
-	}
-
-#define DEFAULT_RM16_imm8(op) \
-    void CPU::_ ## op ## _RM16_imm8(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write16(do ## op(modrm.read16(), signExtendedTo<WORD>(insn.imm8()))); \
-	}
-
-#define DEFAULT_RM32_imm8(op) \
-    void CPU::_ ## op ## _RM32_imm8(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write32(do ## op(modrm.read32(), signExtendedTo<DWORD>(insn.imm8()))); \
+#define DEFAULT_RM16_reg16(op)                               \
+    void CPU::_##op##_RM16_reg16(Instruction& insn)          \
+    {                                                        \
+        auto& modrm = insn.modrm();                          \
+        modrm.write16(do##op(modrm.read16(), insn.reg16())); \
     }
 
-#define DEFAULT_AL_imm8(op) \
-    void CPU::_ ## op ## _AL_imm8(Instruction& insn) { \
-        setAL(do ## op(getAL(), insn.imm8())); \
-	}
-
-#define DEFAULT_AX_imm16(op) \
-    void CPU::_ ## op ## _AX_imm16(Instruction& insn) { \
-        setAX(do ## op(getAX(), insn.imm16())); \
-	}
-
-#define DEFAULT_EAX_imm32(op) \
-    void CPU::_ ## op ## _EAX_imm32(Instruction& insn) { \
-        setEAX(do ## op(getEAX(), insn.imm32())); \
+#define DEFAULT_reg8_RM8(op)                                     \
+    void CPU::_##op##_reg8_RM8(Instruction& insn)                \
+    {                                                            \
+        insn.reg8() = do##op(insn.reg8(), insn.modrm().read8()); \
     }
 
-#define READONLY_RM8_reg8(op, name) \
-    void CPU::_ ## name ## _RM8_reg8(Instruction& insn) { \
-        do ## op(insn.modrm().read8(), insn.reg8()); \
-	}
-
-#define READONLY_RM16_reg16(op, name) \
-    void CPU::_ ## name ## _RM16_reg16(Instruction& insn) { \
-        do ## op(insn.modrm().read16(), insn.reg16()); \
-	}
-
-#define READONLY_RM32_reg32(op, name) \
-    void CPU::_ ## name ## _RM32_reg32(Instruction& insn) { \
-        do ## op(insn.modrm().read32(), insn.reg32()); \
+#define DEFAULT_reg16_RM16(op)                                      \
+    void CPU::_##op##_reg16_RM16(Instruction& insn)                 \
+    {                                                               \
+        insn.reg16() = do##op(insn.reg16(), insn.modrm().read16()); \
     }
 
-#define READONLY_reg8_RM8(op, name) \
-    void CPU::_ ## name ## _reg8_RM8(Instruction& insn) { \
-        do ## op(insn.reg8(), insn.modrm().read8()); \
-	}
-
-#define READONLY_reg16_RM16(op, name) \
-    void CPU::_ ## name ## _reg16_RM16(Instruction& insn) { \
-        do ## op(insn.reg16(), insn.modrm().read16()); \
+#define DEFAULT_reg32_RM32(op)                                      \
+    void CPU::_##op##_reg32_RM32(Instruction& insn)                 \
+    {                                                               \
+        insn.reg32() = do##op(insn.reg32(), insn.modrm().read32()); \
     }
 
-#define READONLY_reg32_RM32(op, name) \
-    void CPU::_ ## name ## _reg32_RM32(Instruction& insn) { \
-        do ## op(insn.reg32(), insn.modrm().read32()); \
+#define DEFAULT_RM8_imm8(op)                              \
+    void CPU::_##op##_RM8_imm8(Instruction& insn)         \
+    {                                                     \
+        auto& modrm = insn.modrm();                       \
+        modrm.write8(do##op(modrm.read8(), insn.imm8())); \
     }
 
-#define READONLY_RM8_imm8(op, name) \
-    void CPU::_ ## name ## _RM8_imm8(Instruction& insn) { \
-        do ## op(insn.modrm().read8(), insn.imm8()); \
-	}
-
-#define READONLY_RM16_imm16(op, name) \
-    void CPU::_ ## name ## _RM16_imm16(Instruction& insn) { \
-        do ## op(insn.modrm().read16(), insn.imm16()); \
+#define DEFAULT_RM16_imm16(op)                               \
+    void CPU::_##op##_RM16_imm16(Instruction& insn)          \
+    {                                                        \
+        auto& modrm = insn.modrm();                          \
+        modrm.write16(do##op(modrm.read16(), insn.imm16())); \
     }
 
-#define READONLY_RM32_imm8(op, name) \
-    void CPU::_ ## name ## _RM32_imm8(Instruction& insn) { \
-        do ## op(insn.modrm().read32(), signExtendedTo<DWORD>(insn.imm8())); \
+#define DEFAULT_RM32_imm32(op)                               \
+    void CPU::_##op##_RM32_imm32(Instruction& insn)          \
+    {                                                        \
+        auto& modrm = insn.modrm();                          \
+        modrm.write32(do##op(modrm.read32(), insn.imm32())); \
     }
 
-#define READONLY_RM32_imm32(op, name) \
-    void CPU::_ ## name ## _RM32_imm32(Instruction& insn) { \
-        do ## op(insn.modrm().read32(), insn.imm32()); \
-	}
-
-#define READONLY_RM16_imm8(op, name) \
-    void CPU::_ ## name ## _RM16_imm8(Instruction& insn) { \
-        do ## op(insn.modrm().read16(), signExtendedTo<WORD>(insn.imm8())); \
-	}
-
-#define READONLY_AL_imm8(op, name) \
-    void CPU::_ ## name ## _AL_imm8(Instruction& insn) { \
-        do ## op(getAL(), insn.imm8()); \
-	}
-
-#define READONLY_AX_imm16(op, name) \
-    void CPU::_ ## name ## _AX_imm16(Instruction& insn) { \
-        do ## op(getAX(), insn.imm16()); \
-	}
-
-#define READONLY_EAX_imm32(op, name) \
-    void CPU::_ ## name ## _EAX_imm32(Instruction& insn) { \
-        do ## op(getEAX(), insn.imm32()); \
+#define DEFAULT_RM16_imm8(op)                                                     \
+    void CPU::_##op##_RM16_imm8(Instruction& insn)                                \
+    {                                                                             \
+        auto& modrm = insn.modrm();                                               \
+        modrm.write16(do##op(modrm.read16(), signExtendedTo<WORD>(insn.imm8()))); \
     }
 
-#define DEFAULT_RM32_reg32(op) \
-    void CPU::_ ## op ## _RM32_reg32(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write32(do ## op(modrm.read32(), insn.reg32())); \
+#define DEFAULT_RM32_imm8(op)                                                      \
+    void CPU::_##op##_RM32_imm8(Instruction& insn)                                 \
+    {                                                                              \
+        auto& modrm = insn.modrm();                                                \
+        modrm.write32(do##op(modrm.read32(), signExtendedTo<DWORD>(insn.imm8()))); \
     }
 
-#define DEFAULT_RM8_1(op) \
-    void CPU::_ ## op ## _RM8_1(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write8(do ## op(modrm.read8(), 1)); \
+#define DEFAULT_AL_imm8(op)                      \
+    void CPU::_##op##_AL_imm8(Instruction& insn) \
+    {                                            \
+        setAL(do##op(getAL(), insn.imm8()));     \
     }
 
-#define DEFAULT_RM16_1(op) \
-    void CPU::_ ## op ## _RM16_1(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write16(do ## op(modrm.read16(), 1)); \
+#define DEFAULT_AX_imm16(op)                      \
+    void CPU::_##op##_AX_imm16(Instruction& insn) \
+    {                                             \
+        setAX(do##op(getAX(), insn.imm16()));     \
     }
 
-#define DEFAULT_RM32_1(op) \
-    void CPU::_ ## op ## _RM32_1(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write32(do ## op(modrm.read32(), 1)); \
+#define DEFAULT_EAX_imm32(op)                      \
+    void CPU::_##op##_EAX_imm32(Instruction& insn) \
+    {                                              \
+        setEAX(do##op(getEAX(), insn.imm32()));    \
     }
 
-#define DEFAULT_RM8_CL(op) \
-    void CPU::_ ## op ## _RM8_CL(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write8(do ## op(modrm.read8(), getCL())); \
+#define READONLY_RM8_reg8(op, name)                  \
+    void CPU::_##name##_RM8_reg8(Instruction& insn)  \
+    {                                                \
+        do                                           \
+            ##op(insn.modrm().read8(), insn.reg8()); \
     }
 
-#define DEFAULT_RM16_CL(op) \
-    void CPU::_ ## op ## _RM16_CL(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write16(do ## op(modrm.read16(), getCL())); \
+#define READONLY_RM16_reg16(op, name)                  \
+    void CPU::_##name##_RM16_reg16(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.modrm().read16(), insn.reg16()); \
     }
 
-#define DEFAULT_RM32_CL(op) \
-    void CPU::_ ## op ## _RM32_CL(Instruction& insn) { \
-        auto& modrm = insn.modrm(); \
-        modrm.write32(do ## op(modrm.read32(), getCL())); \
+#define READONLY_RM32_reg32(op, name)                  \
+    void CPU::_##name##_RM32_reg32(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.modrm().read32(), insn.reg32()); \
+    }
+
+#define READONLY_reg8_RM8(op, name)                  \
+    void CPU::_##name##_reg8_RM8(Instruction& insn)  \
+    {                                                \
+        do                                           \
+            ##op(insn.reg8(), insn.modrm().read8()); \
+    }
+
+#define READONLY_reg16_RM16(op, name)                  \
+    void CPU::_##name##_reg16_RM16(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.reg16(), insn.modrm().read16()); \
+    }
+
+#define READONLY_reg32_RM32(op, name)                  \
+    void CPU::_##name##_reg32_RM32(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.reg32(), insn.modrm().read32()); \
+    }
+
+#define READONLY_RM8_imm8(op, name)                  \
+    void CPU::_##name##_RM8_imm8(Instruction& insn)  \
+    {                                                \
+        do                                           \
+            ##op(insn.modrm().read8(), insn.imm8()); \
+    }
+
+#define READONLY_RM16_imm16(op, name)                  \
+    void CPU::_##name##_RM16_imm16(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.modrm().read16(), insn.imm16()); \
+    }
+
+#define READONLY_RM32_imm8(op, name)                                         \
+    void CPU::_##name##_RM32_imm8(Instruction& insn)                         \
+    {                                                                        \
+        do                                                                   \
+            ##op(insn.modrm().read32(), signExtendedTo<DWORD>(insn.imm8())); \
+    }
+
+#define READONLY_RM32_imm32(op, name)                  \
+    void CPU::_##name##_RM32_imm32(Instruction& insn)  \
+    {                                                  \
+        do                                             \
+            ##op(insn.modrm().read32(), insn.imm32()); \
+    }
+
+#define READONLY_RM16_imm8(op, name)                                        \
+    void CPU::_##name##_RM16_imm8(Instruction& insn)                        \
+    {                                                                       \
+        do                                                                  \
+            ##op(insn.modrm().read16(), signExtendedTo<WORD>(insn.imm8())); \
+    }
+
+#define READONLY_AL_imm8(op, name)                 \
+    void CPU::_##name##_AL_imm8(Instruction& insn) \
+    {                                              \
+        do                                         \
+            ##op(getAL(), insn.imm8());            \
+    }
+
+#define READONLY_AX_imm16(op, name)                 \
+    void CPU::_##name##_AX_imm16(Instruction& insn) \
+    {                                               \
+        do                                          \
+            ##op(getAX(), insn.imm16());            \
+    }
+
+#define READONLY_EAX_imm32(op, name)                 \
+    void CPU::_##name##_EAX_imm32(Instruction& insn) \
+    {                                                \
+        do                                           \
+            ##op(getEAX(), insn.imm32());            \
+    }
+
+#define DEFAULT_RM32_reg32(op)                               \
+    void CPU::_##op##_RM32_reg32(Instruction& insn)          \
+    {                                                        \
+        auto& modrm = insn.modrm();                          \
+        modrm.write32(do##op(modrm.read32(), insn.reg32())); \
+    }
+
+#define DEFAULT_RM8_1(op)                       \
+    void CPU::_##op##_RM8_1(Instruction& insn)  \
+    {                                           \
+        auto& modrm = insn.modrm();             \
+        modrm.write8(do##op(modrm.read8(), 1)); \
+    }
+
+#define DEFAULT_RM16_1(op)                        \
+    void CPU::_##op##_RM16_1(Instruction& insn)   \
+    {                                             \
+        auto& modrm = insn.modrm();               \
+        modrm.write16(do##op(modrm.read16(), 1)); \
+    }
+
+#define DEFAULT_RM32_1(op)                        \
+    void CPU::_##op##_RM32_1(Instruction& insn)   \
+    {                                             \
+        auto& modrm = insn.modrm();               \
+        modrm.write32(do##op(modrm.read32(), 1)); \
+    }
+
+#define DEFAULT_RM8_CL(op)                            \
+    void CPU::_##op##_RM8_CL(Instruction& insn)       \
+    {                                                 \
+        auto& modrm = insn.modrm();                   \
+        modrm.write8(do##op(modrm.read8(), getCL())); \
+    }
+
+#define DEFAULT_RM16_CL(op)                             \
+    void CPU::_##op##_RM16_CL(Instruction& insn)        \
+    {                                                   \
+        auto& modrm = insn.modrm();                     \
+        modrm.write16(do##op(modrm.read16(), getCL())); \
+    }
+
+#define DEFAULT_RM32_CL(op)                             \
+    void CPU::_##op##_RM32_CL(Instruction& insn)        \
+    {                                                   \
+        auto& modrm = insn.modrm();                     \
+        modrm.write32(do##op(modrm.read32(), getCL())); \
     }

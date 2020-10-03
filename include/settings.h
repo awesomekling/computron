@@ -24,16 +24,15 @@
 
 #pragma once
 
+#include "DiskDrive.h"
+#include "OwnPtr.h"
+#include "types.h"
 #include <QtCore/QHash>
 #include <QtCore/QString>
-#include "types.h"
-#include "OwnPtr.h"
-#include "DiskDrive.h"
 
 class QStringList;
 
-class Settings
-{
+class Settings {
 public:
     static OwnPtr<Settings> createFromFile(const QString&);
     static OwnPtr<Settings> createForAutotest(const QString& fileName);

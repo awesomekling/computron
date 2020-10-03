@@ -24,18 +24,17 @@
 
 #include "statewidget.h"
 
-#include "ui_statewidget.h"
+#include "CPU.h"
 #include "debug.h"
 #include "machine.h"
-#include "CPU.h"
 #include "screen.h"
+#include "ui_statewidget.h"
 #include <QtCore/QCoreApplication>
-#include <QtCore/QTimer>
 #include <QtCore/QTime>
+#include <QtCore/QTimer>
 #include <QtWidgets/QVBoxLayout>
 
-struct StateWidget::Private
-{
+struct StateWidget::Private {
     QTimer syncTimer;
     Ui_StateWidget ui;
 
@@ -61,11 +60,12 @@ StateWidget::~StateWidget()
 {
 }
 
-#define DO_LABEL(name, fmt) d->ui.lbl ## name->setText(s.sprintf(fmt, cpu.get ## name()));
+#define DO_LABEL(name, fmt) d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get##name()));
 
-#define DO_LABEL_N(name, getterName, title, fmt) do { \
-        d->ui.lblTitle ## name->setText(title); \
-        d->ui.lbl ## name->setText(s.sprintf(fmt, cpu.get ## getterName())); \
+#define DO_LABEL_N(name, getterName, title, fmt)                         \
+    do {                                                                 \
+        d->ui.lblTitle##name->setText(title);                            \
+        d->ui.lbl##name->setText(s.sprintf(fmt, cpu.get##getterName())); \
     } while (0);
 
 void StateWidget::sync()
@@ -103,7 +103,7 @@ void StateWidget::sync()
     DO_LABEL(CR0, "%08x");
     DO_LABEL(CR3, "%08x");
 
-#define DO_FLAG(getterName, name) flagString += QString("<font color='%1'>%2</font> ").arg(cpu.get ## getterName() ? "black" : "#ccc").arg(name);
+#define DO_FLAG(getterName, name) flagString += QString("<font color='%1'>%2</font> ").arg(cpu.get##getterName() ? "black" : "#ccc").arg(name);
 
     QString flagString;
     DO_FLAG(OF, "of");

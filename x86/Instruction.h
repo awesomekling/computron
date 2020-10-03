@@ -24,9 +24,9 @@
 
 #pragma once
 
+#include "Common.h"
 #include "debug.h"
 #include "types.h"
-#include "Common.h"
 #include <QString>
 
 class CPU;
@@ -36,14 +36,14 @@ struct InstructionDescriptor;
 typedef void (CPU::*InstructionImpl)(Instruction&);
 
 struct Prefix {
-enum Op {
-    OperandSizeOverride = 0x66,
-    AddressSizeOverride = 0x67,
-    REP = 0xf3,
-    REPZ = 0xf3,
-    REPNZ = 0xf2,
-    LOCK = 0xf0,
-};
+    enum Op {
+        OperandSizeOverride = 0x66,
+        AddressSizeOverride = 0x67,
+        REP = 0xf3,
+        REPZ = 0xf3,
+        REPNZ = 0xf2,
+        LOCK = 0xf0,
+    };
 };
 
 class InstructionStream {
@@ -58,7 +58,8 @@ class SimpleInstructionStream final : public InstructionStream {
 public:
     SimpleInstructionStream(const BYTE* data)
         : m_data(data)
-    { }
+    {
+    }
 
     virtual BYTE readInstruction8() override { return *(m_data++); }
     virtual WORD readInstruction16() override;
@@ -71,7 +72,10 @@ private:
 template<typename T>
 class RegisterAccessor {
 public:
-    RegisterAccessor(T& reg) : m_reg(reg) { }
+    RegisterAccessor(T& reg)
+        : m_reg(reg)
+    {
+    }
     T get() const { return m_reg; }
     void set(T value) { m_reg = value; }
 
@@ -82,9 +86,12 @@ private:
 class MemoryOrRegisterReference {
     friend class CPU;
     friend class Instruction;
+
 public:
-    template<typename T> T read();
-    template<typename T> void write(T);
+    template<typename T>
+    T read();
+    template<typename T>
+    void write(T);
 
     BYTE read8();
     WORD read16();
@@ -94,7 +101,8 @@ public:
     void write32(DWORD);
     void writeSpecial(DWORD, bool o32);
 
-    template<typename T> class Accessor;
+    template<typename T>
+    class Accessor;
     Accessor<BYTE> accessor8();
     Accessor<WORD> accessor16();
     Accessor<DWORD> accessor32();
@@ -104,7 +112,11 @@ public:
     QString toStringO32() const;
 
     bool isRegister() const { return m_registerIndex != 0xffffffff; }
-    SegmentRegisterIndex segment() const { ASSERT(!isRegister()); return m_segment; }
+    SegmentRegisterIndex segment() const
+    {
+        ASSERT(!isRegister());
+        return m_segment;
+    }
     DWORD offset();
 
 private:
@@ -154,7 +166,11 @@ public:
 
     void execute(CPU&);
 
-    MemoryOrRegisterReference& modrm() { ASSERT(hasRM()); return m_modrm; }
+    MemoryOrRegisterReference& modrm()
+    {
+        ASSERT(hasRM());
+        return m_modrm;
+    }
 
     bool hasSegmentPrefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
     bool hasAddressSizeOverridePrefix() const { return m_hasAddressSizeOverridePrefix; }
@@ -172,18 +188,46 @@ public:
     BYTE op() const { return m_op; }
     BYTE subOp() const { return m_subOp; }
     BYTE rm() const { return m_modrm.m_rm; }
-    BYTE slash() const { ASSERT(hasRM()); return (rm() >> 3) & 7; }
+    BYTE slash() const
+    {
+        ASSERT(hasRM());
+        return (rm() >> 3) & 7;
+    }
 
-    BYTE imm8() const { ASSERT(m_imm1Bytes == 1); return m_imm1; }
-    WORD imm16() const { ASSERT(m_imm1Bytes == 2); return m_imm1; }
-    DWORD imm32() const { ASSERT(m_imm1Bytes == 4); return m_imm1; }
+    BYTE imm8() const
+    {
+        ASSERT(m_imm1Bytes == 1);
+        return m_imm1;
+    }
+    WORD imm16() const
+    {
+        ASSERT(m_imm1Bytes == 2);
+        return m_imm1;
+    }
+    DWORD imm32() const
+    {
+        ASSERT(m_imm1Bytes == 4);
+        return m_imm1;
+    }
 
     BYTE imm8_1() const { return imm8(); }
-    BYTE imm8_2() const { ASSERT(m_imm2Bytes == 1); return m_imm2; }
+    BYTE imm8_2() const
+    {
+        ASSERT(m_imm2Bytes == 1);
+        return m_imm2;
+    }
     WORD imm16_1() const { return imm16(); }
-    WORD imm16_2() const { ASSERT(m_imm2Bytes == 2); return m_imm2; }
+    WORD imm16_2() const
+    {
+        ASSERT(m_imm2Bytes == 2);
+        return m_imm2;
+    }
     DWORD imm32_1() const { return imm32(); }
-    DWORD imm32_2() const { ASSERT(m_imm2Bytes == 4); return m_imm2; }
+    DWORD imm32_2() const
+    {
+        ASSERT(m_imm2Bytes == 4);
+        return m_imm2;
+    }
 
     DWORD immAddress() const { return m_a32 ? imm32() : imm16(); }
 
@@ -196,7 +240,8 @@ public:
     DWORD& reg32();
     WORD& segreg();
 
-    template<typename T> T& reg();
+    template<typename T>
+    T& reg();
 
     bool hasRM() const { return m_hasRM; }
     bool hasSubOp() const { return m_hasSubOp; }
@@ -253,7 +298,10 @@ public:
 
 private:
     friend class MemoryOrRegisterReference;
-    explicit Accessor(MemoryOrRegisterReference& modrm) : m_modrm(modrm) { }
+    explicit Accessor(MemoryOrRegisterReference& modrm)
+        : m_modrm(modrm)
+    {
+    }
     MemoryOrRegisterReference& m_modrm;
 };
 

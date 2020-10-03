@@ -22,12 +22,12 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <stdio.h>
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
+#include "Tasking.h"
 #include "debug.h"
 #include "debugger.h"
-#include "Tasking.h"
+#include <stdio.h>
 
 unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offset)
 {
@@ -57,7 +57,7 @@ unsigned CPU::dumpDisassembledInternal(SegmentDescriptor& descriptor, DWORD offs
     for (unsigned i = 0; i < insn.length(); ++i)
         p += sprintf(p, "%02x", data[i]);
 
-    for (unsigned i = 0; i < (32-(insn.length()*2)); ++i)
+    for (unsigned i = 0; i < (32 - (insn.length() * 2)); ++i)
         p += sprintf(p, " ");
 
     if (insn.isValid())
@@ -87,7 +87,7 @@ unsigned CPU::dumpDisassembled(LogicalAddress address, unsigned count)
 #ifdef CT_TRACE
 void CPU::dumpTrace()
 {
-#if 0
+#    if 0
     fprintf(stderr,
         "%04X:%08X "
         "EAX=%08X EBX=%08X ECX=%08X EDX=%08X ESP=%08X EBP=%08X ESI=%08X EDI=%08X "
@@ -103,7 +103,7 @@ void CPU::dumpTrace()
         getCF(), getPF(), getAF(), getZF(),
         getSF(), getIF(), getDF(), getOF()
     );
-#else
+#    else
     printf(
         "%04X:%08X %02X "
         "EAX=%08X EBX=%08X ECX=%08X EDX=%08X ESP=%08X EBP=%08X ESI=%08X EDI=%08X "
@@ -124,9 +124,8 @@ void CPU::dumpTrace()
         a16() ? 16 : 32,
         o16() ? 16 : 32,
         x16() ? 16 : 32,
-        s16() ? 16 : 32
-    );
-#endif
+        s16() ? 16 : 32);
+#    endif
 }
 #endif
 
@@ -291,12 +290,12 @@ void CPU::dumpAll()
     }
     vlog(LogDump, "cpl: %u  iopl: %u  a20: %u", getCPL(), getIOPL(), isA20Enabled());
     vlog(LogDump, "a%u[%u] o%u[%u] s%u x%u",
-         m_effectiveAddressSize32 ? 32 : 16,
-         m_addressSize32 ? 32 : 16,
-         m_effectiveOperandSize32 ? 32 : 16,
-         m_operandSize32 ? 32 : 16,
-         s16() ? 16 : 32,
-         x16() ? 16 : 32);
+        m_effectiveAddressSize32 ? 32 : 16,
+        m_addressSize32 ? 32 : 16,
+        m_effectiveOperandSize32 ? 32 : 16,
+        m_operandSize32 ? 32 : 16,
+        s16() ? 16 : 32,
+        x16() ? 16 : 32);
 
     vlog(LogDump, "cr0: %08x  cr3: %08x", getCR0(), getCR3());
     vlog(LogDump, "idtr: {base=%08x, limit=%04x}", m_IDTR.base().get(), m_IDTR.limit());
@@ -326,13 +325,12 @@ void CPU::dumpFlatMemory(DWORD address)
     for (int i = 0; i < rows; ++i) {
         vlog(LogDump,
             "%08X   %02X %02X %02X %02X %02X %02X %02X %02X - %02X %02X %02X %02X %02X %02X %02X %02X   %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
-            (address+i*16),
+            (address + i * 16),
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
             p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
             n(p[0]), n(p[1]), n(p[2]), n(p[3]), n(p[4]), n(p[5]), n(p[6]), n(p[7]),
-            n(p[8]), n(p[9]), n(p[10]), n(p[11]), n(p[12]), n(p[13]), n(p[14]), n(p[15])
-        );
-        p+=16;
+            n(p[8]), n(p[9]), n(p[10]), n(p[11]), n(p[12]), n(p[13]), n(p[14]), n(p[15]));
+        p += 16;
     }
 
     p = &m_memory[address];
@@ -340,9 +338,8 @@ void CPU::dumpFlatMemory(DWORD address)
         fprintf(stderr,
             "db 0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X\n",
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]
-        );
-        p+=16;
+            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+        p += 16;
     }
 }
 
@@ -354,9 +351,8 @@ void CPU::dumpRawMemory(BYTE* p)
         fprintf(stderr,
             "db 0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X\n",
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]
-        );
-        p+=16;
+            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+        p += 16;
     }
 }
 
@@ -379,13 +375,12 @@ void CPU::dumpMemory(SegmentDescriptor& descriptor, DWORD offset, int rows)
     for (int i = 0; i < rows; ++i) {
         vlog(LogDump,
             "%04x:%04x   %02X %02X %02X %02X %02X %02X %02X %02X - %02X %02X %02X %02X %02X %02X %02X %02X   %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
-            descriptor.index(), (offset+i*16),
+            descriptor.index(), (offset + i * 16),
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
             p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
             n(p[0]), n(p[1]), n(p[2]), n(p[3]), n(p[4]), n(p[5]), n(p[6]), n(p[7]),
-            n(p[8]), n(p[9]), n(p[10]), n(p[11]), n(p[12]), n(p[13]), n(p[14]), n(p[15])
-        );
-        p+=16;
+            n(p[8]), n(p[9]), n(p[10]), n(p[11]), n(p[12]), n(p[13]), n(p[14]), n(p[15]));
+        p += 16;
     }
 
     p = memoryPointer(descriptor, offset);
@@ -393,9 +388,8 @@ void CPU::dumpMemory(SegmentDescriptor& descriptor, DWORD offset, int rows)
         fprintf(stderr,
             "db 0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X,0x%02X\n",
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]
-        );
-        p+=16;
+            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+        p += 16;
     }
 }
 
@@ -424,8 +418,7 @@ void CPU::dumpIVT()
             i + 0, isrSegment(*this, i + 0), isrOffset(*this, i + 0),
             i + 1, isrSegment(*this, i + 1), isrOffset(*this, i + 1),
             i + 2, isrSegment(*this, i + 2), isrOffset(*this, i + 2),
-            i + 3, isrSegment(*this, i + 3), isrOffset(*this, i + 3)
-        );
+            i + 3, isrSegment(*this, i + 3), isrOffset(*this, i + 3));
     }
 }
 
@@ -461,8 +454,7 @@ void CPU::dumpDescriptor(const Gate& gate, const char* prefix)
         gate.parameterCount(),
         gate.D() ? 32 : 16,
         gate.present(),
-        gate.DPL()
-    );
+        gate.DPL());
     if (gate.isCallGate()) {
         vlog(LogCPU, "Call gate points to:");
         dumpDescriptor(getDescriptor(gate.selector()), prefix);
@@ -482,8 +474,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
             (BYTE)descriptor.type(),
             descriptor.asLDTDescriptor().base(),
             descriptor.asLDTDescriptor().effectiveLimit(),
-            descriptor.present()
-        );
+            descriptor.present());
         return;
     }
     vlog(LogCPU, "%s%04x (system segment) { type: %s (%02x), bits:%u, p:%u, dpl:%u }",
@@ -493,8 +484,7 @@ void CPU::dumpDescriptor(const SystemDescriptor& descriptor, const char* prefix)
         (BYTE)descriptor.type(),
         descriptor.D() ? 32 : 16,
         descriptor.present(),
-        descriptor.DPL()
-    );
+        descriptor.DPL());
 }
 
 void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefix)
@@ -511,8 +501,7 @@ void CPU::dumpDescriptor(const CodeSegmentDescriptor& segment, const char* prefi
         segment.DPL(),
         segment.accessed(),
         segment.conforming(),
-        segment.readable()
-    );
+        segment.readable());
 }
 
 void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefix)
@@ -529,8 +518,7 @@ void CPU::dumpDescriptor(const DataSegmentDescriptor& segment, const char* prefi
         segment.DPL(),
         segment.accessed(),
         segment.writable(),
-        segment.expandDown()
-    );
+        segment.expandDown());
 }
 
 void CPU::dumpSegment(WORD index)

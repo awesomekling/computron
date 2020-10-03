@@ -22,13 +22,13 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "vga.h"
+#include "CPU.h"
+#include "Common.h"
 #include "debug.h"
 #include "machine.h"
-#include "CPU.h"
-#include <QtGui/QColor>
 #include <QtGui/QBrush>
+#include <QtGui/QColor>
 
 struct RGBColor {
     BYTE red;
@@ -37,8 +37,7 @@ struct RGBColor {
     operator QColor() const { return QColor::fromRgb(red << 2, green << 2, blue << 2); }
 };
 
-struct VGA::Private
-{
+struct VGA::Private {
     QColor color[16];
     QBrush brush[16];
     BYTE* memory { nullptr };
@@ -107,16 +106,71 @@ struct VGA::Private
     BYTE statusRegister { 0 };
 };
 
-static const RGBColor default_vga_color_registers[256] =
-{
-    {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
-    {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
-    {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
-    {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
-    {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
-    {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
-    {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
-    {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
+static const RGBColor default_vga_color_registers[256] = {
+    { 0x00, 0x00, 0x00 },
+    { 0x00, 0x00, 0x2a },
+    { 0x00, 0x2a, 0x00 },
+    { 0x00, 0x2a, 0x2a },
+    { 0x2a, 0x00, 0x00 },
+    { 0x2a, 0x00, 0x2a },
+    { 0x2a, 0x15, 0x00 },
+    { 0x2a, 0x2a, 0x2a },
+    { 0x00, 0x00, 0x00 },
+    { 0x00, 0x00, 0x2a },
+    { 0x00, 0x2a, 0x00 },
+    { 0x00, 0x2a, 0x2a },
+    { 0x2a, 0x00, 0x00 },
+    { 0x2a, 0x00, 0x2a },
+    { 0x2a, 0x15, 0x00 },
+    { 0x2a, 0x2a, 0x2a },
+    { 0x15, 0x15, 0x15 },
+    { 0x15, 0x15, 0x3f },
+    { 0x15, 0x3f, 0x15 },
+    { 0x15, 0x3f, 0x3f },
+    { 0x3f, 0x15, 0x15 },
+    { 0x3f, 0x15, 0x3f },
+    { 0x3f, 0x3f, 0x15 },
+    { 0x3f, 0x3f, 0x3f },
+    { 0x15, 0x15, 0x15 },
+    { 0x15, 0x15, 0x3f },
+    { 0x15, 0x3f, 0x15 },
+    { 0x15, 0x3f, 0x3f },
+    { 0x3f, 0x15, 0x15 },
+    { 0x3f, 0x15, 0x3f },
+    { 0x3f, 0x3f, 0x15 },
+    { 0x3f, 0x3f, 0x3f },
+    { 0x00, 0x00, 0x00 },
+    { 0x00, 0x00, 0x2a },
+    { 0x00, 0x2a, 0x00 },
+    { 0x00, 0x2a, 0x2a },
+    { 0x2a, 0x00, 0x00 },
+    { 0x2a, 0x00, 0x2a },
+    { 0x2a, 0x15, 0x00 },
+    { 0x2a, 0x2a, 0x2a },
+    { 0x00, 0x00, 0x00 },
+    { 0x00, 0x00, 0x2a },
+    { 0x00, 0x2a, 0x00 },
+    { 0x00, 0x2a, 0x2a },
+    { 0x2a, 0x00, 0x00 },
+    { 0x2a, 0x00, 0x2a },
+    { 0x2a, 0x15, 0x00 },
+    { 0x2a, 0x2a, 0x2a },
+    { 0x15, 0x15, 0x15 },
+    { 0x15, 0x15, 0x3f },
+    { 0x15, 0x3f, 0x15 },
+    { 0x15, 0x3f, 0x3f },
+    { 0x3f, 0x15, 0x15 },
+    { 0x3f, 0x15, 0x3f },
+    { 0x3f, 0x3f, 0x15 },
+    { 0x3f, 0x3f, 0x3f },
+    { 0x15, 0x15, 0x15 },
+    { 0x15, 0x15, 0x3f },
+    { 0x15, 0x3f, 0x15 },
+    { 0x15, 0x3f, 0x3f },
+    { 0x3f, 0x15, 0x15 },
+    { 0x3f, 0x15, 0x3f },
+    { 0x3f, 0x3f, 0x15 },
+    { 0x3f, 0x3f, 0x3f },
 };
 
 const BYTE* VGA::text_memory() const
@@ -147,7 +201,7 @@ VGA::VGA(Machine& m)
 
 VGA::~VGA()
 {
-    delete [] d->memory;
+    delete[] d->memory;
 }
 
 void VGA::reset()
@@ -535,13 +589,7 @@ BYTE VGA::in8(WORD port)
         return 0x00;
 
     case 0x3CC:
-        return
-            (d->misc_output.input_output_address_select << 0) |
-            (d->misc_output.ram_enable << 1) |
-            (d->misc_output.clock_select << 2) |
-            (d->misc_output.odd_even_page_select << 5) |
-            (d->misc_output.horizontal_sync_polarity << 6) |
-            (d->misc_output.vertical_sync_polarity << 7);
+        return (d->misc_output.input_output_address_select << 0) | (d->misc_output.ram_enable << 1) | (d->misc_output.clock_select << 2) | (d->misc_output.odd_even_page_select << 5) | (d->misc_output.horizontal_sync_polarity << 6) | (d->misc_output.vertical_sync_polarity << 7);
 
     case 0x3ce:
         return d->graphics_ctrl.reg_index;
@@ -687,7 +735,7 @@ void VGA::writeMemory8(DWORD address, BYTE value)
     machine().notifyScreen();
 
     if (inChain4Mode()) {
-        d->memory[(offset & ~0x03) + (offset % 4)*65536] = value;
+        d->memory[(offset & ~0x03) + (offset % 4) * 65536] = value;
         return;
     }
 
@@ -730,92 +778,92 @@ void VGA::writeMemory8(DWORD address, BYTE value)
         switch (logical_op()) {
         case 0:
             new_val[0] |= ((enable_set_reset & 1)
-                ? ((set_reset & 1) ? bit_mask() : 0)
-                : (val & bit_mask()));
+                    ? ((set_reset & 1) ? bit_mask() : 0)
+                    : (val & bit_mask()));
             new_val[1] |= ((enable_set_reset & 2)
-                ? ((set_reset & 2) ? bit_mask() : 0)
-                : (val & bit_mask()));
+                    ? ((set_reset & 2) ? bit_mask() : 0)
+                    : (val & bit_mask()));
             new_val[2] |= ((enable_set_reset & 4)
-                ? ((set_reset & 4) ? bit_mask() : 0)
-                : (val & bit_mask()));
+                    ? ((set_reset & 4) ? bit_mask() : 0)
+                    : (val & bit_mask()));
             new_val[3] |= ((enable_set_reset & 8)
-                ? ((set_reset & 8) ? bit_mask() : 0)
-                : (val & bit_mask()));
+                    ? ((set_reset & 8) ? bit_mask() : 0)
+                    : (val & bit_mask()));
             break;
         case 1:
             new_val[0] |= ((enable_set_reset & 1)
-                ? ((set_reset & 1)
-                    ? (~d->latch[0] & bit_mask())
-                    : (d->latch[0] & bit_mask()))
-                : (val & d->latch[0]) & bit_mask());
+                    ? ((set_reset & 1)
+                            ? (~d->latch[0] & bit_mask())
+                            : (d->latch[0] & bit_mask()))
+                    : (val & d->latch[0]) & bit_mask());
 
             new_val[1] |= ((enable_set_reset & 2)
-                ? ((set_reset & 2)
-                    ? (~d->latch[1] & bit_mask())
-                    : (d->latch[1] & bit_mask()))
-                : (val & d->latch[1]) & bit_mask());
+                    ? ((set_reset & 2)
+                            ? (~d->latch[1] & bit_mask())
+                            : (d->latch[1] & bit_mask()))
+                    : (val & d->latch[1]) & bit_mask());
 
             new_val[2] |= ((enable_set_reset & 4)
-                ? ((set_reset & 4)
-                    ? (~d->latch[2] & bit_mask())
-                    : (d->latch[2] & bit_mask()))
-                : (val & d->latch[2]) & bit_mask());
+                    ? ((set_reset & 4)
+                            ? (~d->latch[2] & bit_mask())
+                            : (d->latch[2] & bit_mask()))
+                    : (val & d->latch[2]) & bit_mask());
 
             new_val[3] |= ((enable_set_reset & 8)
-                ? ((set_reset & 8)
-                    ? (~d->latch[3] & bit_mask())
-                    : (d->latch[3] & bit_mask()))
-                : (val & d->latch[3]) & bit_mask());
+                    ? ((set_reset & 8)
+                            ? (~d->latch[3] & bit_mask())
+                            : (d->latch[3] & bit_mask()))
+                    : (val & d->latch[3]) & bit_mask());
             break;
         case 2:
             new_val[0] |= ((enable_set_reset & 1)
-                ? ((set_reset & 1)
-                    ? (~d->latch[0] & bit_mask())
-                    : (d->latch[0] & bit_mask()))
-                : (val | d->latch[0]) & bit_mask());
+                    ? ((set_reset & 1)
+                            ? (~d->latch[0] & bit_mask())
+                            : (d->latch[0] & bit_mask()))
+                    : (val | d->latch[0]) & bit_mask());
 
             new_val[1] |= ((enable_set_reset & 2)
-                ? ((set_reset & 2)
-                    ? (~d->latch[1] & bit_mask())
-                    : (d->latch[1] & bit_mask()))
-                : (val | d->latch[1]) & bit_mask());
+                    ? ((set_reset & 2)
+                            ? (~d->latch[1] & bit_mask())
+                            : (d->latch[1] & bit_mask()))
+                    : (val | d->latch[1]) & bit_mask());
 
             new_val[2] |= ((enable_set_reset & 4)
-                ? ((set_reset & 4)
-                    ? (~d->latch[2] & bit_mask())
-                    : (d->latch[2] & bit_mask()))
-                : (val | d->latch[2]) & bit_mask());
+                    ? ((set_reset & 4)
+                            ? (~d->latch[2] & bit_mask())
+                            : (d->latch[2] & bit_mask()))
+                    : (val | d->latch[2]) & bit_mask());
 
             new_val[3] |= ((enable_set_reset & 8)
-                ? ((set_reset & 8)
-                    ? (~d->latch[3] & bit_mask())
-                    : (d->latch[3] & bit_mask()))
-                : (val | d->latch[3]) & bit_mask());
+                    ? ((set_reset & 8)
+                            ? (~d->latch[3] & bit_mask())
+                            : (d->latch[3] & bit_mask()))
+                    : (val | d->latch[3]) & bit_mask());
             break;
         case 3:
             new_val[0] |= ((enable_set_reset & 1)
-                ? ((set_reset & 1)
-                    ? (~d->latch[0] & bit_mask())
-                    : (d->latch[0] & bit_mask()))
-                : (val ^ d->latch[0]) & bit_mask());
+                    ? ((set_reset & 1)
+                            ? (~d->latch[0] & bit_mask())
+                            : (d->latch[0] & bit_mask()))
+                    : (val ^ d->latch[0]) & bit_mask());
 
             new_val[1] |= ((enable_set_reset & 2)
-                ? ((set_reset & 2)
-                    ? (~d->latch[1] & bit_mask())
-                    : (d->latch[1] & bit_mask()))
-                : (val ^ d->latch[1]) & bit_mask());
+                    ? ((set_reset & 2)
+                            ? (~d->latch[1] & bit_mask())
+                            : (d->latch[1] & bit_mask()))
+                    : (val ^ d->latch[1]) & bit_mask());
 
             new_val[2] |= ((enable_set_reset & 4)
-                ? ((set_reset & 4)
-                    ? (~d->latch[2] & bit_mask())
-                    : (d->latch[2] & bit_mask()))
-                : (val ^ d->latch[2]) & bit_mask());
+                    ? ((set_reset & 4)
+                            ? (~d->latch[2] & bit_mask())
+                            : (d->latch[2] & bit_mask()))
+                    : (val ^ d->latch[2]) & bit_mask());
 
             new_val[3] |= ((enable_set_reset & 8)
-                ? ((set_reset & 8)
-                    ? (~d->latch[3] & bit_mask())
-                    : (d->latch[3] & bit_mask()))
-                : (val ^ d->latch[3]) & bit_mask());
+                    ? ((set_reset & 8)
+                            ? (~d->latch[3] & bit_mask())
+                            : (d->latch[3] & bit_mask()))
+                    : (val ^ d->latch[3]) & bit_mask());
             break;
         }
     } else if (write_mode() == 3) {
@@ -860,7 +908,7 @@ void VGA::writeMemory8(DWORD address, BYTE value)
             new_val[3] |= ((set_reset & 8) ? value : 0) ^ d->latch[3];
             break;
         }
-    } else if(write_mode() == 1) {
+    } else if (write_mode() == 1) {
         new_val[0] = d->latch[0];
         new_val[1] = d->latch[1];
         new_val[2] = d->latch[2];

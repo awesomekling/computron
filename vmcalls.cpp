@@ -22,31 +22,34 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
+#include "DiskDrive.h"
 #include "debug.h"
 #include "machine.h"
-#include "DiskDrive.h"
 #include <stdio.h>
-#include <time.h>
 #include <sys/time.h>
+#include <time.h>
 
-#define FD_NO_ERROR             0x00
-#define FD_BAD_COMMAND          0x01
-#define FD_BAD_ADDRESS_MARK     0x02
-#define FD_WRITE_PROTECT_ERROR  0x03
-#define FD_SECTOR_NOT_FOUND     0x04
-#define FD_FIXED_RESET_FAIL     0x05
-#define FD_CHANGED_OR_REMOVED   0x06
-#define FD_SEEK_FAIL            0x40
-#define FD_TIMEOUT              0x80
-#define FD_FIXED_NOT_READY      0xAA
+#define FD_NO_ERROR 0x00
+#define FD_BAD_COMMAND 0x01
+#define FD_BAD_ADDRESS_MARK 0x02
+#define FD_WRITE_PROTECT_ERROR 0x03
+#define FD_SECTOR_NOT_FOUND 0x04
+#define FD_FIXED_RESET_FAIL 0x05
+#define FD_CHANGED_OR_REMOVED 0x06
+#define FD_SEEK_FAIL 0x40
+#define FD_TIMEOUT 0x80
+#define FD_FIXED_NOT_READY 0xAA
 
-enum DiskCallFunction { ReadSectors, WriteSectors, VerifySectors };
+enum DiskCallFunction { ReadSectors,
+    WriteSectors,
+    VerifySectors };
 void bios_disk_call(CPU&, DiskCallFunction);
 static void vm_handleE6(CPU& cpu);
 
-void vm_call8(CPU& cpu, WORD port, BYTE data) {
+void vm_call8(CPU& cpu, WORD port, BYTE data)
+{
     if (cpu.getPE() && !cpu.getVM())
         return;
     switch (port) {
@@ -78,10 +81,18 @@ void vm_call8(CPU& cpu, WORD port, BYTE data) {
 static DiskDrive* diskDriveForBIOSIndex(Machine& machine, BYTE index)
 {
     switch (index) {
-    case 0x00: return &machine.floppy0(); break;
-    case 0x01: return &machine.floppy1(); break;
-    case 0x80: return &machine.fixed0(); break;
-    case 0x81: return &machine.fixed1(); break;
+    case 0x00:
+        return &machine.floppy0();
+        break;
+    case 0x01:
+        return &machine.floppy1();
+        break;
+    case 0x80:
+        return &machine.fixed0();
+        break;
+    case 0x81:
+        return &machine.fixed1();
+        break;
     }
     return nullptr;
 }
@@ -91,9 +102,9 @@ void vm_handleE6(CPU& cpu)
     extern WORD kbd_hit();
     extern WORD kbd_getc();
 
-    struct    tm *t;
-    time_t    curtime;
-    struct    timeval timv;
+    struct tm* t;
+    time_t curtime;
+    struct timeval timv;
     DWORD tick_count;
     DiskDrive* drive;
 
@@ -112,7 +123,7 @@ void vm_handleE6(CPU& cpu)
         cpu.setAL(0); // Midnight flag.
         curtime = time(nullptr);
         t = localtime(&curtime);
-        tick_count = ((t->tm_hour*3600) + (t->tm_min*60) + (t->tm_sec)) * 18.206; // yuck..
+        tick_count = ((t->tm_hour * 3600) + (t->tm_min * 60) + (t->tm_sec)) * 18.206; // yuck..
         gettimeofday(&timv, NULL);
         tick_count += timv.tv_usec / 54926.9471602768;
 #ifdef CT_DETERMINISTIC
@@ -142,9 +153,9 @@ void vm_handleE6(CPU& cpu)
             cpu.setAH(FD_NO_ERROR);
             cpu.setBL(drive->floppyTypeForCMOS());
             cpu.setBH(0);
-            cpu.setCH(trax & 0xFF); // Tracks.
+            cpu.setCH(trax & 0xFF);                                              // Tracks.
             cpu.setCL(((trax >> 2) & 0xC0) | (drive->sectorsPerTrack() & 0x3F)); // Sectors per track.
-            cpu.setDH(drive->heads() - 1); // Sides.
+            cpu.setDH(drive->heads() - 1);                                       // Sides.
 
             if (isFloppy) {
                 cpu.setDL(cpu.machine().floppy0().present() + cpu.machine().floppy1().present());
@@ -253,7 +264,6 @@ void vm_handleE6(CPU& cpu)
         break;
     }
 }
-
 
 static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, WORD cylinder, WORD head, WORD sector, WORD count, WORD segment, WORD offset)
 {

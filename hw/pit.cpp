@@ -22,19 +22,25 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "pit.h"
 #include "Common.h"
 #include "debug.h"
 #include "pic.h"
-#include "pit.h"
-#include <math.h>
 #include <QElapsedTimer>
+#include <math.h>
 
 //#define PIT_DEBUG
 
 static const double baseFrequency = 1193.1816666; // 1.193182 MHz
 
-enum DecrementMode { DecrementBinary = 0, DecrementBCD = 1 };
-enum CounterAccessState { ReadLatchedLSB, ReadLatchedMSB, AccessMSBOnly, AccessLSBOnly, AccessLSBThenMSB, AccessMSBThenLSB };
+enum DecrementMode { DecrementBinary = 0,
+    DecrementBCD = 1 };
+enum CounterAccessState { ReadLatchedLSB,
+    ReadLatchedMSB,
+    AccessMSBOnly,
+    AccessLSBOnly,
+    AccessLSBThenMSB,
+    AccessMSBThenLSB };
 
 struct CounterInfo {
     WORD startValue { 0xffff };
@@ -51,8 +57,7 @@ struct CounterInfo {
     bool rolledOver { false };
 };
 
-struct PIT::Private
-{
+struct PIT::Private {
     CounterInfo counter[3];
     int frequency { 0 };
     OwnPtr<ThreadedTimer> threadedTimer;

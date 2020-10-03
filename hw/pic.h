@@ -28,8 +28,7 @@
 
 class CPU;
 
-class PIC final : public IODevice
-{
+class PIC final : public IODevice {
 public:
     PIC(bool isMaster, Machine&);
     ~PIC();

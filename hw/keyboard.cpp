@@ -22,38 +22,38 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
-#include "CPU.h"
 #include "keyboard.h"
-#include "pic.h"
+#include "CPU.h"
+#include "Common.h"
 #include "debug.h"
 #include "machine.h"
+#include "pic.h"
 
 //#define KBD_DEBUG
 
-#define ATKBD_PARITY_ERROR  0x80
-#define ATKBD_TIMEOUT       0x40
-#define ATKBD_BUFFER_FULL   0x20
-#define ATKBD_UNLOCKED      0x10
-#define ATKBD_CMD_DATA      0x08
-#define ATKBD_SYSTEM_FLAG   0x04
-#define ATKBD_INPUT_STATUS  0x02
+#define ATKBD_PARITY_ERROR 0x80
+#define ATKBD_TIMEOUT 0x40
+#define ATKBD_BUFFER_FULL 0x20
+#define ATKBD_UNLOCKED 0x10
+#define ATKBD_CMD_DATA 0x08
+#define ATKBD_SYSTEM_FLAG 0x04
+#define ATKBD_INPUT_STATUS 0x02
 #define ATKBD_OUTPUT_STATUS 0x01
 
 #define CCB_KEYBOARD_INTERRUPT_ENABLE 0x01
-#define CCB_MOUSE_INTERRUPT_ENABLE    0x02
-#define CCB_SYSTEM_FLAG               0x04
-#define CCB_IGNORE_KEYBOARD_LOCK      0x08
-#define CCB_KEYBOARD_ENABLE           0x10
-#define CCB_MOUSE_ENABLE              0x20
-#define CCB_TRANSLATE                 0x40
+#define CCB_MOUSE_INTERRUPT_ENABLE 0x02
+#define CCB_SYSTEM_FLAG 0x04
+#define CCB_IGNORE_KEYBOARD_LOCK 0x08
+#define CCB_KEYBOARD_ENABLE 0x10
+#define CCB_MOUSE_ENABLE 0x20
+#define CCB_TRANSLATE 0x40
 
-#define CMD_NO_COMMAND                0x00
-#define CMD_READ_CCB                  0x20
-#define CMD_WRITE_CCB                 0x60
-#define CMD_SET_LEDS                  0xED
-#define CMD_DISABLE_KBD               0xAD
-#define CMD_ENABLE_KBD                0xAE
+#define CMD_NO_COMMAND 0x00
+#define CMD_READ_CCB 0x20
+#define CMD_WRITE_CCB 0x60
+#define CMD_SET_LEDS 0xED
+#define CMD_DISABLE_KBD 0xAD
+#define CMD_ENABLE_KBD 0xAE
 
 extern bool kbd_has_data();
 

@@ -333,4 +333,3 @@ void CPU::_CMPXCHG_RM16_reg16(Instruction& insn)
         setAX(current);
     }
 }
-

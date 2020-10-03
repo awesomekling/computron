@@ -22,11 +22,11 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
+#include "Tasking.h"
 #include "debug.h"
 #include "debugger.h"
-#include "Tasking.h"
 
 void CPU::_INT_imm8(Instruction& insn)
 {
@@ -208,7 +208,7 @@ void CPU::realModeInterrupt(BYTE isr, InterruptSource source)
 }
 
 #ifdef DEBUG_SERENITY
-#include "../serenity/Kernel/API/Syscall.h"
+#    include "../serenity/Kernel/API/Syscall.h"
 
 static void logSerenitySyscall(CPU& cpu)
 {
@@ -372,7 +372,6 @@ void CPU::protectedModeInterrupt(BYTE isr, InterruptSource source, QVariant erro
             ASSERT_NOT_REACHED();
             throw GeneralProtectionFault(gate.selector() & ~3, "Interrupt in VM86 mode to code segment with DPL != 0");
         }
-
 
         setCPL(originalCPL);
     } else {

@@ -29,8 +29,7 @@
 
 class Machine;
 
-class PaletteWidget final : public QWidget
-{
+class PaletteWidget final : public QWidget {
     Q_OBJECT
 public:
     explicit PaletteWidget(Machine&, QWidget* parent = 0);

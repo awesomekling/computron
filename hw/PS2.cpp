@@ -23,8 +23,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PS2.h"
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
 #include "machine.h"
 
 //#define PS2_DEBUG

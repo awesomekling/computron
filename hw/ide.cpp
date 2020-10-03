@@ -22,16 +22,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
-#include "debug.h"
 #include "ide.h"
-#include "machine.h"
+#include "Common.h"
 #include "DiskDrive.h"
+#include "debug.h"
+#include "machine.h"
 
 //#define IDE_DEBUG
 
-struct IDEController
-{
+struct IDEController {
     DiskDrive& drive() { return *drivePtr; }
 
     unsigned controllerIndex { 0xffffffff };
@@ -56,8 +55,10 @@ struct IDEController
         return drive().toLBA(cylinderIndex, headIndex, sectorIndex);
     }
 
-    template<typename T> T readFromSectorBuffer();
-    template<typename T> void writeToSectorBuffer(IDE&, T);
+    template<typename T>
+    T readFromSectorBuffer();
+    template<typename T>
+    void writeToSectorBuffer(IDE&, T);
 
     QByteArray m_readBuffer;
     int m_readBufferIndex { 0 };
@@ -155,8 +156,7 @@ T IDEController::readFromSectorBuffer()
 
 static const int gNumControllers = 2;
 
-struct IDE::Private
-{
+struct IDE::Private {
     IDEController controller[gNumControllers];
 };
 
@@ -192,12 +192,12 @@ IDE::~IDE()
 
 void IDE::reset()
 {
-     d->controller[0] = IDEController();
-     d->controller[0].controllerIndex = 0;
-     d->controller[0].drivePtr = &machine().fixed0();
-     d->controller[1] = IDEController();
-     d->controller[1].controllerIndex = 1;
-     d->controller[1].drivePtr = &machine().fixed1();
+    d->controller[0] = IDEController();
+    d->controller[0].controllerIndex = 0;
+    d->controller[0].drivePtr = &machine().fixed0();
+    d->controller[1] = IDEController();
+    d->controller[1].controllerIndex = 1;
+    d->controller[1].drivePtr = &machine().fixed1();
 }
 
 void IDE::out8(WORD port, BYTE data)
@@ -206,7 +206,7 @@ void IDE::out8(WORD port, BYTE data)
     vlog(LogIDE, "out8 %03x, %02x", port, data);
 #endif
 
-    const int controllerIndex = (((port) & 0x1F0) == 0x170);
+    const int controllerIndex = (((port)&0x1F0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
@@ -259,7 +259,7 @@ void IDE::out8(WORD port, BYTE data)
 
 BYTE IDE::in8(WORD port)
 {
-    int controllerIndex = (((port) & 0x1F0) == 0x170);
+    int controllerIndex = (((port)&0x1F0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     // FIXME: This port should maybe be managed by the FDC?
@@ -317,7 +317,7 @@ BYTE IDE::in8(WORD port)
 
 WORD IDE::in16(WORD port)
 {
-    int controllerIndex = (((port) & 0x1f0) == 0x170);
+    int controllerIndex = (((port)&0x1f0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
@@ -330,7 +330,7 @@ WORD IDE::in16(WORD port)
 
 DWORD IDE::in32(WORD port)
 {
-    int controllerIndex = (((port) & 0x1f0) == 0x170);
+    int controllerIndex = (((port)&0x1f0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
@@ -347,7 +347,7 @@ void IDE::out16(WORD port, WORD data)
     vlog(LogIDE, "out16 %03x, %04x", port, data);
 #endif
 
-    const int controllerIndex = (((port) & 0x1F0) == 0x170);
+    const int controllerIndex = (((port)&0x1F0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {
@@ -365,7 +365,7 @@ void IDE::out32(WORD port, DWORD data)
     vlog(LogIDE, "out32 %03x, %08x", port, data);
 #endif
 
-    const int controllerIndex = (((port) & 0x1F0) == 0x170);
+    const int controllerIndex = (((port)&0x1F0) == 0x170);
     IDEController& controller = d->controller[controllerIndex];
 
     switch (port & 0xF) {

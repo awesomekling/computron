@@ -24,13 +24,12 @@
 
 #pragma once
 
-#include <QtWidgets/QWidget>
 #include "OwnPtr.h"
+#include <QtWidgets/QWidget>
 
 class Machine;
 
-class StateWidget : public QWidget
-{
+class StateWidget : public QWidget {
     Q_OBJECT
 public:
     explicit StateWidget(Machine&);

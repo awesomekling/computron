@@ -24,11 +24,11 @@
 
 #include "machinewidget.h"
 
+#include "DiskDrive.h"
 #include "debug.h"
 #include "machine.h"
 #include "palettewidget.h"
 #include "screen.h"
-#include "DiskDrive.h"
 #include <QtCore/QCoreApplication>
 #include <QtCore/QTimer>
 #include <QtWidgets/QAction>
@@ -36,8 +36,7 @@
 #include <QtWidgets/QToolBar>
 #include <QtWidgets/QVBoxLayout>
 
-struct MachineWidget::Private
-{
+struct MachineWidget::Private {
     QToolBar* toolBar;
 
     QAction* startMachine;
@@ -81,8 +80,8 @@ MachineWidget::MachineWidget(Machine& m)
 
     setFocusProxy(&screen());
 
-    QAction *chooseFloppyAImage = new QAction(QIcon(":/icons/toolbar-floppy.svg"), tr("Floppy A:"), this);
-    QAction *chooseFloppyBImage = new QAction(QIcon(":/icons/toolbar-floppy.svg"), tr("Floppy B:"), this);
+    QAction* chooseFloppyAImage = new QAction(QIcon(":/icons/toolbar-floppy.svg"), tr("Floppy A:"), this);
+    QAction* chooseFloppyBImage = new QAction(QIcon(":/icons/toolbar-floppy.svg"), tr("Floppy B:"), this);
 
     d->pauseMachine = new QAction(QIcon(":/icons/toolbar-pause.svg"), tr("Pause"), this);
     d->startMachine = new QAction(QIcon(":/icons/toolbar-start.svg"), tr("Start"), this);

@@ -23,18 +23,17 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mainwindow.h"
-#include "machinewidget.h"
-#include "machine.h"
-#include "screen.h"
-#include "keyboard.h"
 #include "CPU.h"
+#include "keyboard.h"
+#include "machine.h"
+#include "machinewidget.h"
+#include "screen.h"
 #include <QLabel>
 #include <QStatusBar>
-#include <QTimer>
 #include <QTime>
+#include <QTimer>
 
-struct MainWindow::Private
-{
+struct MainWindow::Private {
     Keyboard* keyboard;
     QStatusBar* statusBar;
     QLabel* messageLabel;

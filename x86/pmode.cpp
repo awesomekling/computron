@@ -39,7 +39,6 @@ void CPU::doSGDTorSIDT(Instruction& insn, DescriptorTableRegister& table)
     writeMemory32(insn.modrm().segment(), insn.modrm().offset() + 2, maskedBase);
 }
 
-
 void CPU::_SGDT(Instruction& insn)
 {
     doSGDTorSIDT(insn, m_GDTR);
@@ -301,13 +300,20 @@ void CPU::_LSL_reg32_RM32(Instruction& insn)
 const char* toString(SegmentRegisterIndex segment)
 {
     switch (segment) {
-    case SegmentRegisterIndex::CS: return "CS";
-    case SegmentRegisterIndex::DS: return "DS";
-    case SegmentRegisterIndex::ES: return "ES";
-    case SegmentRegisterIndex::SS: return "SS";
-    case SegmentRegisterIndex::FS: return "FS";
-    case SegmentRegisterIndex::GS: return "GS";
-    default: break;
+    case SegmentRegisterIndex::CS:
+        return "CS";
+    case SegmentRegisterIndex::DS:
+        return "DS";
+    case SegmentRegisterIndex::ES:
+        return "ES";
+    case SegmentRegisterIndex::SS:
+        return "SS";
+    case SegmentRegisterIndex::FS:
+        return "FS";
+    case SegmentRegisterIndex::GS:
+        return "GS";
+    default:
+        break;
     }
     return nullptr;
 }
@@ -480,8 +486,7 @@ void CPU::writeSegmentRegister(SegmentRegisterIndex segreg, WORD selector)
                 selector,
                 descriptor.asSegmentDescriptor().type(),
                 descriptor.asSegmentDescriptor().base(),
-                descriptor.asSegmentDescriptor().limit()
-            );
+                descriptor.asSegmentDescriptor().limit());
         }
     }
 
@@ -514,12 +519,7 @@ void CPU::_VERR_RM16(Instruction& insn)
     WORD RPL = selector & 3;
     auto descriptor = getDescriptor(selector);
 
-    if (descriptor.isNull() ||
-        descriptor.isOutsideTableLimits() ||
-        descriptor.isSystemDescriptor() ||
-        !descriptor.asSegmentDescriptor().readable() ||
-        (!descriptor.isConformingCode() && (descriptor.DPL() < getCPL() || descriptor.DPL() < RPL)))
-    {
+    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || !descriptor.asSegmentDescriptor().readable() || (!descriptor.isConformingCode() && (descriptor.DPL() < getCPL() || descriptor.DPL() < RPL))) {
         setZF(0);
         return;
     }
@@ -536,13 +536,7 @@ void CPU::_VERW_RM16(Instruction& insn)
     WORD RPL = selector & 3;
     auto descriptor = getDescriptor(selector);
 
-    if (descriptor.isNull() ||
-        descriptor.isOutsideTableLimits() ||
-        descriptor.isSystemDescriptor() ||
-        descriptor.DPL() < getCPL() ||
-        descriptor.DPL() < RPL ||
-        !descriptor.asSegmentDescriptor().writable())
-    {
+    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || descriptor.DPL() < getCPL() || descriptor.DPL() < RPL || !descriptor.asSegmentDescriptor().writable()) {
         setZF(0);
         return;
     }

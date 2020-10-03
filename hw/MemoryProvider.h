@@ -46,11 +46,17 @@ public:
 
     const BYTE* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
 
-    template<typename T> T read(DWORD address);
-    template<typename T> void write(DWORD address, T);
+    template<typename T>
+    T read(DWORD address);
+    template<typename T>
+    void write(DWORD address, T);
 
 protected:
-    MemoryProvider(PhysicalAddress baseAddress, DWORD size = 0) : m_baseAddress(baseAddress) { setSize(size); }
+    MemoryProvider(PhysicalAddress baseAddress, DWORD size = 0)
+        : m_baseAddress(baseAddress)
+    {
+        setSize(size);
+    }
     void setSize(DWORD);
     const BYTE* m_pointerForDirectReadAccess { nullptr };
 
@@ -59,7 +65,8 @@ private:
     DWORD m_size { 0 };
 };
 
-template<typename T> inline T MemoryProvider::read(DWORD address)
+template<typename T>
+inline T MemoryProvider::read(DWORD address)
 {
     if (sizeof(T) == 1)
         return readMemory8(address);
@@ -69,7 +76,8 @@ template<typename T> inline T MemoryProvider::read(DWORD address)
     return readMemory32(address);
 }
 
-template<typename T> inline void MemoryProvider::write(DWORD address, T data)
+template<typename T>
+inline void MemoryProvider::write(DWORD address, T data)
 {
     if (sizeof(T) == 1)
         return writeMemory8(address, data);

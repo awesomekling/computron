@@ -58,7 +58,10 @@ class LogicalAddress;
 class PhysicalAddress {
 public:
     PhysicalAddress() { }
-    explicit PhysicalAddress(DWORD address) : m_address(address) { }
+    explicit PhysicalAddress(DWORD address)
+        : m_address(address)
+    {
+    }
 
     DWORD get() const { return m_address; }
     void set(DWORD address) { m_address = address; }
@@ -73,7 +76,10 @@ private:
 class LinearAddress {
 public:
     LinearAddress() { }
-    explicit LinearAddress(DWORD address) : m_address(address) { }
+    explicit LinearAddress(DWORD address)
+        : m_address(address)
+    {
+    }
 
     LinearAddress offset(DWORD o) const { return LinearAddress(m_address + o); }
     DWORD get() const { return m_address; }
@@ -93,23 +99,64 @@ struct TypeTrivia {
     static const T signBit = 1 << (bits - 1);
 };
 
-template<typename T> struct TypeDoubler { };
-template<> struct TypeDoubler<BYTE> { typedef WORD type; };
-template<> struct TypeDoubler<WORD> { typedef DWORD type; };
-template<> struct TypeDoubler<DWORD> { typedef QWORD type; };
-template<> struct TypeDoubler<SIGNED_BYTE> { typedef SIGNED_WORD type; };
-template<> struct TypeDoubler<SIGNED_WORD> { typedef SIGNED_DWORD type; };
-template<> struct TypeDoubler<SIGNED_DWORD> { typedef SIGNED_QWORD type; };
+template<typename T>
+struct TypeDoubler {
+};
+template<>
+struct TypeDoubler<BYTE> {
+    typedef WORD type;
+};
+template<>
+struct TypeDoubler<WORD> {
+    typedef DWORD type;
+};
+template<>
+struct TypeDoubler<DWORD> {
+    typedef QWORD type;
+};
+template<>
+struct TypeDoubler<SIGNED_BYTE> {
+    typedef SIGNED_WORD type;
+};
+template<>
+struct TypeDoubler<SIGNED_WORD> {
+    typedef SIGNED_DWORD type;
+};
+template<>
+struct TypeDoubler<SIGNED_DWORD> {
+    typedef SIGNED_QWORD type;
+};
 
-template<typename T> struct TypeHalver { };
-template<> struct TypeHalver<WORD> { typedef BYTE type; };
-template<> struct TypeHalver<DWORD> { typedef WORD type; };
-template<> struct TypeHalver<QWORD> { typedef DWORD type; };
-template<> struct TypeHalver<SIGNED_WORD> { typedef SIGNED_BYTE type; };
-template<> struct TypeHalver<SIGNED_DWORD> { typedef SIGNED_WORD type; };
-template<> struct TypeHalver<SIGNED_QWORD> { typedef SIGNED_DWORD type; };
+template<typename T>
+struct TypeHalver {
+};
+template<>
+struct TypeHalver<WORD> {
+    typedef BYTE type;
+};
+template<>
+struct TypeHalver<DWORD> {
+    typedef WORD type;
+};
+template<>
+struct TypeHalver<QWORD> {
+    typedef DWORD type;
+};
+template<>
+struct TypeHalver<SIGNED_WORD> {
+    typedef SIGNED_BYTE type;
+};
+template<>
+struct TypeHalver<SIGNED_DWORD> {
+    typedef SIGNED_WORD type;
+};
+template<>
+struct TypeHalver<SIGNED_QWORD> {
+    typedef SIGNED_DWORD type;
+};
 
-template<typename DT> constexpr DT weld(typename TypeHalver<DT>::type high, typename TypeHalver<DT>::type low)
+template<typename DT>
+constexpr DT weld(typename TypeHalver<DT>::type high, typename TypeHalver<DT>::type low)
 {
     typedef typename std::make_unsigned<typename TypeHalver<DT>::type>::type UnsignedT;
     typedef typename std::make_unsigned<DT>::type UnsignedDT;
@@ -139,7 +186,11 @@ inline constexpr T mostSignificant(typename TypeDoubler<T>::type whole)
 class LogicalAddress {
 public:
     LogicalAddress() { }
-    LogicalAddress(WORD selector, DWORD offset) : m_selector(selector), m_offset(offset) { }
+    LogicalAddress(WORD selector, DWORD offset)
+        : m_selector(selector)
+        , m_offset(offset)
+    {
+    }
 
     WORD selector() const { return m_selector; }
     DWORD offset() const { return m_offset; }

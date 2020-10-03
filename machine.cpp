@@ -23,23 +23,23 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "machine.h"
-#include "settings.h"
 #include "CPU.h"
 #include "DiskDrive.h"
-#include "iodevice.h"
-#include "fdc.h"
-#include "ide.h"
 #include "PS2.h"
 #include "busmouse.h"
+#include "cmos.h"
+#include "fdc.h"
+#include "ide.h"
+#include "iodevice.h"
 #include "keyboard.h"
+#include "machinewidget.h"
 #include "pic.h"
 #include "pit.h"
+#include "screen.h"
+#include "settings.h"
 #include "vga.h"
-#include "cmos.h"
 #include "vomctl.h"
 #include "worker.h"
-#include "screen.h"
-#include "machinewidget.h"
 #include <QtCore/QFile>
 
 OwnPtr<Machine> Machine::createFromFile(const QString& fileName)
@@ -79,7 +79,7 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
         IODevice::ignorePort(0x222);
         IODevice::ignorePort(0x223);
         IODevice::ignorePort(0x201); // Gameport.
-        IODevice::ignorePort(0x80); // Linux outb_p() uses this for small delays.
+        IODevice::ignorePort(0x80);  // Linux outb_p() uses this for small delays.
         IODevice::ignorePort(0x330); // MIDI
         IODevice::ignorePort(0x331); // MIDI
         IODevice::ignorePort(0x334); // SCSI (BusLogic)
@@ -255,7 +255,7 @@ void Machine::notifyScreen()
         widget()->screen().notify();
 }
 
-void Machine::forEachIODevice(std::function<void (IODevice &)> function)
+void Machine::forEachIODevice(std::function<void(IODevice&)> function)
 {
     for (IODevice* device : m_allDevices) {
         function(*device);
@@ -264,7 +264,7 @@ void Machine::forEachIODevice(std::function<void (IODevice &)> function)
 
 void Machine::resetAllIODevices()
 {
-    forEachIODevice([] (IODevice& device) {
+    forEachIODevice([](IODevice& device) {
         device.reset();
     });
 }
@@ -322,4 +322,3 @@ DiskDrive& Machine::fixed1()
 {
     return *m_fixed1;
 }
-

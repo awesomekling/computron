@@ -23,10 +23,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmos.h"
-#include "debug.h"
 #include "CPU.h"
-#include "machine.h"
 #include "DiskDrive.h"
+#include "debug.h"
+#include "machine.h"
 #include <QtCore/QDate>
 #include <QtCore/QTime>
 

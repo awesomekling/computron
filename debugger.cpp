@@ -23,20 +23,19 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "debugger.h"
+#include "CPU.h"
 #include "Common.h"
 #include "debug.h"
-#include "CPU.h"
-#include "pic.h"
 #include "machine.h"
 #include "pic.h"
 #include "vga.h"
 #include <QDebug>
+#include <QLatin1Literal>
 #include <QStringBuilder>
 #include <QStringList>
-#include <QLatin1Literal>
 #ifdef HAVE_EDITLINE
-#include <editline/readline.h>
-#include <editline/history.h>
+#    include <editline/history.h>
+#    include <editline/readline.h>
 #endif
 
 Debugger::Debugger(CPU& cpu)
@@ -215,7 +214,6 @@ void Debugger::handleCommand(const QString& rawCommand)
         cpu().setCF(0);
         return;
     }
-
 
     if (lowerCommand == "unhlt") {
         cpu().setState(CPU::Alive);

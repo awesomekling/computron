@@ -23,10 +23,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ROM.h"
-#include "Common.h"
-#include <QFile>
 #include "CPU.h"
+#include "Common.h"
 #include "debugger.h"
+#include <QFile>
 
 ROM::ROM(PhysicalAddress baseAddress, const QString& fileName)
     : MemoryProvider(baseAddress)

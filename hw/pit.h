@@ -24,11 +24,12 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "OwnPtr.h"
 #include "ThreadedTimer.h"
+#include "iodevice.h"
 
-class PIT final : public IODevice, public ThreadedTimer::Listener {
+class PIT final : public IODevice
+    , public ThreadedTimer::Listener {
 public:
     explicit PIT(Machine&);
     virtual ~PIT();

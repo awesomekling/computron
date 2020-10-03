@@ -24,12 +24,13 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "Common.h"
-#include "ThreadedTimer.h"
 #include "OwnPtr.h"
+#include "ThreadedTimer.h"
+#include "iodevice.h"
 
-class CMOS final : public IODevice, public ThreadedTimer::Listener {
+class CMOS final : public IODevice
+    , public ThreadedTimer::Listener {
 public:
     enum RegisterIndex {
         StatusRegisterA = 0x0a,

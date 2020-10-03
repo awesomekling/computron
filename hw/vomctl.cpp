@@ -29,8 +29,7 @@
 #include "machine.h"
 #include <stdio.h>
 
-struct VomCtl::Private
-{
+struct VomCtl::Private {
     QString consoleWriteBuffer;
 };
 

@@ -22,12 +22,12 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
+#include "Tasking.h"
 #include "debug.h"
 #include "iodevice.h"
 #include "machine.h"
-#include "Tasking.h"
 
 void CPU::_OUT_imm8_AL(Instruction& insn)
 {
@@ -143,8 +143,8 @@ void CPU::out(WORD port, T data)
         vlog(LogAlert, "Unhandled I/O write to port %03x, data %x", port, data);
 }
 
-
-template<typename T> T CPU::in(WORD port)
+template<typename T>
+T CPU::in(WORD port)
 {
     validateIOAccess<T>(port);
 

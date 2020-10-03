@@ -23,10 +23,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "debug.h"
+#include "CPU.h"
 #include "Common.h"
 #include "debugger.h"
 #include "machine.h"
-#include "CPU.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -45,27 +45,67 @@ void vlog(VLogChannel channel, const char* format, ...)
     const char* prefix = 0L;
 
     switch (channel) {
-    case LogInit: prefix = "init"; break;
-    case LogExit: prefix = "exit"; break;
-    case LogDisk: prefix = "disk"; break;
-    case LogIO: prefix = "i/o"; break;
-    case LogAlert: prefix = "alert"; break;
-    case LogVGA: prefix = "vga"; break;
-    case LogConfig: prefix = "config"; break;
-    case LogCPU: prefix = "cpu"; break;
-    case LogMouse: prefix = "mouse"; break;
-    case LogPIC: prefix = "pic"; break;
-    case LogKeyboard: prefix = "keyb"; break;
-    case LogFDC: prefix = "fdc"; break;
-    case LogDump: prefix = "dump"; break;
-    case LogVomCtl: prefix = "vomctl"; break;
-    case LogCMOS: prefix = "cmos"; break;
-    case LogIDE: prefix = "ide"; break;
-    case LogScreen: prefix = "screen"; break;
-    case LogFPU: prefix = "fpu"; break;
-    case LogTimer: prefix = "timer"; break;
+    case LogInit:
+        prefix = "init";
+        break;
+    case LogExit:
+        prefix = "exit";
+        break;
+    case LogDisk:
+        prefix = "disk";
+        break;
+    case LogIO:
+        prefix = "i/o";
+        break;
+    case LogAlert:
+        prefix = "alert";
+        break;
+    case LogVGA:
+        prefix = "vga";
+        break;
+    case LogConfig:
+        prefix = "config";
+        break;
+    case LogCPU:
+        prefix = "cpu";
+        break;
+    case LogMouse:
+        prefix = "mouse";
+        break;
+    case LogPIC:
+        prefix = "pic";
+        break;
+    case LogKeyboard:
+        prefix = "keyb";
+        break;
+    case LogFDC:
+        prefix = "fdc";
+        break;
+    case LogDump:
+        prefix = "dump";
+        break;
+    case LogVomCtl:
+        prefix = "vomctl";
+        break;
+    case LogCMOS:
+        prefix = "cmos";
+        break;
+    case LogIDE:
+        prefix = "ide";
+        break;
+    case LogScreen:
+        prefix = "screen";
+        break;
+    case LogFPU:
+        prefix = "fpu";
+        break;
+    case LogTimer:
+        prefix = "timer";
+        break;
 #ifdef DEBUG_SERENITY
-    case LogSerenity: prefix = "serenity"; break;
+    case LogSerenity:
+        prefix = "serenity";
+        break;
 #endif
     default:
         ASSERT_NOT_REACHED();
@@ -106,7 +146,7 @@ void vlog(VLogChannel channel, const char* format, ...)
     va_end(ap);
     puts("");
 
- #ifdef LOG_TO_FILE
+#ifdef LOG_TO_FILE
     fputc('\n', s_logfile);
     fflush(s_logfile);
 #endif

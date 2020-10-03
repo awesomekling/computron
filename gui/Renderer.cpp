@@ -22,9 +22,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "Renderer.h"
 #include "CPU.h"
+#include "Common.h"
 #include "machine.h"
 #include "screen.h"
 #include "vga.h"
@@ -92,19 +92,19 @@ void Mode04Renderer::render()
 
 void Mode12Renderer::render()
 {
-    const BYTE *p0 = vga().plane(0);
-    const BYTE *p1 = vga().plane(1);
-    const BYTE *p2 = vga().plane(2);
-    const BYTE *p3 = vga().plane(3);
+    const BYTE* p0 = vga().plane(0);
+    const BYTE* p1 = vga().plane(1);
+    const BYTE* p2 = vga().plane(2);
+    const BYTE* p3 = vga().plane(3);
 
     int offset = 0;
 
     BYTE* bits = bufferBits();
     for (int y = 0; y < 480; ++y) {
-        BYTE* px = &bits[y*640];
+        BYTE* px = &bits[y * 640];
 
         for (int x = 0; x < 640; x += 8, ++offset) {
-#define D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
+#define D(i) ((p0[offset] >> i) & 1) | (((p1[offset] >> i) & 1) << 1) | (((p2[offset] >> i) & 1) << 2) | (((p3[offset] >> i) & 1) << 3)
             *(px++) = D(7);
             *(px++) = D(6);
             *(px++) = D(5);
@@ -119,10 +119,10 @@ void Mode12Renderer::render()
 
 void Mode0DRenderer::render()
 {
-    const BYTE *p0 = vga().plane(0);
-    const BYTE *p1 = vga().plane(1);
-    const BYTE *p2 = vga().plane(2);
-    const BYTE *p3 = vga().plane(3);
+    const BYTE* p0 = vga().plane(0);
+    const BYTE* p1 = vga().plane(1);
+    const BYTE* p2 = vga().plane(2);
+    const BYTE* p3 = vga().plane(3);
 
     WORD start_address = vga().start_address();
     p0 += start_address;
@@ -134,8 +134,8 @@ void Mode0DRenderer::render()
     int offset = 0;
 
     for (int y = 0; y < 200; ++y) {
-        BYTE* px = &bits[y*320];
-#define A0D(i) ((p0[offset]>>i) & 1) | (((p1[offset]>>i) & 1)<<1) | (((p2[offset]>>i) & 1)<<2) | (((p3[offset]>>i) & 1)<<3)
+        BYTE* px = &bits[y * 320];
+#define A0D(i) ((p0[offset] >> i) & 1) | (((p1[offset] >> i) & 1) << 1) | (((p2[offset] >> i) & 1) << 2) | (((p3[offset] >> i) & 1) << 3)
         for (int x = 0; x < 320; x += 8, ++offset) {
             *(px++) = D(7);
             *(px++) = D(6);
@@ -255,8 +255,7 @@ void TextRenderer::paint(QPainter& p)
             row * m_characterHeight + cursor_start,
             m_characterWidth,
             cursor_end - cursor_start,
-            m_brush[14]
-        );
+            m_brush[14]);
     }
 }
 
@@ -272,9 +271,8 @@ void TextRenderer::synchronizeFont()
 {
     auto vector = screen().machine().cpu().getRealModeInterruptVector(0x43);
     auto physicalAddress = PhysicalAddress::fromRealMode(vector);
-    auto* fbmp = (const fontcharbitmap_t *)(screen().machine().cpu().pointerToPhysicalMemory(physicalAddress));
+    auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointerToPhysicalMemory(physicalAddress));
 
     for (int i = 0; i < 256; ++i)
         m_character[i] = QBitmap::fromData(QSize(m_characterWidth, m_characterHeight), fbmp[i].data, QImage::Format_Mono);
 }
-

@@ -24,16 +24,16 @@
 
 #pragma once
 
-#include <functional>
-#include <QObject>
-#include "types.h"
-#include "OwnPtr.h"
 #include "Common.h"
+#include "OwnPtr.h"
 #include "ROM.h"
+#include "types.h"
 #include <QHash>
+#include <QMutex>
+#include <QObject>
 #include <QSet>
 #include <QWaitCondition>
-#include <QMutex>
+#include <functional>
 
 class IODevice;
 class BusMouse;
@@ -52,8 +52,7 @@ class VomCtl;
 class Worker;
 class MachineWidget;
 
-class Machine : public QObject
-{
+class Machine : public QObject {
     Q_OBJECT
 public:
     static OwnPtr<Machine> createFromFile(const QString& fileName);

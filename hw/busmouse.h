@@ -24,11 +24,12 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "MouseObserver.h"
+#include "iodevice.h"
 #include <QtCore/QMutex>
 
-class BusMouse final : public IODevice, public MouseObserver {
+class BusMouse final : public IODevice
+    , public MouseObserver {
 public:
     explicit BusMouse(Machine&);
     virtual ~BusMouse() override;

@@ -25,12 +25,14 @@
 #pragma once
 
 #include "MemoryProvider.h"
-#include "iodevice.h"
 #include "OwnPtr.h"
+#include "iodevice.h"
 #include <QtCore/QObject>
 #include <QtGui/QColor>
 
-class VGA final : public QObject, public IODevice, public MemoryProvider {
+class VGA final : public QObject
+    , public IODevice
+    , public MemoryProvider {
     Q_OBJECT
 public:
     explicit VGA(Machine&);

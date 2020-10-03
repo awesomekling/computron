@@ -22,9 +22,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
-#include "CPU.h"
 #include "pic.h"
+#include "CPU.h"
+#include "Common.h"
 #include "debug.h"
 #include "machine.h"
 
@@ -61,7 +61,7 @@ PIC::PIC(bool isMaster, Machine& machine)
     , m_isrBase(isMaster ? 0x08 : 0x70)
     , m_irqBase(isMaster ? 0 : 8)
     , m_isMaster(isMaster)
-{    
+{
     listen(m_baseAddress, IODevice::ReadWrite);
     listen(m_baseAddress + 1, IODevice::ReadWrite);
 
@@ -90,11 +90,10 @@ void PIC::dumpMask()
     const char* red = "\033[31;1m";
     for (int i = 0; i < 8; ++i)
         vlog(LogPIC, " - IRQ %2u: %smask\033[0m %srequest\033[0m %sservice\033[0m",
-                m_irqBase + i,
-                (m_imr & (1 << i)) ? green : red,
-                (m_irr & (1 << i)) ? green : red,
-                (m_isr & (1 << i)) ? green : red);
-
+            m_irqBase + i,
+            (m_imr & (1 << i)) ? green : red,
+            (m_irr & (1 << i)) ? green : red,
+            (m_isr & (1 << i)) ? green : red);
 }
 
 void PIC::unmaskAll()
@@ -248,7 +247,6 @@ bool PIC::isIRQRaised(Machine& machine, BYTE num)
         return machine.masterPIC().m_irr & (1 << num);
     else
         return machine.slavePIC().m_irr & (1 << (num - 8));
-
 }
 
 void PIC::serviceIRQ(CPU& cpu)
@@ -281,9 +279,7 @@ void PIC::serviceIRQ(CPU& cpu)
         machine.masterPIC().m_isr |= (1 << irqToService);
 
         cpu.interrupt(machine.masterPIC().m_isrBase | irqToService, CPU::InterruptSource::External);
-    }
-    else
-    {
+    } else {
         machine.slavePIC().m_irr &= ~(1 << (irqToService - 8));
         machine.slavePIC().m_isr |= (1 << (irqToService - 8));
 
@@ -309,4 +305,3 @@ PIC& PIC::slave() const
     ASSERT(m_isMaster);
     return machine().slavePIC();
 }
-

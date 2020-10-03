@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include <QString>
 #include "types.h"
+#include <QString>
 
 class DiskDrive {
 public:
@@ -49,20 +49,18 @@ public:
 
     DWORD toLBA(WORD cylinder, BYTE head, WORD sector)
     {
-        return (sector - 1) +
-               (head * sectorsPerTrack()) +
-               (cylinder * sectorsPerTrack() * heads());
+        return (sector - 1) + (head * sectorsPerTrack()) + (cylinder * sectorsPerTrack() * heads());
     }
 
     bool present() const { return m_present; }
-    unsigned cylinders() const { return (m_config.sectors / m_config.sectorsPerTrack / m_config.heads) - 2;}
+    unsigned cylinders() const { return (m_config.sectors / m_config.sectorsPerTrack / m_config.heads) - 2; }
     unsigned heads() const { return m_config.heads; }
     unsigned sectors() const { return m_config.sectors; }
     unsigned sectorsPerTrack() const { return m_config.sectorsPerTrack; }
     unsigned bytesPerSector() const { return m_config.bytesPerSector; }
     BYTE floppyTypeForCMOS() const { return m_config.floppyTypeForCMOS; }
 
-//private:
+    //private:
     Configuration m_config;
     QString m_name;
     bool m_present { false };

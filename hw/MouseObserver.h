@@ -26,7 +26,8 @@
 
 #include "types.h"
 
-enum class MouseButton { Left, Right };
+enum class MouseButton { Left,
+    Right };
 
 class MouseObserver {
 public:
@@ -35,4 +36,3 @@ public:
     virtual void buttonPressEvent(WORD x, WORD y, MouseButton) = 0;
     virtual void buttonReleaseEvent(WORD x, WORD y, MouseButton) = 0;
 };
-

@@ -26,9 +26,9 @@
 
 #include "OwnPtr.h"
 #include "types.h"
+#include <QOpenGLWidget>
 #include <QtCore/QHash>
 #include <QtWidgets/QWidget>
-#include <QOpenGLWidget>
 
 class Machine;
 class MouseObserver;
@@ -54,7 +54,7 @@ public:
     BYTE popKeyData();
     bool hasRawKey();
 
-    void setScreenSize( int width, int height );
+    void setScreenSize(int width, int height);
 
 protected:
     void keyPressEvent(QKeyEvent*) override;

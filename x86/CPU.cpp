@@ -23,15 +23,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CPU.h"
-#include "machine.h"
 #include "Common.h"
+#include "Tasking.h"
 #include "debug.h"
 #include "debugger.h"
+#include "machine.h"
 #include "pic.h"
+#include "pit.h"
 #include "settings.h"
 #include <unistd.h>
-#include "pit.h"
-#include "Tasking.h"
 
 //#define DEBUG_PAGING
 #define CRASH_ON_OPCODE_00_00
@@ -52,9 +52,9 @@
 static bool shouldLogAllMemoryAccesses(PhysicalAddress address)
 {
     UNUSED_PARAM(address);
-#ifdef CT_DETERMINISTIC
+#    ifdef CT_DETERMINISTIC
     return true;
-#endif
+#    endif
     return false;
 }
 
@@ -202,7 +202,7 @@ void CPU::setMemorySizeAndReallocateIfNeeded(DWORD size)
 {
     if (m_memorySize == size)
         return;
-    delete [] m_memory;
+    delete[] m_memory;
     m_memorySize = size;
     m_memory = new BYTE[m_memorySize];
     if (!m_memory) {
@@ -365,14 +365,19 @@ void CPU::reset()
 
 CPU::~CPU()
 {
-    delete [] m_memory;
+    delete[] m_memory;
     m_memory = nullptr;
 }
 
 class InstructionExecutionContext {
 public:
-    InstructionExecutionContext(CPU& cpu) : m_cpu(cpu) { cpu.saveBaseAddress(); }
+    InstructionExecutionContext(CPU& cpu)
+        : m_cpu(cpu)
+    {
+        cpu.saveBaseAddress();
+    }
     ~InstructionExecutionContext() { m_cpu.clearPrefix(); }
+
 private:
     CPU& m_cpu;
 };
@@ -388,11 +393,11 @@ FLATTEN void CPU::executeOneInstruction()
         }
 #endif
         decodeNext();
-    } catch(Exception e) {
+    } catch (Exception e) {
         if (options.log_exceptions)
             dumpDisassembled(cachedDescriptor(SegmentRegisterIndex::CS), m_baseEIP, 3);
         raiseException(e);
-    } catch(HardwareInterruptDuringREP) {
+    } catch (HardwareInterruptDuringREP) {
         setEIP(currentBaseInstructionPointer());
     }
 }
@@ -446,12 +451,7 @@ void CPU::makeNextInstructionUninterruptible()
 
 void CPU::recomputeMainLoopNeedsSlowStuff()
 {
-    m_mainLoopNeedsSlowStuff = m_debuggerRequest != NoDebuggerRequest ||
-                               m_shouldHardReboot ||
-                               options.trace ||
-                               !m_breakpoints.empty() ||
-                               debugger().isActive() ||
-                               !m_watches.isEmpty();
+    m_mainLoopNeedsSlowStuff = m_debuggerRequest != NoDebuggerRequest || m_shouldHardReboot || options.trace || !m_breakpoints.empty() || debugger().isActive() || !m_watches.isEmpty();
 }
 
 NEVER_INLINE bool CPU::mainLoopSlowStuff()
@@ -496,7 +496,8 @@ NEVER_INLINE bool CPU::mainLoopSlowStuff()
 
 FLATTEN void CPU::mainLoop()
 {
-    forever {
+    forever
+    {
         if (UNLIKELY(m_mainLoopNeedsSlowStuff)) {
             mainLoopSlowStuff();
         }
@@ -560,19 +561,25 @@ void CPU::jumpAbsolute32(DWORD address)
         ASSERT_NOT_REACHED();
     }
 #endif
-//    vlog(LogCPU, "[PE=%u] Abs jump to %08X", getPE(), address);
+    //    vlog(LogCPU, "[PE=%u] Abs jump to %08X", getPE(), address);
     m_EIP = address;
 }
 
 static const char* toString(JumpType type)
 {
     switch (type) {
-    case JumpType::CALL: return "CALL";
-    case JumpType::RETF: return "RETF";
-    case JumpType::IRET: return "IRET";
-    case JumpType::INT: return "INT";
-    case JumpType::JMP: return "JMP";
-    case JumpType::Internal: return "Internal";
+    case JumpType::CALL:
+        return "CALL";
+    case JumpType::RETF:
+        return "RETF";
+    case JumpType::IRET:
+        return "IRET";
+    case JumpType::INT:
+        return "INT";
+    case JumpType::JMP:
+        return "JMP";
+    case JumpType::Internal:
+        return "Internal";
     default:
         ASSERT_NOT_REACHED();
         return nullptr;
@@ -743,56 +750,56 @@ void CPU::protectedModeFarJump(LogicalAddress address, JumpType type, Gate* gate
     setEIP(offset);
 
     if (type == JumpType::CALL && gate) {
-    if (descriptor.DPL() < originalCPL) {
+        if (descriptor.DPL() < originalCPL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
+            vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
 #endif
-        auto tss = currentTSS();
+            auto tss = currentTSS();
 
-        WORD newSS = tss.getRingSS(descriptor.DPL());
-        DWORD newESP = tss.getRingESP(descriptor.DPL());
-        auto newSSDescriptor = getDescriptor(newSS);
+            WORD newSS = tss.getRingSS(descriptor.DPL());
+            DWORD newESP = tss.getRingESP(descriptor.DPL());
+            auto newSSDescriptor = getDescriptor(newSS);
 
-        // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
+            // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
-        if (newSSDescriptor.isNull()) {
-            throw InvalidTSS(newSS & 0xfffc, "New ss is null");
-        }
+            if (newSSDescriptor.isNull()) {
+                throw InvalidTSS(newSS & 0xfffc, "New ss is null");
+            }
 
-        if (newSSDescriptor.isOutsideTableLimits()) {
-            throw InvalidTSS(newSS & 0xfffc, "New ss outside table limits");
-        }
+            if (newSSDescriptor.isOutsideTableLimits()) {
+                throw InvalidTSS(newSS & 0xfffc, "New ss outside table limits");
+            }
 
-        if (newSSDescriptor.DPL() != descriptor.DPL()) {
-            throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
-        }
+            if (newSSDescriptor.DPL() != descriptor.DPL()) {
+                throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
+            }
 
-        if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
-            throw InvalidTSS(newSS & 0xfffc, "New ss not a writable data segment");
-        }
+            if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
+                throw InvalidTSS(newSS & 0xfffc, "New ss not a writable data segment");
+            }
 
-        if (!newSSDescriptor.present()) {
-            throw StackFault(newSS & 0xfffc, "New ss not present");
-        }
+            if (!newSSDescriptor.present()) {
+                throw StackFault(newSS & 0xfffc, "New ss not present");
+            }
 
-        BEGIN_ASSERT_NO_EXCEPTIONS
-        setCPL(descriptor.DPL());
-        setSS(newSS);
-        setESP(newESP);
+            BEGIN_ASSERT_NO_EXCEPTIONS
+            setCPL(descriptor.DPL());
+            setSS(newSS);
+            setESP(newESP);
 
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, getSS(), getSP());
-        vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, getSS(), getESP());
+            vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, getSS(), getSP());
+            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, getSS(), getESP());
 #endif
-        pushValueWithSize(originalSS, pushSize);
-        pushValueWithSize(originalESP, pushSize);
-        END_ASSERT_NO_EXCEPTIONS
-    } else {
+            pushValueWithSize(originalSS, pushSize);
+            pushValueWithSize(originalESP, pushSize);
+            END_ASSERT_NO_EXCEPTIONS
+        } else {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "%s same privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL());
+            vlog(LogCPU, "%s same privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL());
 #endif
-        setCPL(originalCPL);
-    }
+            setCPL(originalCPL);
+        }
     }
 
     if (type == JumpType::CALL) {
@@ -1150,11 +1157,16 @@ void CPU::_LEA_reg16_mem16(Instruction& insn)
 static const char* toString(CPU::MemoryAccessType type)
 {
     switch (type) {
-    case CPU::MemoryAccessType::Read: return "Read";
-    case CPU::MemoryAccessType::Write: return "Write";
-    case CPU::MemoryAccessType::Execute: return "Execute";
-    case CPU::MemoryAccessType::InternalPointer: return "InternalPointer";
-    default: return "(wat)";
+    case CPU::MemoryAccessType::Read:
+        return "Read";
+    case CPU::MemoryAccessType::Write:
+        return "Write";
+    case CPU::MemoryAccessType::Execute:
+        return "Execute";
+    case CPU::MemoryAccessType::InternalPointer:
+        return "InternalPointer";
+    default:
+        return "(wat)";
     }
 }
 
@@ -1168,9 +1180,9 @@ PhysicalAddress CPU::translateAddress(LinearAddress linearAddress, MemoryAccessT
 static WORD makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
 {
     return flags
-         | (accessType == CPU::MemoryAccessType::Write ? PageFaultFlags::Write : PageFaultFlags::Read)
-         | (inUserMode ? PageFaultFlags::UserMode : PageFaultFlags::SupervisorMode)
-         | (accessType == CPU::MemoryAccessType::Execute ? PageFaultFlags::InstructionFetch : 0);
+        | (accessType == CPU::MemoryAccessType::Write ? PageFaultFlags::Write : PageFaultFlags::Read)
+        | (inUserMode ? PageFaultFlags::UserMode : PageFaultFlags::SupervisorMode)
+        | (accessType == CPU::MemoryAccessType::Execute ? PageFaultFlags::InstructionFetch : 0);
 }
 
 Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode, const char* faultTable, DWORD pde, DWORD pte)
@@ -1186,8 +1198,7 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
             linearAddress.get(),
             getCR3(),
             pde,
-            pte
-        );
+            pte);
     }
     m_CR2 = linearAddress.get();
     if (options.crashOnPF) {
@@ -1286,46 +1297,46 @@ template<typename T>
 ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWORD offset, MemoryAccessType accessType)
 {
     if (!getVM()) {
-    if (accessType != MemoryAccessType::Execute) {
-        if (descriptor.isNull()) {
-            vlog(LogAlert, "NULL! %s offset %08X into null selector (selector index: %04X)",
-                 toString(accessType),
-                 offset,
-                 descriptor.index());
-            if (descriptor.m_loaded_in_ss)
-                throw StackFault(0, "Access through null selector");
-            else
-                throw GeneralProtectionFault(0, "Access through null selector");
+        if (accessType != MemoryAccessType::Execute) {
+            if (descriptor.isNull()) {
+                vlog(LogAlert, "NULL! %s offset %08X into null selector (selector index: %04X)",
+                    toString(accessType),
+                    offset,
+                    descriptor.index());
+                if (descriptor.m_loaded_in_ss)
+                    throw StackFault(0, "Access through null selector");
+                else
+                    throw GeneralProtectionFault(0, "Access through null selector");
+            }
         }
-    }
 
-    switch (accessType) {
-    case MemoryAccessType::Read:
-        if (descriptor.isCode() && !descriptor.asCodeSegmentDescriptor().readable()) {
-            throw GeneralProtectionFault(0, "Attempt to read from non-readable code segment");
+        switch (accessType) {
+        case MemoryAccessType::Read:
+            if (descriptor.isCode() && !descriptor.asCodeSegmentDescriptor().readable()) {
+                throw GeneralProtectionFault(0, "Attempt to read from non-readable code segment");
+            }
+            break;
+        case MemoryAccessType::Write:
+            if (!descriptor.isData()) {
+                if (descriptor.m_loaded_in_ss)
+                    throw StackFault(0, "Attempt to write to non-data segment");
+                else
+                    throw GeneralProtectionFault(0, "Attempt to write to non-data segment");
+            }
+            if (!descriptor.asDataSegmentDescriptor().writable()) {
+                if (descriptor.m_loaded_in_ss)
+                    throw StackFault(0, "Attempt to write to non-writable data segment");
+                else
+                    throw GeneralProtectionFault(0, "Attempt to write to non-writable data segment");
+            }
+            break;
+        case MemoryAccessType::Execute:
+            // CS should never point to a non-code segment.
+            ASSERT(descriptor.isCode());
+            break;
+        default:
+            break;
         }
-        break;
-    case MemoryAccessType::Write:
-        if (!descriptor.isData()) {
-            if (descriptor.m_loaded_in_ss)
-                throw StackFault(0, "Attempt to write to non-data segment");
-            else
-                throw GeneralProtectionFault(0, "Attempt to write to non-data segment");
-        }
-        if (!descriptor.asDataSegmentDescriptor().writable()) {
-            if (descriptor.m_loaded_in_ss)
-                throw StackFault(0, "Attempt to write to non-writable data segment");
-            else
-                throw GeneralProtectionFault(0, "Attempt to write to non-writable data segment");
-        }
-        break;
-    case MemoryAccessType::Execute:
-        // CS should never point to a non-code segment.
-        ASSERT(descriptor.isCode());
-        break;
-    default:
-        break;
-    }
     }
 
 #if 0
@@ -1337,14 +1348,13 @@ ALWAYS_INLINE void CPU::validateAddress(const SegmentDescriptor& descriptor, DWO
 
     if (UNLIKELY((offset + (sizeof(T) - 1)) > descriptor.effectiveLimit())) {
         vlog(LogAlert, "%zu-bit %s offset %08X outside limit (selector index: %04X, effective limit: %08X [%08X x %s])",
-             sizeof(T) * 8,
-             toString(accessType),
-             offset,
-             descriptor.index(),
-             descriptor.effectiveLimit(),
-             descriptor.limit(),
-             descriptor.granularity() ? "4K" : "1b"
-             );
+            sizeof(T) * 8,
+            toString(accessType),
+            offset,
+            descriptor.index(),
+            descriptor.effectiveLimit(),
+            descriptor.limit(),
+            descriptor.granularity() ? "4K" : "1b");
         //ASSERT_NOT_REACHED();
         dumpDescriptor(descriptor);
         //dumpAll();
@@ -1512,7 +1522,6 @@ LogicalAddress CPU::readLogicalAddress(SegmentRegisterIndex segreg, DWORD offset
 template LogicalAddress CPU::readLogicalAddress<WORD>(SegmentRegisterIndex, DWORD);
 template LogicalAddress CPU::readLogicalAddress<DWORD>(SegmentRegisterIndex, DWORD);
 
-
 template<typename T>
 void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
 {
@@ -1520,7 +1529,7 @@ void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
     if constexpr (sizeof(T) == 4) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
             writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff , effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
             writeMemory<BYTE>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
             writeMemory<BYTE>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
             return;
@@ -1528,7 +1537,7 @@ void CPU::writeMemory(LinearAddress linearAddress, T value, BYTE effectiveCPL)
     } else if constexpr (sizeof(T) == 2) {
         if (getPG() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
             writeMemory<BYTE>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff , effectiveCPL);
+            writeMemory<BYTE>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
             return;
         }
     }
@@ -1824,7 +1833,6 @@ void CPU::_UD0(Instruction&)
     throw InvalidOpcode("UD0");
 #endif
 }
-
 
 void CPU::_UD1(Instruction&)
 {

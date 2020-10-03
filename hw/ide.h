@@ -24,23 +24,22 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "OwnPtr.h"
+#include "iodevice.h"
 
 struct IDEController;
 
-class IDE final : public IODevice
-{
+class IDE final : public IODevice {
 public:
     enum Status {
         ERROR = 0x01,
         INDEX = 0x02,
-        CORR  = 0x04,
-        DRQ   = 0x08,
-        DSC   = 0x10,
-        DWF   = 0x20,
-        DRDY  = 0x40,
-        BUSY  = 0x80
+        CORR = 0x04,
+        DRQ = 0x08,
+        DSC = 0x10,
+        DWF = 0x20,
+        DRDY = 0x40,
+        BUSY = 0x80
     };
 
     explicit IDE(Machine&);

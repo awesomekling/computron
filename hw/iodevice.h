@@ -44,8 +44,10 @@ public:
 
     virtual void reset() = 0;
 
-    template<typename T> T in(WORD port);
-    template<typename T> void out(WORD port, T data);
+    template<typename T>
+    T in(WORD port);
+    template<typename T>
+    void out(WORD port, T data);
 
     virtual BYTE in8(WORD port);
     virtual WORD in16(WORD port);
@@ -78,7 +80,8 @@ private:
     static QSet<WORD> s_ignorePorts;
 };
 
-template<typename T> inline T IODevice::in(WORD port)
+template<typename T>
+inline T IODevice::in(WORD port)
 {
     if (sizeof(T) == 1)
         return in8(port);
@@ -88,7 +91,8 @@ template<typename T> inline T IODevice::in(WORD port)
     return in32(port);
 }
 
-template<typename T> inline void IODevice::out(WORD port, T data)
+template<typename T>
+inline void IODevice::out(WORD port, T data)
 {
     if (sizeof(T) == 1)
         return out8(port, data);

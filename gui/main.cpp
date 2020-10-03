@@ -22,16 +22,16 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "mainwindow.h"
-#include <QtWidgets/QApplication>
-#include <QFile>
-#include "screen.h"
-#include "Common.h"
 #include "CPU.h"
+#include "Common.h"
 #include "debugger.h"
-#include "machine.h"
 #include "iodevice.h"
+#include "machine.h"
+#include "mainwindow.h"
+#include "screen.h"
 #include "settings.h"
+#include <QFile>
+#include <QtWidgets/QApplication>
 #include <signal.h>
 
 static void parseArguments(const QStringList& arguments);
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 
     QFile::remove("log.txt");
 
-    machine->forEachIODevice([] (IODevice& device) {
+    machine->forEachIODevice([](IODevice& device) {
         vlog(LogInit, "%s present", device.name());
     });
 
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 void parseArguments(const QStringList& arguments)
 {
-    for (auto it = arguments.begin(); it != arguments.end(); ) {
+    for (auto it = arguments.begin(); it != arguments.end();) {
         const auto& argument = *it;
         if (argument == "--disklog")
             options.disklog = true;
@@ -148,8 +148,7 @@ void parseArguments(const QStringList& arguments)
             }
             options.configPath = (*it);
             continue;
-        }
-        else if (argument == "--run") {
+        } else if (argument == "--run") {
             ++it;
             if (it == arguments.end()) {
                 fprintf(stderr, "usage: computron --run [filename]\n");

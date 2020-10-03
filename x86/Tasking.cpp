@@ -22,9 +22,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "Tasking.h"
 #include "CPU.h"
 #include "debugger.h"
-#include "Tasking.h"
 
 void CPU::_STR_RM16(Instruction& insn)
 {
@@ -71,11 +71,11 @@ void CPU::_LTR_RM16(Instruction& insn)
 }
 
 #define EXCEPTION_ON(type, code, condition, reason) \
-    do { \
-        if ((condition)) { \
-            throw type(code, reason); \
-        } \
-    } while(0)
+    do {                                            \
+        if ((condition)) {                          \
+            throw type(code, reason);               \
+        }                                           \
+    } while (0)
 
 void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
 {
@@ -260,7 +260,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
     if (ssDescriptor.DPL() != (getSS() & 3))
         throw InvalidTSS(getSS() & 0xfffc, "SS DPL != RPL");
 
-    auto validateDataSegment = [&] (SegmentRegisterIndex segreg) {
+    auto validateDataSegment = [&](SegmentRegisterIndex segreg) {
         WORD selector = readSegmentRegister(segreg);
         auto descriptor = getDescriptor(selector);
         if (descriptor.isNull())
@@ -304,7 +304,7 @@ void CPU::taskSwitch(WORD task_selector, TSSDescriptor& incomingTSSDescriptor, J
 #endif
 }
 
-void CPU::dumpTSS(const TSS &tss)
+void CPU::dumpTSS(const TSS& tss)
 {
     vlog(LogCPU, "TSS bits=%u", tss.is32Bit() ? 32 : 16);
     vlog(LogCPU, "eax=%08x ebx=%08x ecx=%08x edx=%08x", tss.getEAX(), tss.getEBX(), tss.getECX(), tss.getEDX());
@@ -347,7 +347,7 @@ struct TSS32 {
     WORD GS, __gsh;
     WORD LDT, __ldth;
     WORD trace, iomapbase;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct TSS16 {
     WORD Backlink;
@@ -367,7 +367,7 @@ struct TSS16 {
     WORD FS;
     WORD GS;
     WORD LDT;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
     : m_cpu(cpu)
@@ -376,30 +376,34 @@ TSS::TSS(CPU& cpu, LinearAddress base, bool is32Bit)
 {
 }
 
-#define TSS_FIELD_16(name) \
-    void TSS::set ## name(WORD value) { \
-        if (m_is32Bit) \
+#define TSS_FIELD_16(name)                                                         \
+    void TSS::set##name(WORD value)                                                \
+    {                                                                              \
+        if (m_is32Bit)                                                             \
             m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS32, name)), value); \
-        else \
+        else                                                                       \
             m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
-    } \
-    WORD TSS::get ## name() const { \
-        if (m_is32Bit) \
-            return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, name))); \
-        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name))); \
+    }                                                                              \
+    WORD TSS::get##name() const                                                    \
+    {                                                                              \
+        if (m_is32Bit)                                                             \
+            return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS32, name)));  \
+        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name)));      \
     }
 
-#define TSS_FIELD_16OR32(name) \
-    DWORD TSS::getE ## name() const { \
-        if (m_is32Bit) \
-            return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, E ## name))); \
-        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name))); \
-    } \
-    void TSS::setE ## name(DWORD value) { \
-        if (m_is32Bit) \
-            m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, E ## name)), value); \
-        else \
-            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value); \
+#define TSS_FIELD_16OR32(name)                                                        \
+    DWORD TSS::getE##name() const                                                     \
+    {                                                                                 \
+        if (m_is32Bit)                                                                \
+            return m_cpu.readMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)));  \
+        return m_cpu.readMemoryMetal16(m_base.offset(offsetof(TSS16, name)));         \
+    }                                                                                 \
+    void TSS::setE##name(DWORD value)                                                 \
+    {                                                                                 \
+        if (m_is32Bit)                                                                \
+            m_cpu.writeMemoryMetal32(m_base.offset(offsetof(TSS32, E##name)), value); \
+        else                                                                          \
+            m_cpu.writeMemoryMetal16(m_base.offset(offsetof(TSS16, name)), value);    \
     }
 
 DWORD TSS::getCR3() const

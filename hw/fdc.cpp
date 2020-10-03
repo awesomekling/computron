@@ -22,12 +22,12 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Common.h"
 #include "fdc.h"
-#include "pic.h"
+#include "Common.h"
+#include "DiskDrive.h"
 #include "debug.h"
 #include "machine.h"
-#include "DiskDrive.h"
+#include "pic.h"
 
 #define FDC_NEC765
 #define FDC_DEBUG
@@ -35,10 +35,10 @@
 // Spec: http://www.buchty.net/casio/files/82077.pdf
 
 // 0x3f4 - MSR (Main Status Register)
-#define FDC_MSR_RQM     (1 << 7)
-#define FDC_MSR_DIO     (1 << 6)
-#define FDC_MSR_NONDMA  (1 << 5)
-#define FDC_MSR_CMDBSY  (1 << 4)
+#define FDC_MSR_RQM (1 << 7)
+#define FDC_MSR_DIO (1 << 6)
+#define FDC_MSR_NONDMA (1 << 5)
+#define FDC_MSR_CMDBSY (1 << 4)
 #define FDC_MSR_DRV3BSY (1 << 3)
 #define FDC_MSR_DRV2BSY (1 << 2)
 #define FDC_MSR_DRV1BSY (1 << 1)
@@ -70,17 +70,20 @@ enum FDCDataRate {
 static const char* toString(FDCDataRate rate)
 {
     switch (rate) {
-    case _500kbps: return "500 kbps";
-    case _300kbps: return "300 kbps";
-    case _250kbps: return "250 kbps";
-    case _1000kbps: return "1000 kbps";
+    case _500kbps:
+        return "500 kbps";
+    case _300kbps:
+        return "300 kbps";
+    case _250kbps:
+        return "250 kbps";
+    case _1000kbps:
+        return "1000 kbps";
     }
     ASSERT_NOT_REACHED();
     return nullptr;
 }
 
-struct FDCDrive
-{
+struct FDCDrive {
     FDCDrive() { }
 
     bool motor { false };
@@ -97,8 +100,7 @@ struct FDCDrive
     BYTE digitalInputRegister { 0 };
 };
 
-struct FDC::Private
-{
+struct FDC::Private {
     FDCDrive drive[2];
     BYTE driveIndex;
     bool enabled;
@@ -116,7 +118,11 @@ struct FDC::Private
     bool lock { false };
     BYTE expectedSenseInterruptCount { 0 };
 
-    FDCDrive& currentDrive() { ASSERT(driveIndex < 2); return drive[driveIndex]; }
+    FDCDrive& currentDrive()
+    {
+        ASSERT(driveIndex < 2);
+        return drive[driveIndex];
+    }
 };
 
 FDC::FDC(Machine& machine)
@@ -404,8 +410,7 @@ void FDC::executeReadDataCommand()
         128 << d->currentDrive().bytesPerSector,
         d->currentDrive().endOfTrack,
         d->currentDrive().gap3Length,
-        d->currentDrive().dataLength
-    );
+        d->currentDrive().dataLength);
 }
 
 void FDC::executeCommandSoon()

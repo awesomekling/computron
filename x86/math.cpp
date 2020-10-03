@@ -31,9 +31,9 @@ QWORD CPU::doADD(T dest, T src)
     QWORD result = (QWORD)dest + (QWORD)src;
     mathFlags(result, dest, src);
     setOF(((
-          ((result)^(dest)) &
-          ((result)^(src))
-         )>>(TypeTrivia<T>::bits - 1))&1);
+               ((result) ^ (dest)) & ((result) ^ (src)))
+              >> (TypeTrivia<T>::bits - 1))
+        & 1);
     return result;
 }
 
@@ -44,9 +44,9 @@ QWORD CPU::doADC(T dest, T src)
 
     mathFlags(result, dest, src);
     setOF(((
-          ((result)^(dest)) &
-          ((result)^(src))
-         )>>(TypeTrivia<T>::bits - 1))&1);
+               ((result) ^ (dest)) & ((result) ^ (src)))
+              >> (TypeTrivia<T>::bits - 1))
+        & 1);
     return result;
 }
 

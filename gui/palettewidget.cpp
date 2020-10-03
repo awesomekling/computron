@@ -30,8 +30,7 @@
 
 QSizeF gDabSize(10, 10);
 
-struct PaletteWidget::Private
-{
+struct PaletteWidget::Private {
     QColor color[256];
 };
 

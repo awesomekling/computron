@@ -25,19 +25,26 @@
 #pragma once
 
 #ifndef NDEBUG
-#include <QtCore/qdebug.h>
-#include <assert.h>
-#define ASSERT assert
-#define ASSERT_NOT_REACHED() ASSERT(false)
-#define RELEASE_ASSERT assert
+#    include <QtCore/qdebug.h>
+#    include <assert.h>
+#    define ASSERT assert
+#    define ASSERT_NOT_REACHED() ASSERT(false)
+#    define RELEASE_ASSERT assert
 #else
-#define ASSERT(x)
-#define ASSERT_NOT_REACHED() CRASH()
-#define RELEASE_ASSERT(x) do { if (!(x)) { CRASH(); } while(0)
+#    define ASSERT(x)
+#    define ASSERT_NOT_REACHED() CRASH()
+#    define RELEASE_ASSERT(x) \
+        do {                  \
+            if (!(x)) {       \
+                CRASH();      \
+            }                 \
+            while (0)
 #endif
 
 #define BEGIN_ASSERT_NO_EXCEPTIONS try {
-#define END_ASSERT_NO_EXCEPTIONS } catch (...) { ASSERT_NOT_REACHED(); }
+#define END_ASSERT_NO_EXCEPTIONS \
+    }                            \
+    catch (...) { ASSERT_NOT_REACHED(); }
 
 enum VLogChannel {
     LogInit,
@@ -65,4 +72,4 @@ enum VLogChannel {
 #endif
 };
 
-void vlog(VLogChannel channel, const char *format, ...);
+void vlog(VLogChannel channel, const char* format, ...);

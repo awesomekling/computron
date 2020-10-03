@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "OwnPtr.h"
+#include "iodevice.h"
 
 class FDC final : public IODevice {
 public:
@@ -37,8 +37,11 @@ public:
     virtual void out8(WORD port, BYTE data) override;
 
 private:
-    enum ResetSource { Software, Hardware };
-    enum class DataDirection { FromFDC = 0x40, ToFDC = 0, Mask = 0x40 };
+    enum ResetSource { Software,
+        Hardware };
+    enum class DataDirection { FromFDC = 0x40,
+        ToFDC = 0,
+        Mask = 0x40 };
     void setDataDirection(DataDirection);
     DataDirection dataDirection() const;
     bool usingDMA() const;

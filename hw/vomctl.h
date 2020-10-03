@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "iodevice.h"
 #include "OwnPtr.h"
+#include "iodevice.h"
 
 class VomCtl final : public IODevice {
 public:

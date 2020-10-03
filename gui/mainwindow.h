@@ -24,14 +24,13 @@
 
 #pragma once
 
-#include <QtWidgets/QMainWindow>
 #include "OwnPtr.h"
 #include "types.h"
+#include <QtWidgets/QMainWindow>
 
 class Machine;
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     MainWindow();

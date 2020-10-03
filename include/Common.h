@@ -36,15 +36,15 @@
 #include <QString>
 
 #define CRASH() __builtin_trap()
-#define ALWAYS_INLINE __attribute__ ((always_inline)) inline
-#define NEVER_INLINE __attribute__ ((__noinline__))
-#define FLATTEN __attribute__ ((__flatten__))
-#define PURE __attribute__ ((pure))
+#define ALWAYS_INLINE __attribute__((always_inline)) inline
+#define NEVER_INLINE __attribute__((__noinline__))
+#define FLATTEN __attribute__((__flatten__))
+#define PURE __attribute__((pure))
 #define LIKELY(x) __builtin_expect(!!(x), 1)
 #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define UNUSED_PARAM(x) (void)(x)
 
-#define MAX_FN_LENGTH	128
+#define MAX_FN_LENGTH 128
 
 void hard_exit(int exitCode);
 
@@ -108,4 +108,3 @@ inline WORD read16FromPointer(WORD* pointer)
     return *pointer;
 #endif
 }
-

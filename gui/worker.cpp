@@ -23,8 +23,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "worker.h"
-#include "machine.h"
 #include "CPU.h"
+#include "machine.h"
 
 Worker::Worker(Machine& machine)
     : QThread(nullptr)

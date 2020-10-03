@@ -31,11 +31,21 @@ template<typename T>
 class OwnPtr {
 public:
     OwnPtr() { }
-    explicit OwnPtr(T* ptr) : m_ptr(ptr) { }
-    OwnPtr(OwnPtr&& other) : m_ptr(other.leakPtr()) { }
-    template<typename U> OwnPtr(OwnPtr<U>&& other) : m_ptr(static_cast<T*>(other.leakPtr())) { }
+    explicit OwnPtr(T* ptr)
+        : m_ptr(ptr)
+    {
+    }
+    OwnPtr(OwnPtr&& other)
+        : m_ptr(other.leakPtr())
+    {
+    }
+    template<typename U>
+    OwnPtr(OwnPtr<U>&& other)
+        : m_ptr(static_cast<T*>(other.leakPtr()))
+    {
+    }
     ~OwnPtr() { clear(); }
-    OwnPtr(std::nullptr_t) { };
+    OwnPtr(std::nullptr_t) {};
 
     OwnPtr& operator=(OwnPtr&& other)
     {
@@ -102,7 +112,8 @@ private:
     T* m_ptr = nullptr;
 };
 
-template<class T, class... Args> inline OwnPtr<T>
+template<class T, class... Args>
+inline OwnPtr<T>
 make(Args&&... args)
 {
     return OwnPtr<T>(new T(std::forward<Args>(args)...));

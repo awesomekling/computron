@@ -25,12 +25,12 @@
 #pragma once
 
 #include "Common.h"
+#include "Descriptor.h"
+#include "Instruction.h"
+#include "OwnPtr.h"
 #include "debug.h"
 #include <QtCore/QVector>
 #include <set>
-#include "OwnPtr.h"
-#include "Instruction.h"
-#include "Descriptor.h"
 
 class Debugger;
 class Machine;
@@ -40,7 +40,13 @@ class TSS;
 
 struct WatchedAddress {
     WatchedAddress() { }
-    WatchedAddress(QString n, DWORD a, ValueSize s, bool b = false) : name(n), address(a), size(s), breakOnChange(b) { }
+    WatchedAddress(QString n, DWORD a, ValueSize s, bool b = false)
+        : name(n)
+        , address(a)
+        , size(s)
+        , breakOnChange(b)
+    {
+    }
     QString name;
     PhysicalAddress address { 0xBEEFBABE };
     ValueSize size { ByteSize };
@@ -49,32 +55,39 @@ struct WatchedAddress {
     QWORD lastSeenValue { neverSeen };
 };
 
-enum class JumpType { Internal, IRET, RETF, INT, CALL, JMP };
-
+enum class JumpType {
+    Internal,
+    IRET,
+    RETF,
+    INT,
+    CALL,
+    JMP
+};
 
 struct PageTableEntryFlags {
-enum Flags {
-    Present = 0x01,
-    ReadWrite = 0x02,
-    UserSupervisor = 0x04,
-    Accessed = 0x20,
-    Dirty = 0x40,
-};
+    enum Flags {
+        Present = 0x01,
+        ReadWrite = 0x02,
+        UserSupervisor = 0x04,
+        Accessed = 0x20,
+        Dirty = 0x40,
+    };
 };
 
 struct PageFaultFlags {
-enum Flags {
-    NotPresent = 0x00,
-    ProtectionViolation = 0x01,
-    Read = 0x00,
-    Write = 0x02,
-    UserMode = 0x04,
-    SupervisorMode = 0x00,
-    InstructionFetch = 0x08,
-};
+    enum Flags {
+        NotPresent = 0x00,
+        ProtectionViolation = 0x01,
+        Read = 0x00,
+        Write = 0x02,
+        UserMode = 0x04,
+        SupervisorMode = 0x00,
+        InstructionFetch = 0x08,
+    };
 };
 
-struct HardwareInterruptDuringREP { };
+struct HardwareInterruptDuringREP {
+};
 
 class Exception {
 public:
@@ -178,48 +191,49 @@ private:
 class CPU final : public InstructionStream {
     friend void buildOpcodeTablesIfNeeded();
     friend class Debugger;
+
 public:
     explicit CPU(Machine&);
     ~CPU();
 
     struct Flag {
-    enum Flags : DWORD {
-        CF = 0x0001,
-        PF = 0x0004,
-        AF = 0x0010,
-        ZF = 0x0040,
-        SF = 0x0080,
-        TF = 0x0100,
-        IF = 0x0200,
-        DF = 0x0400,
-        OF = 0x0800,
-        IOPL = 0x3000, // Note: this is a 2-bit field
-        NT = 0x4000,
-        RF = 0x10000,
-        VM = 0x20000,
-        AC = 0x40000,
-        VIF = 0x80000,
-        VIP = 0x100000,
-        ID = 0x200000,
-    };
+        enum Flags : DWORD {
+            CF = 0x0001,
+            PF = 0x0004,
+            AF = 0x0010,
+            ZF = 0x0040,
+            SF = 0x0080,
+            TF = 0x0100,
+            IF = 0x0200,
+            DF = 0x0400,
+            OF = 0x0800,
+            IOPL = 0x3000, // Note: this is a 2-bit field
+            NT = 0x4000,
+            RF = 0x10000,
+            VM = 0x20000,
+            AC = 0x40000,
+            VIF = 0x80000,
+            VIP = 0x100000,
+            ID = 0x200000,
+        };
     };
 
     struct CR0 {
-    enum Bits : DWORD {
-        PE = 1u << 0,
-        EM = 1u << 2,
-        TS = 1u << 3,
-        WP = 1u << 16,
-        PG = 1u << 31,
-    };
+        enum Bits : DWORD {
+            PE = 1u << 0,
+            EM = 1u << 2,
+            TS = 1u << 3,
+            WP = 1u << 16,
+            PG = 1u << 31,
+        };
     };
 
     struct CR4 {
-    enum Bits : DWORD {
-        VME = 1u << 0,
-        PVI = 1u << 1,
-        TSD = 1u << 2,
-    };
+        enum Bits : DWORD {
+            VME = 1u << 0,
+            PVI = 1u << 1,
+            TSD = 1u << 2,
+        };
     };
 
     void registerMemoryProvider(MemoryProvider&);
@@ -235,7 +249,10 @@ public:
 
     std::set<LogicalAddress>& breakpoints() { return m_breakpoints; }
 
-    enum class MemoryAccessType { Read, Write, Execute, InternalPointer };
+    enum class MemoryAccessType { Read,
+        Write,
+        Execute,
+        InternalPointer };
 
     enum RegisterIndex8 {
         RegisterAL = 0,
@@ -272,7 +289,10 @@ public:
 
     class TransactionalPopper {
     public:
-        TransactionalPopper(CPU& cpu) : m_cpu(cpu) { }
+        TransactionalPopper(CPU& cpu)
+            : m_cpu(cpu)
+        {
+        }
         ~TransactionalPopper() { }
 
         // FIXME: Check SS limits as we go.
@@ -352,7 +372,8 @@ public:
 
     DWORD a20Mask() const { return isA20Enabled() ? 0xFFFFFFFF : 0xFFEFFFFF; }
 
-    enum class InterruptSource { Internal = 0, External = 1 };
+    enum class InterruptSource { Internal = 0,
+        External = 1 };
 
     void realModeInterrupt(BYTE isr, InterruptSource);
     void protectedModeInterrupt(BYTE isr, InterruptSource, QVariant errorCode);
@@ -378,12 +399,24 @@ public:
     void setIF(bool value) { this->IF = value; }
     void setCF(bool value) { this->CF = value; }
     void setDF(bool value) { this->DF = value; }
-    void setSF(bool value) { m_dirtyFlags &= ~Flag::SF; this->SF = value; }
+    void setSF(bool value)
+    {
+        m_dirtyFlags &= ~Flag::SF;
+        this->SF = value;
+    }
     void setAF(bool value) { this->AF = value; }
     void setTF(bool value) { this->TF = value; }
     void setOF(bool value) { this->OF = value; }
-    void setPF(bool value) { m_dirtyFlags &= ~Flag::PF; this->PF = value; }
-    void setZF(bool value) { m_dirtyFlags &= ~Flag::ZF; this->ZF = value; }
+    void setPF(bool value)
+    {
+        m_dirtyFlags &= ~Flag::PF;
+        this->PF = value;
+    }
+    void setZF(bool value)
+    {
+        m_dirtyFlags &= ~Flag::ZF;
+        this->ZF = value;
+    }
     void setVIF(bool value) { this->VIF = value; }
     void setNT(bool value) { this->NT = value; }
     void setRF(bool value) { this->RF = value; }
@@ -595,19 +628,35 @@ public:
     void push16(WORD value);
     WORD pop16();
 
-    template<typename T> T pop();
-    template<typename T> void push(T);
+    template<typename T>
+    T pop();
+    template<typename T>
+    void push(T);
 
-    void pushValueWithSize(DWORD value, ValueSize size) { if (size == WordSize) push16(value); else push32(value); }
-    void pushOperandSizedValue(DWORD value) { if (o16()) push16(value); else push32(value); }
+    void pushValueWithSize(DWORD value, ValueSize size)
+    {
+        if (size == WordSize)
+            push16(value);
+        else
+            push32(value);
+    }
+    void pushOperandSizedValue(DWORD value)
+    {
+        if (o16())
+            push16(value);
+        else
+            push32(value);
+    }
     DWORD popOperandSizedValue() { return o16() ? pop16() : pop32(); }
 
     void pushSegmentRegisterValue(WORD);
 
     Debugger& debugger() { return *m_debugger; }
 
-    template<typename T> T in(WORD port);
-    template<typename T> void out(WORD port, T data);
+    template<typename T>
+    T in(WORD port);
+    template<typename T>
+    void out(WORD port, T data);
 
     BYTE in8(WORD port);
     WORD in16(WORD port);
@@ -629,48 +678,68 @@ public:
 
     bool evaluate(BYTE) const;
 
-    template<typename T> void updateFlags(T);
+    template<typename T>
+    void updateFlags(T);
     void updateFlags32(DWORD value);
     void updateFlags16(WORD value);
     void updateFlags8(BYTE value);
-    template<typename T> void mathFlags(typename TypeDoubler<T>::type result, T dest, T src);
-    template<typename T> void cmpFlags(typename TypeDoubler<T>::type result, T dest, T src);
+    template<typename T>
+    void mathFlags(typename TypeDoubler<T>::type result, T dest, T src);
+    template<typename T>
+    void cmpFlags(typename TypeDoubler<T>::type result, T dest, T src);
 
     void adjustFlag(QWORD result, DWORD src, DWORD dest)
     {
         setAF((((result ^ (src ^ dest)) & 0x10) >> 4) & 1);
     }
 
-    template<typename T> T readRegister(int registerIndex) const;
-    template<typename T> void writeRegister(int registerIndex, T value);
+    template<typename T>
+    T readRegister(int registerIndex) const;
+    template<typename T>
+    void writeRegister(int registerIndex, T value);
 
     DWORD readRegisterForAddressSize(int registerIndex);
     void writeRegisterForAddressSize(int registerIndex, DWORD);
     void stepRegisterForAddressSize(int registerIndex, DWORD stepSize);
     bool decrementCXForAddressSize();
 
-    template<typename T> LogicalAddress readLogicalAddress(SegmentRegisterIndex, DWORD offset);
+    template<typename T>
+    LogicalAddress readLogicalAddress(SegmentRegisterIndex, DWORD offset);
 
-    template<typename T> bool validatePhysicalAddress(PhysicalAddress, MemoryAccessType);
-    template<typename T> void validateAddress(const SegmentDescriptor&, DWORD offset, MemoryAccessType);
-    template<typename T> void validateAddress(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
-    template<typename T> T readPhysicalMemory(PhysicalAddress);
-    template<typename T> void writePhysicalMemory(PhysicalAddress, T);
+    template<typename T>
+    bool validatePhysicalAddress(PhysicalAddress, MemoryAccessType);
+    template<typename T>
+    void validateAddress(const SegmentDescriptor&, DWORD offset, MemoryAccessType);
+    template<typename T>
+    void validateAddress(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
+    template<typename T>
+    T readPhysicalMemory(PhysicalAddress);
+    template<typename T>
+    void writePhysicalMemory(PhysicalAddress, T);
     const BYTE* pointerToPhysicalMemory(PhysicalAddress);
-    template<typename T> T readMemoryMetal(LinearAddress address);
-    template<typename T> T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, BYTE effectiveCPL = 0xff);
-    template<typename T> T readMemory(const SegmentDescriptor&, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
-    template<typename T> T readMemory(SegmentRegisterIndex, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
-    template<typename T> void writeMemoryMetal(LinearAddress, T);
-    template<typename T> void writeMemory(LinearAddress, T, BYTE effectiveCPL = 0xff);
-    template<typename T> void writeMemory(const SegmentDescriptor&, DWORD offset, T);
-    template<typename T> void writeMemory(SegmentRegisterIndex, DWORD offset, T);
+    template<typename T>
+    T readMemoryMetal(LinearAddress address);
+    template<typename T>
+    T readMemory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, BYTE effectiveCPL = 0xff);
+    template<typename T>
+    T readMemory(const SegmentDescriptor&, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    template<typename T>
+    T readMemory(SegmentRegisterIndex, DWORD offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    template<typename T>
+    void writeMemoryMetal(LinearAddress, T);
+    template<typename T>
+    void writeMemory(LinearAddress, T, BYTE effectiveCPL = 0xff);
+    template<typename T>
+    void writeMemory(const SegmentDescriptor&, DWORD offset, T);
+    template<typename T>
+    void writeMemory(SegmentRegisterIndex, DWORD offset, T);
 
     PhysicalAddress translateAddress(LinearAddress, MemoryAccessType, BYTE effectiveCPL = 0xff);
     void snoop(LinearAddress, MemoryAccessType);
     void snoop(SegmentRegisterIndex, DWORD offset, MemoryAccessType);
 
-    template<typename T> void validateIOAccess(WORD port);
+    template<typename T>
+    void validateIOAccess(WORD port);
 
     BYTE readMemory8(LinearAddress);
     BYTE readMemory8(SegmentRegisterIndex, DWORD offset);
@@ -689,7 +758,9 @@ public:
     void writeMemoryMetal16(LinearAddress, WORD);
     void writeMemoryMetal32(LinearAddress, DWORD);
 
-    enum State { Dead, Alive, Halted };
+    enum State { Dead,
+        Alive,
+        Halted };
     State state() const { return m_state; }
     void setState(State s) { m_state = s; }
 
@@ -722,7 +793,10 @@ public:
     void dumpTrace();
 #endif
 
-    QVector<WatchedAddress>& watches() { return m_watches; }
+    QVector<WatchedAddress>& watches()
+    {
+        return m_watches;
+    }
 
     // Current execution mode (16 or 32 bit)
     bool x16() const { return !x32(); }
@@ -736,7 +810,9 @@ public:
     bool s16() const { return !m_stackSize32; }
     bool s32() const { return m_stackSize32; }
 
-    enum Command { ExitDebugger, EnterDebugger, HardReboot };
+    enum Command { ExitDebugger,
+        EnterDebugger,
+        HardReboot };
     void queueCommand(Command);
 
     static const char* registerName(CPU::RegisterIndex8) PURE;
@@ -820,14 +896,22 @@ protected:
     void _XCHG_reg16_RM16(Instruction&);
     void _XCHG_reg32_RM32(Instruction&);
 
-    template<typename F> void doOnceOrRepeatedly(Instruction&, bool careAboutZF, F);
-    template<typename T> void doLODS(Instruction&);
-    template<typename T> void doSTOS(Instruction&);
-    template<typename T> void doMOVS(Instruction&);
-    template<typename T> void doINS(Instruction&);
-    template<typename T> void doOUTS(Instruction&);
-    template<typename T> void doCMPS(Instruction&);
-    template<typename T> void doSCAS(Instruction&);
+    template<typename F>
+    void doOnceOrRepeatedly(Instruction&, bool careAboutZF, F);
+    template<typename T>
+    void doLODS(Instruction&);
+    template<typename T>
+    void doSTOS(Instruction&);
+    template<typename T>
+    void doMOVS(Instruction&);
+    template<typename T>
+    void doINS(Instruction&);
+    template<typename T>
+    void doOUTS(Instruction&);
+    template<typename T>
+    void doCMPS(Instruction&);
+    template<typename T>
+    void doSCAS(Instruction&);
 
     void _CMPXCHG_RM32_reg32(Instruction&);
     void _CMPXCHG_RM16_reg16(Instruction&);
@@ -862,8 +946,10 @@ protected:
     void _MOV_reg16_imm16(Instruction&);
     void _MOV_reg32_imm32(Instruction&);
 
-    template<typename T> void doMOV_moff_Areg(Instruction&);
-    template<typename T> void doMOV_Areg_moff(Instruction&);
+    template<typename T>
+    void doMOV_moff_Areg(Instruction&);
+    template<typename T>
+    void doMOV_Areg_moff(Instruction&);
 
     void _MOV_seg_RM16(Instruction&);
     void _MOV_RM16_seg(Instruction&);
@@ -1032,8 +1118,10 @@ protected:
     void _TEST_RM8_imm8(Instruction&);
     void _TEST_RM16_imm16(Instruction&);
 
-    template<typename T> void doNEG(Instruction&);
-    template<typename T> void doNOT(Instruction&);
+    template<typename T>
+    void doNEG(Instruction&);
+    template<typename T>
+    void doNOT(Instruction&);
     void _NOT_RM8(Instruction&);
     void _NOT_RM16(Instruction&);
     void _NOT_RM32(Instruction&);
@@ -1041,8 +1129,10 @@ protected:
     void _NEG_RM16(Instruction&);
     void _NEG_RM32(Instruction&);
 
-    template<typename T, class Accessor> void doDEC(Accessor);
-    template<typename T, class Accessor> void doINC(Accessor);
+    template<typename T, class Accessor>
+    void doDEC(Accessor);
+    template<typename T, class Accessor>
+    void doINC(Accessor);
 
     void _INC_RM8(Instruction&);
     void _INC_RM16(Instruction&);
@@ -1055,7 +1145,8 @@ protected:
     void _DEC_reg16(Instruction&);
     void _DEC_reg32(Instruction&);
 
-    template<typename T> void doFarJump(Instruction&, JumpType);
+    template<typename T>
+    void doFarJump(Instruction&, JumpType);
 
     void _CALL_RM16(Instruction&);
     void _CALL_RM32(Instruction&);
@@ -1084,18 +1175,23 @@ protected:
     void _wrap_0xD3_16(Instruction&);
     void _wrap_0xD3_32(Instruction&);
 
-    template<typename T> void doBOUND(Instruction&);
+    template<typename T>
+    void doBOUND(Instruction&);
     void _BOUND(Instruction&);
 
-    template<typename T> void doENTER(Instruction&);
-    template<typename T> void doLEAVE();
+    template<typename T>
+    void doENTER(Instruction&);
+    template<typename T>
+    void doLEAVE();
     void _ENTER16(Instruction&);
     void _ENTER32(Instruction&);
     void _LEAVE16(Instruction&);
     void _LEAVE32(Instruction&);
 
-    template<typename T> void doPUSHA();
-    template<typename T> void doPOPA();
+    template<typename T>
+    void doPUSHA();
+    template<typename T>
+    void doPOPA();
     void _PUSHA(Instruction&);
     void _POPA(Instruction&);
     void _PUSH_imm8(Instruction&);
@@ -1140,13 +1236,19 @@ protected:
     void _ADC_RM32_reg32(Instruction&);
     void _SUB_RM32_reg32(Instruction&);
 
-    template<typename op, typename T> void _BTx_RM_reg(Instruction&);
-    template<typename op, typename T> void _BTx_RM_imm8(Instruction&);
+    template<typename op, typename T>
+    void _BTx_RM_reg(Instruction&);
+    template<typename op, typename T>
+    void _BTx_RM_imm8(Instruction&);
 
-    template<typename op> void _BTx_RM32_reg32(Instruction&);
-    template<typename op> void _BTx_RM16_reg16(Instruction&);
-    template<typename op> void _BTx_RM32_imm8(Instruction&);
-    template<typename op> void _BTx_RM16_imm8(Instruction&);
+    template<typename op>
+    void _BTx_RM32_reg32(Instruction&);
+    template<typename op>
+    void _BTx_RM16_reg16(Instruction&);
+    template<typename op>
+    void _BTx_RM32_imm8(Instruction&);
+    template<typename op>
+    void _BTx_RM16_imm8(Instruction&);
 
     void _BT_RM16_imm8(Instruction&);
     void _BT_RM32_imm8(Instruction&);
@@ -1257,7 +1359,8 @@ protected:
     void _MOVSX_reg32_RM8(Instruction&);
     void _MOVSX_reg32_RM16(Instruction&);
 
-    template<typename T> void doLxS(Instruction&, SegmentRegisterIndex);
+    template<typename T>
+    void doLxS(Instruction&, SegmentRegisterIndex);
     void _LFS_reg16_mem16(Instruction&);
     void _LFS_reg32_mem32(Instruction&);
     void _LGS_reg16_mem16(Instruction&);
@@ -1319,7 +1422,8 @@ private:
     friend class Instruction;
     friend class InstructionExecutionContext;
 
-    template<typename T> T readInstructionStream();
+    template<typename T>
+    T readInstructionStream();
     BYTE readInstruction8() override;
     WORD readInstruction16() override;
     DWORD readInstruction32() override;
@@ -1334,34 +1438,56 @@ private:
 
     PhysicalAddress translateAddressSlowCase(LinearAddress, MemoryAccessType, BYTE effectiveCPL);
 
-    template<typename T> T doSAR(T, unsigned steps);
-    template<typename T> T doRCL(T, unsigned steps);
-    template<typename T> T doRCR(T, unsigned steps);
+    template<typename T>
+    T doSAR(T, unsigned steps);
+    template<typename T>
+    T doRCL(T, unsigned steps);
+    template<typename T>
+    T doRCR(T, unsigned steps);
 
-    template<typename T> T doSHL(T, unsigned steps);
-    template<typename T> T doSHR(T, unsigned steps);
+    template<typename T>
+    T doSHL(T, unsigned steps);
+    template<typename T>
+    T doSHR(T, unsigned steps);
 
-    template<typename T> T doSHLD(T, T, unsigned steps);
-    template<typename T> T doSHRD(T, T, unsigned steps);
+    template<typename T>
+    T doSHLD(T, T, unsigned steps);
+    template<typename T>
+    T doSHRD(T, T, unsigned steps);
 
-    template<typename T> T doROL(T, unsigned steps);
-    template<typename T> T doROR(T, unsigned steps);
+    template<typename T>
+    T doROL(T, unsigned steps);
+    template<typename T>
+    T doROR(T, unsigned steps);
 
-    template<typename T> T doXOR(T, T);
-    template<typename T> T doOR(T, T);
-    template<typename T> T doAND(T, T);
+    template<typename T>
+    T doXOR(T, T);
+    template<typename T>
+    T doOR(T, T);
+    template<typename T>
+    T doAND(T, T);
 
-    template<typename T> T doBSF(T);
-    template<typename T> T doBSR(T);
+    template<typename T>
+    T doBSF(T);
+    template<typename T>
+    T doBSR(T);
 
-    template<typename T> QWORD doADD(T, T);
-    template<typename T> QWORD doADC(T, T);
-    template<typename T> QWORD doSUB(T, T);
-    template<typename T> QWORD doSBB(T, T);
-    template<typename T> void doIMUL(T f1, T f2, T& resultHigh, T& resultLow);
-    template<typename T> void doMUL(T f1, T f2, T& resultHigh, T& resultLow);
-    template<typename T> void doDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remainder);
-    template<typename T> void doIDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remainder);
+    template<typename T>
+    QWORD doADD(T, T);
+    template<typename T>
+    QWORD doADC(T, T);
+    template<typename T>
+    QWORD doSUB(T, T);
+    template<typename T>
+    QWORD doSBB(T, T);
+    template<typename T>
+    void doIMUL(T f1, T f2, T& resultHigh, T& resultLow);
+    template<typename T>
+    void doMUL(T f1, T f2, T& resultHigh, T& resultLow);
+    template<typename T>
+    void doDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remainder);
+    template<typename T>
+    void doIDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remainder);
 
     void saveBaseAddress()
     {
@@ -1455,7 +1581,9 @@ private:
     bool m_effectiveOperandSize32 { false };
     bool m_stackSize32 { false };
 
-    enum DebuggerRequest { NoDebuggerRequest, PleaseEnterDebugger, PleaseExitDebugger };
+    enum DebuggerRequest { NoDebuggerRequest,
+        PleaseEnterDebugger,
+        PleaseExitDebugger };
 
     std::atomic<bool> m_mainLoopNeedsSlowStuff { false };
     std::atomic<DebuggerRequest> m_debuggerRequest { NoDebuggerRequest };
@@ -1490,22 +1618,38 @@ ALWAYS_INLINE bool CPU::evaluate(BYTE conditionCode) const
     ASSERT(conditionCode <= 0xF);
 
     switch (conditionCode) {
-    case  0: return this->OF;                            // O
-    case  1: return !this->OF;                           // NO
-    case  2: return this->CF;                            // B, C, NAE
-    case  3: return !this->CF;                           // NB, NC, AE
-    case  4: return getZF();                             // E, Z
-    case  5: return !getZF();                            // NE, NZ
-    case  6: return (this->CF | getZF());                // BE, NA
-    case  7: return !(this->CF | getZF());               // NBE, A
-    case  8: return getSF();                             // S
-    case  9: return !getSF();                            // NS
-    case 10: return getPF();                             // P, PE
-    case 11: return !getPF();                            // NP, PO
-    case 12: return getSF() ^ this->OF;                  // L, NGE
-    case 13: return !(getSF() ^ this->OF);               // NL, GE
-    case 14: return (getSF() ^ this->OF) | getZF();      // LE, NG
-    case 15: return !((getSF() ^ this->OF) | getZF());   // NLE, G
+    case 0:
+        return this->OF; // O
+    case 1:
+        return !this->OF; // NO
+    case 2:
+        return this->CF; // B, C, NAE
+    case 3:
+        return !this->CF; // NB, NC, AE
+    case 4:
+        return getZF(); // E, Z
+    case 5:
+        return !getZF(); // NE, NZ
+    case 6:
+        return (this->CF | getZF()); // BE, NA
+    case 7:
+        return !(this->CF | getZF()); // NBE, A
+    case 8:
+        return getSF(); // S
+    case 9:
+        return !getSF(); // NS
+    case 10:
+        return getPF(); // P, PE
+    case 11:
+        return !getPF(); // NP, PO
+    case 12:
+        return getSF() ^ this->OF; // L, NGE
+    case 13:
+        return !(getSF() ^ this->OF); // NL, GE
+    case 14:
+        return (getSF() ^ this->OF) | getZF(); // LE, NG
+    case 15:
+        return !((getSF() ^ this->OF) | getZF()); // NLE, G
     }
     return 0;
 }
@@ -1544,9 +1688,12 @@ ALWAYS_INLINE DWORD& Instruction::reg32()
     return m_cpu->m_generalPurposeRegister[registerIndex()].fullDWORD;
 }
 
-template<> ALWAYS_INLINE BYTE& Instruction::reg<BYTE>() { return reg8(); }
-template<> ALWAYS_INLINE WORD& Instruction::reg<WORD>() { return reg16(); }
-template<> ALWAYS_INLINE DWORD& Instruction::reg<DWORD>() { return reg32(); }
+template<>
+ALWAYS_INLINE BYTE& Instruction::reg<BYTE>() { return reg8(); }
+template<>
+ALWAYS_INLINE WORD& Instruction::reg<WORD>() { return reg16(); }
+template<>
+ALWAYS_INLINE DWORD& Instruction::reg<DWORD>() { return reg32(); }
 
 template<typename T>
 inline void CPU::updateFlags(T result)
@@ -1637,10 +1784,18 @@ inline void MemoryOrRegisterReference::write(T data)
 
 inline BYTE MemoryOrRegisterReference::read8() { return read<BYTE>(); }
 inline WORD MemoryOrRegisterReference::read16() { return read<WORD>(); }
-inline DWORD MemoryOrRegisterReference::read32() { ASSERT(m_cpu->o32()); return read<DWORD>(); }
+inline DWORD MemoryOrRegisterReference::read32()
+{
+    ASSERT(m_cpu->o32());
+    return read<DWORD>();
+}
 inline void MemoryOrRegisterReference::write8(BYTE data) { return write(data); }
 inline void MemoryOrRegisterReference::write16(WORD data) { return write(data); }
-inline void MemoryOrRegisterReference::write32(DWORD data) { ASSERT(m_cpu->o32()); return write(data); }
+inline void MemoryOrRegisterReference::write32(DWORD data)
+{
+    ASSERT(m_cpu->o32());
+    return write(data);
+}
 
 template<typename T>
 void CPU::mathFlags(typename TypeDoubler<T>::type result, T dest, T src)

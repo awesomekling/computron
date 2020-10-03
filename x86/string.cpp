@@ -51,7 +51,7 @@ void CPU::doOnceOrRepeatedly(Instruction& insn, bool careAboutZF, F func)
 template<typename T>
 void CPU::doLODS(Instruction& insn)
 {
-    doOnceOrRepeatedly(insn, false, [this] () {
+    doOnceOrRepeatedly(insn, false, [this]() {
         writeRegister<T>(RegisterAL, readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI)));
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
     });
@@ -60,7 +60,7 @@ void CPU::doLODS(Instruction& insn)
 template<typename T>
 void CPU::doSTOS(Instruction& insn)
 {
-    doOnceOrRepeatedly(insn, false, [this] () {
+    doOnceOrRepeatedly(insn, false, [this]() {
         writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), readRegister<T>(RegisterAL));
         stepRegisterForAddressSize(RegisterDI, sizeof(T));
     });
@@ -70,7 +70,7 @@ template<typename T>
 void CPU::doCMPS(Instruction& insn)
 {
     typedef typename TypeDoubler<T>::type DT;
-    doOnceOrRepeatedly(insn, true, [this] () {
+    doOnceOrRepeatedly(insn, true, [this]() {
         DT src = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
         DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
@@ -83,7 +83,7 @@ template<typename T>
 void CPU::doSCAS(Instruction& insn)
 {
     typedef typename TypeDoubler<T>::type DT;
-    doOnceOrRepeatedly(insn, true, [this] () {
+    doOnceOrRepeatedly(insn, true, [this]() {
         DT dest = readMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI));
         stepRegisterForAddressSize(RegisterDI, sizeof(T));
         cmpFlags<T>(readRegister<T>(RegisterAL) - dest, readRegister<T>(RegisterAL), dest);
@@ -93,7 +93,7 @@ void CPU::doSCAS(Instruction& insn)
 template<typename T>
 void CPU::doMOVS(Instruction& insn)
 {
-    doOnceOrRepeatedly(insn, false, [this] () {
+    doOnceOrRepeatedly(insn, false, [this]() {
         T tmp = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
         writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), tmp);
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
@@ -104,7 +104,7 @@ void CPU::doMOVS(Instruction& insn)
 template<typename T>
 void CPU::doOUTS(Instruction& insn)
 {
-    doOnceOrRepeatedly(insn, false, [this] () {
+    doOnceOrRepeatedly(insn, false, [this]() {
         T data = readMemory<T>(currentSegment(), readRegisterForAddressSize(RegisterSI));
         out<T>(getDX(), data);
         stepRegisterForAddressSize(RegisterSI, sizeof(T));
@@ -114,7 +114,7 @@ void CPU::doOUTS(Instruction& insn)
 template<typename T>
 void CPU::doINS(Instruction& insn)
 {
-    doOnceOrRepeatedly(insn, false, [this] () {
+    doOnceOrRepeatedly(insn, false, [this]() {
         // FIXME: Should this really read the port without knowing that the destination memory is writable?
         T data = in<T>(getDX());
         writeMemory<T>(SegmentRegisterIndex::ES, readRegisterForAddressSize(RegisterDI), data);
@@ -122,10 +122,22 @@ void CPU::doINS(Instruction& insn)
     });
 }
 
-#define DEFINE_STRING_OP(basename) \
-    void CPU::_ ## basename ## B(Instruction& insn) { do ## basename <BYTE>(insn); } \
-    void CPU::_ ## basename ## W(Instruction& insn) { do ## basename <WORD>(insn); } \
-    void CPU::_ ## basename ## D(Instruction& insn) { do ## basename <DWORD>(insn); }
+#define DEFINE_STRING_OP(basename)              \
+    void CPU::_##basename##B(Instruction& insn) \
+    {                                           \
+        do                                      \
+            ##basename<BYTE>(insn);             \
+    }                                           \
+    void CPU::_##basename##W(Instruction& insn) \
+    {                                           \
+        do                                      \
+            ##basename<WORD>(insn);             \
+    }                                           \
+    void CPU::_##basename##D(Instruction& insn) \
+    {                                           \
+        do                                      \
+            ##basename<DWORD>(insn);            \
+    }
 
 DEFINE_STRING_OP(LODS)
 DEFINE_STRING_OP(STOS)
@@ -134,4 +146,3 @@ DEFINE_STRING_OP(OUTS)
 DEFINE_STRING_OP(INS)
 DEFINE_STRING_OP(CMPS)
 DEFINE_STRING_OP(SCAS)
-

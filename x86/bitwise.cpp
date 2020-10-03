@@ -72,7 +72,7 @@ void CPU::_SALC(Instruction&)
     setAL(getCF() ? 0xFF : 0);
 }
 
-template <typename T>
+template<typename T>
 T CPU::doOR(T dest, T src)
 {
     T result = dest | src;
@@ -258,10 +258,26 @@ void CPU::_NOT_RM32(Instruction& insn)
     doNOT<DWORD>(insn);
 }
 
-struct op_BT { static bool should_update() { return false; } template<typename T> static T op(T original, T) { return original; } };
-struct op_BTS { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original | bit_mask; } };
-struct op_BTR { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original & ~bit_mask; } };
-struct op_BTC { static bool should_update() { return true; } template<typename T> static T op(T original, T bit_mask) { return original ^ bit_mask; } };
+struct op_BT {
+    static bool should_update() { return false; }
+    template<typename T>
+    static T op(T original, T) { return original; }
+};
+struct op_BTS {
+    static bool should_update() { return true; }
+    template<typename T>
+    static T op(T original, T bit_mask) { return original | bit_mask; }
+};
+struct op_BTR {
+    static bool should_update() { return true; }
+    template<typename T>
+    static T op(T original, T bit_mask) { return original & ~bit_mask; }
+};
+struct op_BTC {
+    static bool should_update() { return true; }
+    template<typename T>
+    static T op(T original, T bit_mask) { return original ^ bit_mask; }
+};
 
 template<typename BTx_Op, typename T>
 void CPU::_BTx_RM_imm8(Instruction& insn)
@@ -300,31 +316,31 @@ void CPU::_BTx_RM16_reg16(Instruction& insn)
     _BTx_RM_reg<BTx_Op, WORD>(insn);
 }
 
-#define DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(op) \
-    void CPU::_ ## op ## _RM32_reg32(Instruction& insn) \
-    { \
-        _BTx_RM32_reg32<op_ ## op>(insn); \
-    } \
-    void CPU::_ ## op ## _RM16_reg16(Instruction& insn) \
-    { \
-        _BTx_RM16_reg16<op_ ## op>(insn); \
-    } \
-    void CPU::_ ## op ## _RM32_imm8(Instruction& insn) \
-    { \
-        _BTx_RM32_imm8<op_ ## op>(insn); \
-    } \
-    void CPU::_ ## op ## _RM16_imm8(Instruction& insn) \
-    { \
-        _BTx_RM16_imm8<op_ ## op>(insn); \
+#define DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(op)  \
+    void CPU::_##op##_RM32_reg32(Instruction& insn) \
+    {                                               \
+        _BTx_RM32_reg32<op_##op>(insn);             \
+    }                                               \
+    void CPU::_##op##_RM16_reg16(Instruction& insn) \
+    {                                               \
+        _BTx_RM16_reg16<op_##op>(insn);             \
+    }                                               \
+    void CPU::_##op##_RM32_imm8(Instruction& insn)  \
+    {                                               \
+        _BTx_RM32_imm8<op_##op>(insn);              \
+    }                                               \
+    void CPU::_##op##_RM16_imm8(Instruction& insn)  \
+    {                                               \
+        _BTx_RM16_imm8<op_##op>(insn);              \
     }
 
 DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTS)
-DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTR)
-DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTC)
-DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BT)
+    DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTR)
+        DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BTC)
+            DEFINE_INSTRUCTION_HANDLERS_FOR_BTx_OP(BT)
 
-template<typename BTx_Op, typename T>
-void CPU::_BTx_RM_reg(Instruction& insn)
+                template<typename BTx_Op, typename T>
+                void CPU::_BTx_RM_reg(Instruction& insn)
 {
     auto& modrm = insn.modrm();
     if (modrm.isRegister()) {

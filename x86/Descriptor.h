@@ -24,9 +24,9 @@
 
 #pragma once
 
+#include "Common.h"
 #include "debug.h"
 #include "types.h"
-#include "Common.h"
 
 class CodeSegmentDescriptor;
 class DataSegmentDescriptor;
@@ -38,6 +38,7 @@ class TSSDescriptor;
 
 class Descriptor {
     friend class CPU;
+
 public:
     enum Error {
         NoError,

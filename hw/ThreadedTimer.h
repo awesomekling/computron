@@ -66,4 +66,3 @@ public:
 private:
     ThreadedTimer& m_threadedTimer;
 };
-
