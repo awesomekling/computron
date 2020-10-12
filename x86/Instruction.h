@@ -107,9 +107,9 @@ public:
     Accessor<u16> accessor16();
     Accessor<u32> accessor32();
 
-    QString toStringO8() const;
-    QString toStringO16() const;
-    QString toStringO32() const;
+    QString to_string_o8() const;
+    QString to_string_o16() const;
+    QString to_string_o32() const;
 
     bool is_register() const { return m_register_index != 0xffffffff; }
     SegmentRegisterIndex segment() const
@@ -147,37 +147,37 @@ private:
 
     u8 m_rm { 0 };
     u8 m_sib { 0 };
-    u8 m_displacementBytes { 0 };
+    u8 m_displacement_bytes { 0 };
 
     union {
         u32 m_displacement32 { 0 };
         u16 m_displacement16;
     };
 
-    bool m_hasSIB { false };
+    bool m_has_sib { false };
 
     CPU* m_cpu { nullptr };
 };
 
 class Instruction {
 public:
-    static Instruction fromStream(InstructionStream&, bool o32, bool a32);
+    static Instruction from_stream(InstructionStream&, bool o32, bool a32);
     ~Instruction() { }
 
     void execute(CPU&);
 
     MemoryOrRegisterReference& modrm()
     {
-        ASSERT(hasRM());
+        ASSERT(has_rm());
         return m_modrm;
     }
 
-    bool has_segment_prefix() const { return m_segmentPrefix != SegmentRegisterIndex::None; }
-    bool has_address_size_override_prefix() const { return m_hasAddressSizeOverridePrefix; }
-    bool has_operand_size_override_prefix() const { return m_hasOperandSizeOverridePrefix; }
-    bool has_lock_prefix() const { return m_hasLockPrefix; }
-    bool has_rep_prefix() const { return m_repPrefix; }
-    u8 rep_prefix() const { return m_repPrefix; }
+    bool has_segment_prefix() const { return m_segment_prefix != SegmentRegisterIndex::None; }
+    bool has_address_size_override_prefix() const { return m_has_address_size_override_prefix; }
+    bool has_operand_size_override_prefix() const { return m_has_operand_size_override_prefix; }
+    bool has_lock_prefix() const { return m_has_lock_prefix; }
+    bool has_rep_prefix() const { return m_rep_prefix; }
+    u8 rep_prefix() const { return m_rep_prefix; }
 
     bool is_valid() const { return m_descriptor; }
 
@@ -186,53 +186,53 @@ public:
     QString mnemonic() const;
 
     u8 op() const { return m_op; }
-    u8 subOp() const { return m_subOp; }
+    u8 sub_op() const { return m_sub_op; }
     u8 rm() const { return m_modrm.m_rm; }
     u8 slash() const
     {
-        ASSERT(hasRM());
+        ASSERT(has_rm());
         return (rm() >> 3) & 7;
     }
 
     u8 imm8() const
     {
-        ASSERT(m_imm1Bytes == 1);
+        ASSERT(m_imm1_bytes == 1);
         return m_imm1;
     }
     u16 imm16() const
     {
-        ASSERT(m_imm1Bytes == 2);
+        ASSERT(m_imm1_bytes == 2);
         return m_imm1;
     }
     u32 imm32() const
     {
-        ASSERT(m_imm1Bytes == 4);
+        ASSERT(m_imm1_bytes == 4);
         return m_imm1;
     }
 
     u8 imm8_1() const { return imm8(); }
     u8 imm8_2() const
     {
-        ASSERT(m_imm2Bytes == 1);
+        ASSERT(m_imm2_bytes == 1);
         return m_imm2;
     }
     u16 imm16_1() const { return imm16(); }
     u16 imm16_2() const
     {
-        ASSERT(m_imm2Bytes == 2);
+        ASSERT(m_imm2_bytes == 2);
         return m_imm2;
     }
     u32 imm32_1() const { return imm32(); }
     u32 imm32_2() const
     {
-        ASSERT(m_imm2Bytes == 4);
+        ASSERT(m_imm2_bytes == 4);
         return m_imm2;
     }
 
-    u32 immAddress() const { return m_a32 ? imm32() : imm16(); }
+    u32 imm_address() const { return m_a32 ? imm32() : imm16(); }
 
-    LogicalAddress immAddress16_16() const { return LogicalAddress(imm16_1(), imm16_2()); }
-    LogicalAddress immAddress16_32() const { return LogicalAddress(imm16_1(), imm32_2()); }
+    LogicalAddress imm_address16_16() const { return LogicalAddress(imm16_1(), imm16_2()); }
+    LogicalAddress imm_address16_32() const { return LogicalAddress(imm16_1(), imm32_2()); }
 
     // These functions assume that the Instruction is bound to a CPU.
     u8& reg8();
@@ -243,45 +243,45 @@ public:
     template<typename T>
     T& reg();
 
-    bool hasRM() const { return m_hasRM; }
-    bool hasSubOp() const { return m_hasSubOp; }
+    bool has_rm() const { return m_has_rm; }
+    bool has_sub_op() const { return m_has_sub_op; }
 
     unsigned register_index() const { return m_register_index; }
-    SegmentRegisterIndex segmentRegisterIndex() const { return static_cast<SegmentRegisterIndex>(register_index()); }
+    SegmentRegisterIndex segment_register_index() const { return static_cast<SegmentRegisterIndex>(register_index()); }
 
-    u8 cc() const { return m_hasSubOp ? m_subOp & 0xf : m_op & 0xf; }
+    u8 cc() const { return m_has_sub_op ? m_sub_op & 0xf : m_op & 0xf; }
 
-    QString toString(u32 origin, bool x32) const;
+    QString to_string(u32 origin, bool x32) const;
 
 private:
     Instruction(InstructionStream&, bool o32, bool a32);
 
-    QString toStringInternal(u32 origin, bool x32) const;
+    QString to_string_internal(u32 origin, bool x32) const;
 
-    const char* reg8Name() const;
-    const char* reg16Name() const;
-    const char* reg32Name() const;
+    const char* reg8_name() const;
+    const char* reg16_name() const;
+    const char* reg32_name() const;
 
     u8 m_op { 0 };
-    u8 m_subOp { 0 };
+    u8 m_sub_op { 0 };
     u32 m_imm1 { 0 };
     u32 m_imm2 { 0 };
     u8 m_register_index { 0 };
     bool m_a32 { false };
     bool m_o32 { false };
-    bool m_hasLockPrefix { false };
+    bool m_has_lock_prefix { false };
 
-    bool m_hasSubOp { false };
-    bool m_hasRM { false };
+    bool m_has_sub_op { false };
+    bool m_has_rm { false };
 
-    unsigned m_imm1Bytes { 0 };
-    unsigned m_imm2Bytes { 0 };
-    unsigned m_prefixBytes { 0 };
+    unsigned m_imm1_bytes { 0 };
+    unsigned m_imm2_bytes { 0 };
+    unsigned m_prefix_bytes { 0 };
 
-    SegmentRegisterIndex m_segmentPrefix { SegmentRegisterIndex::None };
-    bool m_hasOperandSizeOverridePrefix { false };
-    bool m_hasAddressSizeOverridePrefix { false };
-    u8 m_repPrefix { 0 };
+    SegmentRegisterIndex m_segment_prefix { SegmentRegisterIndex::None };
+    bool m_has_operand_size_override_prefix { false };
+    bool m_has_address_size_override_prefix { false };
+    u8 m_rep_prefix { 0 };
 
     MemoryOrRegisterReference m_modrm;
 

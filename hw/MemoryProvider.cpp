@@ -25,7 +25,7 @@
 #include "MemoryProvider.h"
 #include "CPU.h"
 
-const u8* MemoryProvider::memoryPointer(u32) const
+const u8* MemoryProvider::memory_pointer(u32) const
 {
     return nullptr;
 }
@@ -46,22 +46,22 @@ void MemoryProvider::write_memory32(u32 address, u32 data)
     write_memory16(address + 2, most_significant<u16>(data));
 }
 
-u8 MemoryProvider::readMemory8(u32)
+u8 MemoryProvider::read_memory8(u32)
 {
     return 0;
 }
 
-u16 MemoryProvider::readMemory16(u32 address)
+u16 MemoryProvider::read_memory16(u32 address)
 {
-    return weld<u16>(readMemory8(address + 1), readMemory8(address));
+    return weld<u16>(read_memory8(address + 1), read_memory8(address));
 }
 
-u32 MemoryProvider::readMemory32(u32 address)
+u32 MemoryProvider::read_memory32(u32 address)
 {
-    return weld<u32>(readMemory16(address + 2), readMemory16(address));
+    return weld<u32>(read_memory16(address + 2), read_memory16(address));
 }
 
-void MemoryProvider::setSize(u32 size)
+void MemoryProvider::set_size(u32 size)
 {
     RELEASE_ASSERT((size % 16384) == 0);
     m_size = size;

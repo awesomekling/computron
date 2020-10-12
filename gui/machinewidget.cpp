@@ -109,7 +109,7 @@ MachineWidget::MachineWidget(Machine& m)
     connect(d->startMachine, SIGNAL(triggered(bool)), SLOT(onStartTriggered()));
     connect(d->stopMachine, SIGNAL(triggered(bool)), SLOT(onStopTriggered()));
 
-    QObject::connect(&d->syncTimer, SIGNAL(timeout()), &screen(), SLOT(flushKeyBuffer()));
+    QObject::connect(&d->syncTimer, SIGNAL(timeout()), &screen(), SLOT(flush_key_buffer()));
     d->syncTimer.start(10);
 
     QObject::connect(qApp, SIGNAL(aboutToQuit()), &machine(), SLOT(stop()));
@@ -124,7 +124,7 @@ void MachineWidget::onFloppyATriggered()
     QString fileName = QFileDialog::getOpenFileName(this, tr("Choose floppy A image"));
     if (fileName.isNull())
         return;
-    machine().floppy0().setImagePath(fileName);
+    machine().floppy0().set_image_path(fileName);
     vlog(LogDisk, "floppy0 image changed to %s", qPrintable(fileName));
 }
 
@@ -133,7 +133,7 @@ void MachineWidget::onFloppyBTriggered()
     QString fileName = QFileDialog::getOpenFileName(this, tr("Choose floppy B image"));
     if (fileName.isNull())
         return;
-    machine().floppy1().setImagePath(fileName);
+    machine().floppy1().set_image_path(fileName);
     vlog(LogDisk, "floppy1 image changed to %s", qPrintable(fileName));
 }
 

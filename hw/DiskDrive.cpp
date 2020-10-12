@@ -33,14 +33,14 @@ DiskDrive::~DiskDrive()
 {
 }
 
-void DiskDrive::setConfiguration(Configuration config)
+void DiskDrive::set_configuration(Configuration config)
 {
     m_config = std::move(config);
-    m_present = !m_config.imagePath.isEmpty();
+    m_present = !m_config.image_path.isEmpty();
 }
 
-void DiskDrive::setImagePath(const QString& path)
+void DiskDrive::set_image_path(const QString& path)
 {
-    m_config.imagePath = path;
-    m_present = !m_config.imagePath.isEmpty();
+    m_config.image_path = path;
+    m_present = !m_config.image_path.isEmpty();
 }

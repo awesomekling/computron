@@ -26,20 +26,20 @@
 #include "CPU.h"
 #include "debugger.h"
 
-SegmentDescriptor CPU::get_real_mode_or_vm86_descriptor(u16 selector, SegmentRegisterIndex segmentRegister)
+SegmentDescriptor CPU::get_real_mode_or_vm86_descriptor(u16 selector, SegmentRegisterIndex segment_register)
 {
     ASSERT(!get_pe() || get_vm());
     SegmentDescriptor descriptor;
     descriptor.m_index = selector;
-    descriptor.m_segmentBase = (u32)selector << 4;
-    descriptor.m_segmentLimit = 0xffff;
-    descriptor.m_effectiveLimit = 0xffff;
-    descriptor.m_RPL = 0;
-    descriptor.m_D = false;
-    descriptor.m_DT = true;
-    descriptor.m_P = true;
-    descriptor.m_isGlobal = true;
-    if (segmentRegister == SegmentRegisterIndex::CS) {
+    descriptor.m_segment_base = (u32)selector << 4;
+    descriptor.m_segment_limit = 0xffff;
+    descriptor.m_effective_limit = 0xffff;
+    descriptor.m_rpl = 0;
+    descriptor.m_d = false;
+    descriptor.m_dt = true;
+    descriptor.m_p = true;
+    descriptor.m_global = true;
+    if (segment_register == SegmentRegisterIndex::CS) {
         // Code + Readable
         descriptor.m_type |= 0x8 | 0x2;
     } else {
@@ -71,56 +71,56 @@ SegmentDescriptor CPU::get_segment_descriptor(u16 selector)
     if (!get_pe() || get_vm())
         return get_real_mode_or_vm86_descriptor(selector);
     auto descriptor = get_descriptor(selector);
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         return SegmentDescriptor();
-    return descriptor.asSegmentDescriptor();
+    return descriptor.as_segment_descriptor();
 }
 
-Descriptor CPU::get_descriptor(DescriptorTableRegister& tableRegister, u16 index, bool indexIsSelector)
+Descriptor CPU::get_descriptor(DescriptorTableRegister& table_register, u16 index, bool index_is_selector)
 {
-    if (indexIsSelector && (index & 0xfffc) == 0)
+    if (index_is_selector && (index & 0xfffc) == 0)
         return ErrorDescriptor(Descriptor::NullSelector);
 
     Descriptor descriptor;
     u32 tableIndex;
 
-    if (indexIsSelector) {
-        descriptor.m_isGlobal = (index & 0x04) == 0;
-        descriptor.m_RPL = index & 3;
+    if (index_is_selector) {
+        descriptor.m_global = (index & 0x04) == 0;
+        descriptor.m_rpl = index & 3;
         tableIndex = index & 0xfffffff8;
     } else {
         tableIndex = index * 8;
     }
 
     descriptor.m_index = index;
-    if (tableIndex >= tableRegister.limit()) {
-        vlog(LogCPU, "Selector 0x%04x >= %s.limit (0x%04x).", index, tableRegister.name(), tableRegister.limit());
+    if (tableIndex >= table_register.limit()) {
+        vlog(LogCPU, "Selector 0x%04x >= %s.limit (0x%04x).", index, table_register.name(), table_register.limit());
         return ErrorDescriptor(Descriptor::LimitExceeded);
     }
 
-    u32 hi = read_memory_metal32(tableRegister.base().offset(tableIndex + 4));
-    u32 lo = read_memory_metal32(tableRegister.base().offset(tableIndex));
+    u32 hi = read_memory_metal32(table_register.base().offset(tableIndex + 4));
+    u32 lo = read_memory_metal32(table_register.base().offset(tableIndex));
 
-    descriptor.m_G = (hi >> 23) & 1; // Limit granularity, 0=1b, 1=4kB
-    descriptor.m_D = (hi >> 22) & 1;
-    descriptor.m_AVL = (hi >> 20) & 1;
-    descriptor.m_P = (hi >> 15) & 1;
-    descriptor.m_DPL = (hi >> 13) & 3; // Privilege (ring) level
-    descriptor.m_DT = (hi >> 12) & 1;
+    descriptor.m_g = (hi >> 23) & 1; // Limit granularity, 0=1b, 1=4kB
+    descriptor.m_d = (hi >> 22) & 1;
+    descriptor.m_avl = (hi >> 20) & 1;
+    descriptor.m_p = (hi >> 15) & 1;
+    descriptor.m_dpl = (hi >> 13) & 3; // Privilege (ring) level
+    descriptor.m_dt = (hi >> 12) & 1;
     descriptor.m_type = (hi >> 8) & 0xF;
 
-    if (descriptor.isGate()) {
-        descriptor.m_gateSelector = lo >> 16;
-        descriptor.m_gateParameterCount = hi & 0x1f;
-        descriptor.m_gateOffset = (hi & 0xffff0000) | (lo & 0xffff);
-        descriptor.m_D = descriptor.asGate().is32Bit();
+    if (descriptor.is_gate()) {
+        descriptor.m_gate_selector = lo >> 16;
+        descriptor.m_gate_parameter_count = hi & 0x1f;
+        descriptor.m_gate_offset = (hi & 0xffff0000) | (lo & 0xffff);
+        descriptor.m_d = descriptor.as_gate().is_32bit();
     } else {
-        descriptor.m_segmentBase = (hi & 0xFF000000) | ((hi & 0xFF) << 16) | ((lo >> 16) & 0xFFFF);
-        descriptor.m_segmentLimit = (hi & 0xF0000) | (lo & 0xFFFF);
-        if (descriptor.m_G)
-            descriptor.m_effectiveLimit = (descriptor.m_segmentLimit << 12) | 0xfff;
+        descriptor.m_segment_base = (hi & 0xFF000000) | ((hi & 0xFF) << 16) | ((lo >> 16) & 0xFFFF);
+        descriptor.m_segment_limit = (hi & 0xF0000) | (lo & 0xFFFF);
+        if (descriptor.m_g)
+            descriptor.m_effective_limit = (descriptor.m_segment_limit << 12) | 0xfff;
         else
-            descriptor.m_effectiveLimit = descriptor.m_segmentLimit;
+            descriptor.m_effective_limit = descriptor.m_segment_limit;
     }
 
     descriptor.m_high = hi;
@@ -129,7 +129,7 @@ Descriptor CPU::get_descriptor(DescriptorTableRegister& tableRegister, u16 index
     return descriptor;
 }
 
-const char* SystemDescriptor::typeName() const
+const char* SystemDescriptor::type_name() const
 {
     switch (m_type) {
     case SystemDescriptor::Invalid:
@@ -163,13 +163,13 @@ const char* SystemDescriptor::typeName() const
     }
 }
 
-void TSSDescriptor::setBusy()
+void TSSDescriptor::set_busy()
 {
     m_type |= 2;
     m_high |= 0x200;
 }
 
-void TSSDescriptor::setAvailable()
+void TSSDescriptor::set_available()
 {
     m_type &= ~2;
     m_high &= ~0x200;
@@ -177,7 +177,7 @@ void TSSDescriptor::setAvailable()
 
 void CPU::write_to_gdt(Descriptor& descriptor)
 {
-    ASSERT(descriptor.isGlobal());
+    ASSERT(descriptor.is_global());
     write_memory_metal32(m_gdtr.base().offset(descriptor.index() + 4), descriptor.m_high);
     write_memory_metal32(m_gdtr.base().offset(descriptor.index()), descriptor.m_low);
 }

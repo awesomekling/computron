@@ -67,7 +67,7 @@ public:
     void set(u32 address) { m_address = address; }
     void mask(u32 m) { m_address &= m; }
 
-    static PhysicalAddress fromRealMode(LogicalAddress);
+    static PhysicalAddress from_real_mode(LogicalAddress);
 
 private:
     u32 m_address { 0 };
@@ -194,8 +194,8 @@ public:
 
     u16 selector() const { return m_selector; }
     u32 offset() const { return m_offset; }
-    void setSelector(u16 selector) { m_selector = selector; }
-    void setOffset(u32 offset) { m_offset = offset; }
+    void set_selector(u16 selector) { m_selector = selector; }
+    void set_offset(u32 offset) { m_offset = offset; }
 
     bool operator<(const LogicalAddress& other) const { return weld<u64>(selector(), offset()) < weld<u64>(other.selector(), other.offset()); }
 
@@ -204,7 +204,7 @@ private:
     u32 m_offset { 0 };
 };
 
-inline PhysicalAddress PhysicalAddress::fromRealMode(LogicalAddress logical)
+inline PhysicalAddress PhysicalAddress::from_real_mode(LogicalAddress logical)
 {
     return PhysicalAddress((logical.selector() << 4) + logical.offset());
 }

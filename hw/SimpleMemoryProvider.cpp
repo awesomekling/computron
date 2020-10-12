@@ -25,30 +25,30 @@
 #include "SimpleMemoryProvider.h"
 #include "Common.h"
 
-SimpleMemoryProvider::SimpleMemoryProvider(PhysicalAddress baseAddress, u32 size, bool allowDirectReadAccess)
-    : MemoryProvider(baseAddress)
+SimpleMemoryProvider::SimpleMemoryProvider(PhysicalAddress base_address, u32 size, bool allow_direct_read_access)
+    : MemoryProvider(base_address)
 {
     m_data.resize(size);
-    setSize(size);
-    if (allowDirectReadAccess)
-        m_pointerForDirectReadAccess = reinterpret_cast<const u8*>(m_data.data());
+    set_size(size);
+    if (allow_direct_read_access)
+        m_pointer_for_direct_read_access = reinterpret_cast<const u8*>(m_data.data());
 }
 
 SimpleMemoryProvider::~SimpleMemoryProvider()
 {
 }
 
-u8 SimpleMemoryProvider::readMemory8(u32 address)
+u8 SimpleMemoryProvider::read_memory8(u32 address)
 {
-    return m_data.data()[address - baseAddress().get()];
+    return m_data.data()[address - base_address().get()];
 }
 
 void SimpleMemoryProvider::write_memory8(u32 address, u8 data)
 {
-    m_data.data()[address - baseAddress().get()] = data;
+    m_data.data()[address - base_address().get()] = data;
 }
 
-const u8* SimpleMemoryProvider::memoryPointer(u32 address) const
+const u8* SimpleMemoryProvider::memory_pointer(u32 address) const
 {
-    return reinterpret_cast<const u8*>(&m_data.data()[address - baseAddress().get()]);
+    return reinterpret_cast<const u8*>(&m_data.data()[address - base_address().get()]);
 }

@@ -59,14 +59,14 @@ struct RuntimeOptions {
     bool novlog { false };
     bool pedebug { false };
     bool vlogcycle { false };
-    bool crashOnPF { false };
-    bool crashOnGPF { false };
-    bool crashOnException { false };
+    bool crash_on_page_fault { false };
+    bool crash_on_general_protection_fault { false };
+    bool crash_on_exception { false };
     bool stacklog { false };
-    QString autotestPath;
-    QString configPath;
+    QString autotest_path;
+    QString config_path;
 #ifdef DISASSEMBLE_EVERYTHING
-    bool disassembleEverything { false };
+    bool disassemble_everything { false };
 #endif
 #ifdef DEBUG_SERENITY
     bool serenity { false };
@@ -77,34 +77,7 @@ struct RuntimeOptions {
 
 extern RuntimeOptions options;
 
-inline PhysicalAddress realModeAddressToPhysicalAddress(u16 segment, u32 offset)
+inline PhysicalAddress real_mode_address_to_physical_address(u16 segment, u32 offset)
 {
     return PhysicalAddress((segment << 4) + offset);
-}
-
-inline void write16ToPointer(u16* pointer, u16 value)
-{
-#ifdef CT_BIG_ENDIAN
-    *pointer = V_BYTESWAP(value);
-#else
-    *pointer = value;
-#endif
-}
-
-inline u32 read32FromPointer(u32* pointer)
-{
-#ifdef CT_BIG_ENDIAN
-    return V_BYTESWAP(*pointer);
-#else
-    return *pointer;
-#endif
-}
-
-inline u16 read16FromPointer(u16* pointer)
-{
-#ifdef CT_BIG_ENDIAN
-    return V_BYTESWAP(*pointer);
-#else
-    return *pointer;
-#endif
 }

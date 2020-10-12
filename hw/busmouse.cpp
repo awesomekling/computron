@@ -87,7 +87,7 @@ void BusMouse::out8(u16 port, u8 data)
     }
 }
 
-void BusMouse::moveEvent(u16 x, u16 y)
+void BusMouse::move_event(u16 x, u16 y)
 {
     {
         QMutexLocker locker(&m_mutex);
@@ -104,7 +104,7 @@ void BusMouse::moveEvent(u16 x, u16 y)
         raise_irq();
 }
 
-void BusMouse::buttonPressEvent(u16 x, u16 y, MouseButton button)
+void BusMouse::button_press_event(u16 x, u16 y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);
@@ -126,7 +126,7 @@ void BusMouse::buttonPressEvent(u16 x, u16 y, MouseButton button)
         raise_irq();
 }
 
-void BusMouse::buttonReleaseEvent(u16 x, u16 y, MouseButton button)
+void BusMouse::button_release_event(u16 x, u16 y, MouseButton button)
 {
     {
         QMutexLocker locker(&m_mutex);

@@ -152,14 +152,14 @@ void CPU::interrupt_to_task_gate(u8, InterruptSource source, QVariant errorCode,
     if (options.trapint) {
         dump_descriptor(descriptor);
     }
-    if (!descriptor.isGlobal()) {
+    if (!descriptor.is_global()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing local descriptor");
     }
-    if (!descriptor.isTSS()) {
+    if (!descriptor.is_tss()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing non-TSS descriptor");
     }
-    auto& tssDescriptor = descriptor.asTSSDescriptor();
-    if (tssDescriptor.isBusy()) {
+    auto& tssDescriptor = descriptor.as_tss_descriptor();
+    if (tssDescriptor.is_busy()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to task gate referencing busy TSS descriptor");
     }
     if (!tssDescriptor.present()) {
@@ -167,7 +167,7 @@ void CPU::interrupt_to_task_gate(u8, InterruptSource source, QVariant errorCode,
     }
     task_switch(gate.selector(), tssDescriptor, JumpType::INT);
     if (errorCode.isValid()) {
-        if (tssDescriptor.is32Bit())
+        if (tssDescriptor.is_32bit())
             push32(errorCode.value<u16>());
         else
             push16(errorCode.value<u16>());
@@ -237,14 +237,14 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
     }
 
     auto idtEntry = get_interrupt_descriptor(isr);
-    if (!idtEntry.isTaskGate() && !idtEntry.isTrapGate() && !idtEntry.isInterruptGate()) {
+    if (!idtEntry.is_task_gate() && !idtEntry.is_trap_gate() && !idtEntry.is_interrupt_gate()) {
         throw GeneralProtectionFault(makeErrorCode(isr, 1, source), "Interrupt to invalid gate type");
     }
-    auto& gate = idtEntry.asGate();
+    auto& gate = idtEntry.as_gate();
 
     if (source == InterruptSource::Internal) {
-        if (gate.DPL() < get_cpl()) {
-            throw GeneralProtectionFault(makeErrorCode(isr, 1, source), QString("Software interrupt trying to escalate privilege (CPL=%1, DPL=%2, VM=%3)").arg(get_cpl()).arg(gate.DPL()).arg(get_vm()));
+        if (gate.dpl() < get_cpl()) {
+            throw GeneralProtectionFault(makeErrorCode(isr, 1, source), QString("Software interrupt trying to escalate privilege (CPL=%1, DPL=%2, VM=%3)").arg(get_cpl()).arg(gate.dpl()).arg(get_vm()));
         }
     }
 
@@ -252,18 +252,18 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         throw NotPresent(makeErrorCode(isr, 1, source), "Interrupt gate not present");
     }
 
-    if (gate.isNull()) {
+    if (gate.is_null()) {
         throw GeneralProtectionFault(makeErrorCode(isr, 1, source), "Interrupt gate is null");
     }
 
     auto entry = gate.entry();
 
     if (options.trapint && !logAsSyscall && isr != ignoredInterrupt) {
-        vlog(LogCPU, "PE=1 interrupt %02x,%04x%s, type: %s (%1x), %04x:%08x", isr, get_ax(), source == InterruptSource::External ? " (external)" : "", gate.typeName(), gate.type(), entry.selector(), entry.offset());
+        vlog(LogCPU, "PE=1 interrupt %02x,%04x%s, type: %s (%1x), %04x:%08x", isr, get_ax(), source == InterruptSource::External ? " (external)" : "", gate.type_name(), gate.type(), entry.selector(), entry.offset());
         dump_descriptor(gate);
     }
 
-    if (gate.isTaskGate()) {
+    if (gate.is_task_gate()) {
         interrupt_to_task_gate(isr, source, errorCode, gate);
         return;
     }
@@ -274,22 +274,22 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         dump_descriptor(descriptor);
     }
 
-    if (descriptor.isNull()) {
+    if (descriptor.is_null()) {
         throw GeneralProtectionFault(source == InterruptSource::External, "Interrupt gate to null descriptor");
     }
 
-    if (descriptor.isOutsideTableLimits()) {
+    if (descriptor.is_outside_table_limits()) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt gate to descriptor outside table limit");
     }
 
-    if (!descriptor.isCode()) {
+    if (!descriptor.is_code()) {
         dump_descriptor(descriptor);
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt gate to non-code segment");
     }
 
-    auto& codeDescriptor = descriptor.asCodeSegmentDescriptor();
-    if (codeDescriptor.DPL() > get_cpl()) {
-        throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), QString("Interrupt gate to segment with DPL(%1)>CPL(%2)").arg(codeDescriptor.DPL()).arg(get_cpl()));
+    auto& codeDescriptor = descriptor.as_code_segment_descriptor();
+    if (codeDescriptor.dpl() > get_cpl()) {
+        throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), QString("Interrupt gate to segment with DPL(%1)>CPL(%2)").arg(codeDescriptor.dpl()).arg(get_cpl()));
     }
 
     if (!codeDescriptor.present()) {
@@ -305,7 +305,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
     u16 originalCS = get_cs();
     u32 originalEIP = get_eip();
 
-    if (!gate.is32Bit() || !codeDescriptor.is32Bit()) {
+    if (!gate.is_32bit() || !codeDescriptor.is_32bit()) {
         if (offset & 0xffff0000) {
             vlog(LogCPU, "Truncating interrupt entry offset from %04x:%08x to %04x:%08x", gate.selector(), offset, gate.selector(), offset & 0xffff);
         }
@@ -322,29 +322,29 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         return;
     }
 
-    if (!codeDescriptor.conforming() && descriptor.DPL() < originalCPL) {
+    if (!codeDescriptor.conforming() && descriptor.dpl() < originalCPL) {
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Interrupt escalating privilege from ring%u to ring%u", originalCPL, descriptor.DPL(), descriptor);
 #endif
         auto tss = current_tss();
 
-        u16 newSS = tss.get_ring_ss(descriptor.DPL());
-        u32 newESP = tss.get_ring_esp(descriptor.DPL());
+        u16 newSS = tss.get_ring_ss(descriptor.dpl());
+        u32 newESP = tss.get_ring_esp(descriptor.dpl());
         auto newSSDescriptor = get_descriptor(newSS);
 
-        if (newSSDescriptor.isNull()) {
+        if (newSSDescriptor.is_null()) {
             throw InvalidTSS(source == InterruptSource::External, "New ss is null");
         }
 
-        if (newSSDescriptor.isOutsideTableLimits()) {
+        if (newSSDescriptor.is_outside_table_limits()) {
             throw InvalidTSS(makeErrorCode(newSS, 0, source), "New ss outside table limits");
         }
 
-        if (newSSDescriptor.DPL() != descriptor.DPL()) {
-            throw InvalidTSS(makeErrorCode(newSS, 0, source), QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
+        if (newSSDescriptor.dpl() != descriptor.dpl()) {
+            throw InvalidTSS(makeErrorCode(newSS, 0, source), QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.dpl()).arg(descriptor.dpl()));
         }
 
-        if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
+        if (!newSSDescriptor.is_data() || !newSSDescriptor.as_data_segment_descriptor().writable()) {
             throw InvalidTSS(makeErrorCode(newSS, 0, source), "New ss not a writable data segment");
         }
 
@@ -353,7 +353,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         }
 
         BEGIN_ASSERT_NO_EXCEPTIONS
-        set_cpl(descriptor.DPL());
+        set_cpl(descriptor.dpl());
         set_ss(newSS);
         set_esp(newESP);
 
@@ -364,11 +364,11 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         push_value_with_size(originalSS, gate.size());
         push_value_with_size(originalESP, gate.size());
         END_ASSERT_NO_EXCEPTIONS
-    } else if (codeDescriptor.conforming() || codeDescriptor.DPL() == originalCPL) {
+    } else if (codeDescriptor.conforming() || codeDescriptor.dpl() == originalCPL) {
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Interrupt same privilege from ring%u to ring%u", originalCPL, descriptor.DPL());
 #endif
-        if (get_vm() && (codeDescriptor.conforming() || codeDescriptor.DPL() != 0)) {
+        if (get_vm() && (codeDescriptor.conforming() || codeDescriptor.dpl() != 0)) {
             ASSERT_NOT_REACHED();
             throw GeneralProtectionFault(gate.selector() & ~3, "Interrupt in VM86 mode to code segment with DPL != 0");
         }
@@ -391,7 +391,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         push_value_with_size(errorCode.value<u16>(), gate.size());
     }
 
-    if (gate.isInterruptGate())
+    if (gate.is_interrupt_gate())
         set_if(0);
     set_tf(0);
     set_rf(0);
@@ -412,7 +412,7 @@ void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor
     u16 originalSS = get_ss();
     u32 originalESP = get_esp();
 
-    if (codeDescriptor.DPL() != 0) {
+    if (codeDescriptor.dpl() != 0) {
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt from VM86 mode to descriptor with CPL != 0");
     }
 
@@ -422,11 +422,11 @@ void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor
     u32 newESP = tss.get_esp0();
     auto newSSDescriptor = get_descriptor(newSS);
 
-    if (newSSDescriptor.isNull()) {
+    if (newSSDescriptor.is_null()) {
         throw InvalidTSS(source == InterruptSource::External, "New ss is null");
     }
 
-    if (newSSDescriptor.isOutsideTableLimits()) {
+    if (newSSDescriptor.is_outside_table_limits()) {
         throw InvalidTSS(makeErrorCode(newSS, 0, source), "New ss outside table limits");
     }
 
@@ -434,11 +434,11 @@ void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor
         throw InvalidTSS(makeErrorCode(newSS, 0, source), QString("New ss RPL(%1) != 0").arg(newSS & 3));
     }
 
-    if (newSSDescriptor.DPL() != 0) {
-        throw InvalidTSS(makeErrorCode(newSS, 0, source), QString("New ss DPL(%1) != 0").arg(newSSDescriptor.DPL()));
+    if (newSSDescriptor.dpl() != 0) {
+        throw InvalidTSS(makeErrorCode(newSS, 0, source), QString("New ss DPL(%1) != 0").arg(newSSDescriptor.dpl()));
     }
 
-    if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
+    if (!newSSDescriptor.is_data() || !newSSDescriptor.as_data_segment_descriptor().writable()) {
         throw InvalidTSS(makeErrorCode(newSS, 0, source), "New ss not a writable data segment");
     }
 
@@ -456,7 +456,7 @@ void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor
     set_tf(0);
     set_rf(0);
     set_nt(0);
-    if (gate.isInterruptGate())
+    if (gate.is_interrupt_gate())
         set_if(0);
     set_ss(newSS);
     set_esp(newESP);
@@ -520,13 +520,13 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 
     auto descriptor = get_descriptor(selector);
 
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         throw GeneralProtectionFault(0, "IRET to null selector");
 
-    if (descriptor.isOutsideTableLimits())
+    if (descriptor.is_outside_table_limits())
         throw GeneralProtectionFault(selector & 0xfffc, "IRET to selector outside table limit");
 
-    if (!descriptor.isCode()) {
+    if (!descriptor.is_code()) {
         dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
@@ -534,12 +534,12 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
     if (selectorRPL < get_cpl())
         throw GeneralProtectionFault(selector & 0xfffc, QString("IRET with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(get_cpl()));
 
-    auto& codeSegment = descriptor.asCodeSegmentDescriptor();
+    auto& codeSegment = descriptor.as_code_segment_descriptor();
 
-    if (codeSegment.conforming() && codeSegment.DPL() > selectorRPL)
+    if (codeSegment.conforming() && codeSegment.dpl() > selectorRPL)
         throw GeneralProtectionFault(selector & 0xfffc, "IRET to conforming code segment with DPL > RPL");
 
-    if (!codeSegment.conforming() && codeSegment.DPL() != selectorRPL)
+    if (!codeSegment.conforming() && codeSegment.dpl() != selectorRPL)
         throw GeneralProtectionFault(selector & 0xfffc, "IRET to non-conforming code segment with DPL != RPL");
 
     if (!codeSegment.present())
@@ -547,7 +547,7 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.
-    if (!codeSegment.is32Bit())
+    if (!codeSegment.is_32bit())
         offset &= 0xffff;
 
     if (offset > codeSegment.effectiveLimit()) {

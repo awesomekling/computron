@@ -139,7 +139,7 @@ void Machine::make_devices(Badge<Worker>)
     memset(m_fast_input_devices, 0, sizeof(m_fast_input_devices));
     memset(m_fast_output_devices, 0, sizeof(m_fast_output_devices));
 
-    cpu().setBaseMemorySize(640 * 1024);
+    cpu().set_base_memory_size(640 * 1024);
 
     m_master_pic = make<PIC>(true, *this);
     m_slave_pic = make<PIC>(false, *this);
@@ -182,10 +182,10 @@ void Machine::apply_settings()
         load_rom_image(it.key(), it.value());
     }
 
-    m_floppy0->setConfiguration(settings().floppy0());
-    m_floppy1->setConfiguration(settings().floppy1());
-    m_fixed0->setConfiguration(settings().fixed0());
-    m_fixed1->setConfiguration(settings().fixed1());
+    m_floppy0->set_configuration(settings().floppy0());
+    m_floppy1->set_configuration(settings().floppy1());
+    m_fixed0->set_configuration(settings().fixed0());
+    m_fixed1->set_configuration(settings().fixed1());
 }
 
 bool Machine::load_file(u32 address, const QString& fileName)

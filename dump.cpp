@@ -47,7 +47,7 @@ unsigned CPU::dump_disassembled_internal(SegmentDescriptor& descriptor, u32 offs
     }
 
     SimpleInstructionStream stream(data);
-    auto insn = Instruction::fromStream(stream, m_operand_size32, m_address_size32);
+    auto insn = Instruction::from_stream(stream, m_operand_size32, m_address_size32);
 
     if (x32())
         p += sprintf(p, "%04x:%08x ", descriptor.index(), offset);
@@ -61,7 +61,7 @@ unsigned CPU::dump_disassembled_internal(SegmentDescriptor& descriptor, u32 offs
         p += sprintf(p, " ");
 
     if (insn.is_valid())
-        p += sprintf(p, " %s", qPrintable(insn.toString(offset, x32())));
+        p += sprintf(p, " %s", qPrintable(insn.to_string(offset, x32())));
     else
         p += sprintf(p, " <invalid instruction>");
 
@@ -132,7 +132,7 @@ void CPU::dump_trace()
 void CPU::dump_selector(const char* prefix, SegmentRegisterIndex segreg)
 {
     auto& descriptor = cached_descriptor(segreg);
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         vlog(LogDump, "%s: %04x: (null descriptor)", prefix, read_segment_register(segreg));
     else
         dump_descriptor(descriptor, prefix);
@@ -266,9 +266,9 @@ void CPU::dump_all()
 {
     if (get_pe() && m_tr.selector != 0) {
         auto descriptor = get_descriptor(m_tr.selector);
-        if (descriptor.isTSS()) {
-            auto& tssDescriptor = descriptor.asTSSDescriptor();
-            TSS tss(*this, tssDescriptor.base(), tssDescriptor.is32Bit());
+        if (descriptor.is_tss()) {
+            auto& tssDescriptor = descriptor.as_tss_descriptor();
+            TSS tss(*this, tssDescriptor.base(), tssDescriptor.is_32bit());
             dump_tss(tss);
         }
     }
@@ -424,22 +424,22 @@ void CPU::dump_ivt()
 
 void CPU::dump_descriptor(const Descriptor& descriptor, const char* prefix)
 {
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         vlog(LogCPU, "%s%04x (null descriptor)", prefix, descriptor.index());
-    else if (descriptor.isSegmentDescriptor())
-        dump_descriptor(descriptor.asSegmentDescriptor(), prefix);
+    else if (descriptor.is_segment_descriptor())
+        dump_descriptor(descriptor.as_segment_descriptor(), prefix);
     else
-        dump_descriptor(descriptor.asSystemDescriptor(), prefix);
+        dump_descriptor(descriptor.as_system_descriptor(), prefix);
 }
 
 void CPU::dump_descriptor(const SegmentDescriptor& descriptor, const char* prefix)
 {
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         vlog(LogCPU, "%s%04x (null descriptor)", prefix, descriptor.index());
-    else if (descriptor.isCode())
-        dump_descriptor(descriptor.asCodeSegmentDescriptor(), prefix);
+    else if (descriptor.is_code())
+        dump_descriptor(descriptor.as_code_segment_descriptor(), prefix);
     else
-        dump_descriptor(descriptor.asDataSegmentDescriptor(), prefix);
+        dump_descriptor(descriptor.as_data_segment_descriptor(), prefix);
 }
 
 void CPU::dump_descriptor(const Gate& gate, const char* prefix)
@@ -447,15 +447,15 @@ void CPU::dump_descriptor(const Gate& gate, const char* prefix)
     vlog(LogCPU, "%s%04x (gate) { type: %s (%02x), entry:%04x:%06x, params:%u, bits:%u, p:%u, dpl:%u }",
         prefix,
         gate.index(),
-        gate.typeName(),
+        gate.type_name(),
         (u8)gate.type(),
         gate.selector(),
         gate.offset(),
-        gate.parameterCount(),
+        gate.parameter_count(),
         gate.D() ? 32 : 16,
         gate.present(),
-        gate.DPL());
-    if (gate.isCallGate()) {
+        gate.dpl());
+    if (gate.is_call_gate()) {
         vlog(LogCPU, "Call gate points to:");
         dump_descriptor(get_descriptor(gate.selector()), prefix);
     }
@@ -463,28 +463,28 @@ void CPU::dump_descriptor(const Gate& gate, const char* prefix)
 
 void CPU::dump_descriptor(const SystemDescriptor& descriptor, const char* prefix)
 {
-    if (descriptor.isGate()) {
-        dump_descriptor(descriptor.asGate(), prefix);
+    if (descriptor.is_gate()) {
+        dump_descriptor(descriptor.as_gate(), prefix);
         return;
     }
-    if (descriptor.isLDT()) {
+    if (descriptor.is_ldt()) {
         vlog(LogCPU, "%s%04x (system segment) { type: LDT (%02x), base:%08x e-limit:%08x, p:%u }",
             prefix,
             descriptor.index(),
             (u8)descriptor.type(),
-            descriptor.asLDTDescriptor().base(),
-            descriptor.asLDTDescriptor().effectiveLimit(),
+            descriptor.as_ldt_descriptor().base(),
+            descriptor.as_ldt_descriptor().effective_limit(),
             descriptor.present());
         return;
     }
     vlog(LogCPU, "%s%04x (system segment) { type: %s (%02x), bits:%u, p:%u, dpl:%u }",
         prefix,
         descriptor.index(),
-        descriptor.typeName(),
+        descriptor.type_name(),
         (u8)descriptor.type(),
         descriptor.D() ? 32 : 16,
         descriptor.present(),
-        descriptor.DPL());
+        descriptor.dpl());
 }
 
 void CPU::dump_descriptor(const CodeSegmentDescriptor& segment, const char* prefix)
@@ -492,13 +492,13 @@ void CPU::dump_descriptor(const CodeSegmentDescriptor& segment, const char* pref
     vlog(LogCPU, "%s%04x (%s) { type: code, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, r:%u, c:%u }",
         prefix,
         segment.index(),
-        segment.isGlobal() ? "global" : " local",
+        segment.is_global() ? "global" : " local",
         segment.base(),
         segment.effectiveLimit(),
         segment.D() ? 32 : 16,
         segment.present(),
         segment.granularity() ? "4k" : "1b",
-        segment.DPL(),
+        segment.dpl(),
         segment.accessed(),
         segment.conforming(),
         segment.readable());
@@ -509,16 +509,16 @@ void CPU::dump_descriptor(const DataSegmentDescriptor& segment, const char* pref
     vlog(LogCPU, "%s%04x (%s) { type: data, base:%08x, e-limit:%08x, bits:%u, p:%u, g:%s, dpl:%u, a:%u, w:%u, ed:%u }",
         prefix,
         segment.index(),
-        segment.isGlobal() ? "global" : " local",
+        segment.is_global() ? "global" : " local",
         segment.base(),
         segment.effectiveLimit(),
         segment.D() ? 32 : 16,
         segment.present(),
         segment.granularity() ? "4k" : "1b",
-        segment.DPL(),
+        segment.dpl(),
         segment.accessed(),
         segment.writable(),
-        segment.expandDown());
+        segment.expand_down());
 }
 
 void CPU::dump_segment(u16 index)

@@ -57,7 +57,7 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
 
     if (m_a32) {
         decode32(stream);
-        switch (m_displacementBytes) {
+        switch (m_displacement_bytes) {
         case 0:
             break;
         case 1:
@@ -72,7 +72,7 @@ FLATTEN void MemoryOrRegisterReference::decode(InstructionStream& stream, bool a
         }
     } else {
         decode16(stream);
-        switch (m_displacementBytes) {
+        switch (m_displacement_bytes) {
         case 0:
             break;
         case 1:
@@ -95,15 +95,15 @@ ALWAYS_INLINE void MemoryOrRegisterReference::decode16(InstructionStream&)
     switch (m_rm & 0xc0) {
     case 0:
         if ((m_rm & 0x07) == 6)
-            m_displacementBytes = 2;
+            m_displacement_bytes = 2;
         else
-            ASSERT(m_displacementBytes == 0);
+            ASSERT(m_displacement_bytes == 0);
         break;
     case 0x40:
-        m_displacementBytes = 1;
+        m_displacement_bytes = 1;
         break;
     case 0x80:
-        m_displacementBytes = 2;
+        m_displacement_bytes = 2;
         break;
     case 0xc0:
         m_register_index = m_rm & 7;
@@ -118,35 +118,35 @@ ALWAYS_INLINE void MemoryOrRegisterReference::decode32(InstructionStream& stream
     switch (m_rm & 0xc0) {
     case 0:
         if ((m_rm & 0x07) == 5)
-            m_displacementBytes = 4;
+            m_displacement_bytes = 4;
         break;
     case 0x40:
-        m_displacementBytes = 1;
+        m_displacement_bytes = 1;
         break;
     case 0x80:
-        m_displacementBytes = 4;
+        m_displacement_bytes = 4;
         break;
     case 0xc0:
         m_register_index = m_rm & 7;
         return;
     }
 
-    m_hasSIB = (m_rm & 0x07) == 4;
-    if (m_hasSIB) {
+    m_has_sib = (m_rm & 0x07) == 4;
+    if (m_has_sib) {
         m_sib = stream.read_instruction8();
         if ((m_sib & 0x07) == 5) {
             switch ((m_rm >> 6) & 0x03) {
             case 0:
-                ASSERT(!m_displacementBytes || m_displacementBytes == 4);
-                m_displacementBytes = 4;
+                ASSERT(!m_displacement_bytes || m_displacement_bytes == 4);
+                m_displacement_bytes = 4;
                 break;
             case 1:
-                ASSERT(!m_displacementBytes || m_displacementBytes == 1);
-                m_displacementBytes = 1;
+                ASSERT(!m_displacement_bytes || m_displacement_bytes == 1);
+                m_displacement_bytes = 1;
                 break;
             case 2:
-                ASSERT(!m_displacementBytes || m_displacementBytes == 4);
-                m_displacementBytes = 4;
+                ASSERT(!m_displacement_bytes || m_displacement_bytes == 4);
+                m_displacement_bytes = 4;
                 break;
             default:
                 ASSERT_NOT_REACHED();

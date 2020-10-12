@@ -62,9 +62,9 @@ void CPU::set_ldt(u16 selector)
     auto descriptor = get_descriptor(selector);
     LinearAddress base;
     u16 limit = 0;
-    if (!descriptor.isNull()) {
-        if (descriptor.isLDT()) {
-            auto& ldtDescriptor = descriptor.asLDTDescriptor();
+    if (!descriptor.is_null()) {
+        if (descriptor.is_ldt()) {
+            auto& ldtDescriptor = descriptor.as_ldt_descriptor();
             if (!descriptor.present()) {
                 throw NotPresent(selector & 0xfffc, "LDT segment not present");
             }
@@ -75,9 +75,9 @@ void CPU::set_ldt(u16 selector)
         }
     }
 
-    m_ldtr.setSelector(selector);
-    m_ldtr.setBase(base);
-    m_ldtr.setLimit(limit);
+    m_ldtr.set_selector(selector);
+    m_ldtr.set_base(base);
+    m_ldtr.set_limit(limit);
 
 #ifdef DEBUG_DESCRIPTOR_TABLES
     vlog(LogAlert, "setLDT { segment: %04X => base:%08X, limit:%08X }", m_LDTR.selector(), m_LDTR.base(), m_LDTR.limit());
@@ -117,8 +117,8 @@ void CPU::doLGDTorLIDT(Instruction& insn, DescriptorTableRegister& table)
     u32 base = read_memory32(insn.modrm().segment(), insn.modrm().offset() + 2);
     u16 limit = read_memory16(insn.modrm().segment(), insn.modrm().offset());
     u32 baseMask = o32() ? 0xffffffff : 0x00ffffff;
-    table.setBase(LinearAddress(base & baseMask));
-    table.setLimit(limit);
+    table.set_base(LinearAddress(base & baseMask));
+    table.set_limit(limit);
 }
 
 void CPU::_LGDT(Instruction& insn)
@@ -204,7 +204,7 @@ void CPU::_LAR_reg16_RM16(Instruction& insn)
     u16 selector = insn.modrm().read16() & 0xffff;
     u16 selectorRPL = selector & 3;
     auto descriptor = get_descriptor(selector);
-    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.DPL() < get_cpl() || descriptor.DPL() < selectorRPL) {
+    if (descriptor.is_null() || descriptor.is_outside_table_limits() || descriptor.dpl() < get_cpl() || descriptor.dpl() < selectorRPL) {
         set_zf(0);
         return;
     }
@@ -221,7 +221,7 @@ void CPU::_LAR_reg32_RM32(Instruction& insn)
     u16 selector = insn.modrm().read32() & 0xffff;
     u16 selectorRPL = selector & 3;
     auto descriptor = get_descriptor(selector);
-    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.DPL() < get_cpl() || descriptor.DPL() < selectorRPL) {
+    if (descriptor.is_null() || descriptor.is_outside_table_limits() || descriptor.dpl() < get_cpl() || descriptor.dpl() < selectorRPL) {
         set_zf(0);
         return;
     }
@@ -231,14 +231,14 @@ void CPU::_LAR_reg32_RM32(Instruction& insn)
 
 static bool isValidDescriptorForLSL(const Descriptor& descriptor)
 {
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         return true;
-    if (descriptor.isOutsideTableLimits())
+    if (descriptor.is_outside_table_limits())
         return true;
-    if (descriptor.isSegmentDescriptor())
+    if (descriptor.is_segment_descriptor())
         return true;
 
-    switch (descriptor.asSystemDescriptor().type()) {
+    switch (descriptor.as_system_descriptor().type()) {
     case SystemDescriptor::AvailableTSS_16bit:
     case SystemDescriptor::LDT:
     case SystemDescriptor::BusyTSS_16bit:
@@ -264,12 +264,12 @@ void CPU::_LSL_reg16_RM16(Instruction& insn)
     }
 
     u32 effectiveLimit;
-    if (descriptor.isLDT())
-        effectiveLimit = descriptor.asLDTDescriptor().effectiveLimit();
-    else if (descriptor.isTSS())
-        effectiveLimit = descriptor.asTSSDescriptor().effectiveLimit();
+    if (descriptor.is_ldt())
+        effectiveLimit = descriptor.as_ldt_descriptor().effective_limit();
+    else if (descriptor.is_tss())
+        effectiveLimit = descriptor.as_tss_descriptor().effective_limit();
     else
-        effectiveLimit = descriptor.asSegmentDescriptor().effectiveLimit();
+        effectiveLimit = descriptor.as_segment_descriptor().effectiveLimit();
     insn.reg16() = effectiveLimit;
     set_zf(1);
 }
@@ -282,17 +282,17 @@ void CPU::_LSL_reg32_RM32(Instruction& insn)
     u16 selector = insn.modrm().read16() & 0xffff;
     auto descriptor = get_descriptor(selector);
     // FIXME: This should also fail for conforming code segments somehow.
-    if (descriptor.isOutsideTableLimits()) {
+    if (descriptor.is_outside_table_limits()) {
         set_zf(0);
         return;
     }
     u32 effectiveLimit;
-    if (descriptor.isLDT())
-        effectiveLimit = descriptor.asLDTDescriptor().effectiveLimit();
-    else if (descriptor.isTSS())
-        effectiveLimit = descriptor.asTSSDescriptor().effectiveLimit();
+    if (descriptor.is_ldt())
+        effectiveLimit = descriptor.as_ldt_descriptor().effective_limit();
+    else if (descriptor.is_tss())
+        effectiveLimit = descriptor.as_tss_descriptor().effective_limit();
     else
-        effectiveLimit = descriptor.asSegmentDescriptor().effectiveLimit();
+        effectiveLimit = descriptor.as_segment_descriptor().effectiveLimit();
     insn.reg32() = effectiveLimit;
     set_zf(1);
 }
@@ -320,7 +320,7 @@ const char* toString(SegmentRegisterIndex segment)
 
 void CPU::raise_exception(const Exception& e)
 {
-    if (options.crashOnException) {
+    if (options.crash_on_exception) {
         dump_all();
         vlog(LogAlert, "CRASH ON EXCEPTION");
         ASSERT_NOT_REACHED();
@@ -347,7 +347,7 @@ Exception CPU::GeneralProtectionFault(u16 code, const QString& reason)
 
     if (options.log_exceptions)
         vlog(LogCPU, "Exception: #GP(%04x) selector=%04X, TI=%u, I=%u, EX=%u :: %s", code, selector, TI, I, EX, qPrintable(reason));
-    if (options.crashOnGPF) {
+    if (options.crash_on_general_protection_fault) {
         dump_all();
         vlog(LogAlert, "CRASH ON GPF");
         ASSERT_NOT_REACHED();
@@ -404,22 +404,22 @@ void CPU::validate_segment_load(SegmentRegisterIndex reg, u16 selector, const De
 
     u8 selectorRPL = selector & 3;
 
-    if (descriptor.isOutsideTableLimits()) {
+    if (descriptor.is_outside_table_limits()) {
         throw GeneralProtectionFault(selector & 0xfffc, "Selector outside table limits");
     }
 
     if (reg == SegmentRegisterIndex::SS) {
-        if (descriptor.isNull()) {
+        if (descriptor.is_null()) {
             throw GeneralProtectionFault(0, "ss loaded with null descriptor");
         }
         if (selectorRPL != get_cpl()) {
             throw GeneralProtectionFault(selector & 0xfffc, QString("ss selector RPL(%1) != CPL(%2)").arg(selectorRPL).arg(get_cpl()));
         }
-        if (!descriptor.isData() || !descriptor.asDataSegmentDescriptor().writable()) {
+        if (!descriptor.is_data() || !descriptor.as_data_segment_descriptor().writable()) {
             throw GeneralProtectionFault(selector & 0xfffc, "ss loaded with something other than a writable data segment");
         }
-        if (descriptor.DPL() != get_cpl()) {
-            throw GeneralProtectionFault(selector & 0xfffc, QString("ss selector leads to descriptor with DPL(%1) != CPL(%2)").arg(descriptor.DPL()).arg(get_cpl()));
+        if (descriptor.dpl() != get_cpl()) {
+            throw GeneralProtectionFault(selector & 0xfffc, QString("ss selector leads to descriptor with DPL(%1) != CPL(%2)").arg(descriptor.dpl()).arg(get_cpl()));
         }
         if (!descriptor.present()) {
             throw StackFault(selector & 0xfffc, "ss loaded with non-present segment");
@@ -427,21 +427,21 @@ void CPU::validate_segment_load(SegmentRegisterIndex reg, u16 selector, const De
         return;
     }
 
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         return;
 
     if (reg == SegmentRegisterIndex::DS
         || reg == SegmentRegisterIndex::ES
         || reg == SegmentRegisterIndex::FS
         || reg == SegmentRegisterIndex::GS) {
-        if (!descriptor.isData() && (descriptor.isCode() && !descriptor.asCodeSegmentDescriptor().readable())) {
+        if (!descriptor.is_data() && (descriptor.is_code() && !descriptor.as_code_segment_descriptor().readable())) {
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with non-data or non-readable code segment").arg(register_name(reg)));
         }
-        if (descriptor.isData() || descriptor.isNonconformingCode()) {
-            if (selectorRPL > descriptor.DPL()) {
+        if (descriptor.is_data() || descriptor.is_nonconforming_code()) {
+            if (selectorRPL > descriptor.dpl()) {
                 throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with data or non-conforming code segment and RPL > DPL").arg(register_name(reg)));
             }
-            if (get_cpl() > descriptor.DPL()) {
+            if (get_cpl() > descriptor.dpl()) {
                 throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with data or non-conforming code segment and CPL > DPL").arg(register_name(reg)));
             }
         }
@@ -450,7 +450,7 @@ void CPU::validate_segment_load(SegmentRegisterIndex reg, u16 selector, const De
         }
     }
 
-    if (!descriptor.isNull() && !descriptor.isSegmentDescriptor()) {
+    if (!descriptor.is_null() && !descriptor.is_segment_descriptor()) {
         dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, QString("%1 loaded with system segment").arg(register_name(reg)));
     }
@@ -472,21 +472,21 @@ void CPU::write_segment_register(SegmentRegisterIndex segreg, u16 selector)
 
     *m_segment_map[(int)segreg] = selector;
 
-    if (descriptor.isNull()) {
-        cached_descriptor(segreg) = descriptor.asSegmentDescriptor();
+    if (descriptor.is_null()) {
+        cached_descriptor(segreg) = descriptor.as_segment_descriptor();
         return;
     }
 
-    ASSERT(descriptor.isSegmentDescriptor());
-    cached_descriptor(segreg) = descriptor.asSegmentDescriptor();
+    ASSERT(descriptor.is_segment_descriptor());
+    cached_descriptor(segreg) = descriptor.as_segment_descriptor();
     if (options.pedebug) {
         if (get_pe()) {
             vlog(LogCPU, "%s loaded with %04x { type:%02X, base:%08X, limit:%08X }",
                 toString(segreg),
                 selector,
-                descriptor.asSegmentDescriptor().type(),
-                descriptor.asSegmentDescriptor().base(),
-                descriptor.asSegmentDescriptor().limit());
+                descriptor.as_segment_descriptor().type(),
+                descriptor.as_segment_descriptor().base(),
+                descriptor.as_segment_descriptor().limit());
         }
     }
 
@@ -496,7 +496,7 @@ void CPU::write_segment_register(SegmentRegisterIndex segreg, u16 selector)
             if (get_vm())
                 set_cpl(3);
             else
-                set_cpl(descriptor.DPL());
+                set_cpl(descriptor.dpl());
         }
         update_default_sizes();
         update_code_segment_cache();
@@ -519,7 +519,7 @@ void CPU::_VERR_RM16(Instruction& insn)
     u16 RPL = selector & 3;
     auto descriptor = get_descriptor(selector);
 
-    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || !descriptor.asSegmentDescriptor().readable() || (!descriptor.isConformingCode() && (descriptor.DPL() < get_cpl() || descriptor.DPL() < RPL))) {
+    if (descriptor.is_null() || descriptor.is_outside_table_limits() || descriptor.is_system_descriptor() || !descriptor.as_segment_descriptor().readable() || (!descriptor.is_conforming_code() && (descriptor.dpl() < get_cpl() || descriptor.dpl() < RPL))) {
         set_zf(0);
         return;
     }
@@ -536,7 +536,7 @@ void CPU::_VERW_RM16(Instruction& insn)
     u16 RPL = selector & 3;
     auto descriptor = get_descriptor(selector);
 
-    if (descriptor.isNull() || descriptor.isOutsideTableLimits() || descriptor.isSystemDescriptor() || descriptor.DPL() < get_cpl() || descriptor.DPL() < RPL || !descriptor.asSegmentDescriptor().writable()) {
+    if (descriptor.is_null() || descriptor.is_outside_table_limits() || descriptor.is_system_descriptor() || descriptor.dpl() < get_cpl() || descriptor.dpl() < RPL || !descriptor.as_segment_descriptor().writable()) {
         set_zf(0);
         return;
     }

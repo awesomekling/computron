@@ -37,24 +37,28 @@ public:
     virtual void out8(u16 port, u8 data) override;
 
 private:
-    enum ResetSource { Software,
-        Hardware };
-    enum class DataDirection { FromFDC = 0x40,
+    enum ResetSource {
+        Software,
+        Hardware
+    };
+    enum class DataDirection {
+        FromFDC = 0x40,
         ToFDC = 0,
-        Mask = 0x40 };
-    void setDataDirection(DataDirection);
-    DataDirection dataDirection() const;
-    bool usingDMA() const;
-    void setUsingDMA(bool);
-    void resetController(ResetSource);
-    void resetControllerSoon();
-    void generateFDCInterrupt(bool seekCompleted = false);
-    void updateStatus(bool seekCompleted = false);
+        Mask = 0x40
+    };
+    void set_data_direction(DataDirection);
+    DataDirection data_direction() const;
+    bool using_dma() const;
+    void set_using_dma(bool);
+    void reset_controller(ResetSource);
+    void reset_controller_soon();
+    void generate_fdc_interrupt(bool seekCompleted = false);
+    void update_status(bool seekCompleted = false);
 
-    void executeCommandSoon();
-    void executeCommand();
-    void executeCommandInternal();
-    void executeReadDataCommand();
+    void execute_command_soon();
+    void execute_command();
+    void execute_command_internal();
+    void execute_read_data_command();
 
     struct Private;
     OwnPtr<Private> d;

@@ -41,7 +41,7 @@ PS2::~PS2()
 
 void PS2::reset()
 {
-    m_controlPortA = 0;
+    m_control_port_a = 0;
     machine().cpu().set_a20_enabled(false);
 }
 
@@ -51,7 +51,7 @@ u8 PS2::in8(u16 port)
 #ifdef PS2_DEBUG
         vlog(LogIO, "System Control Port A read, returning %02X", m_controlPortA);
 #endif
-        return m_controlPortA;
+        return m_control_port_a;
     }
     return IODevice::in8(port);
 }
@@ -62,7 +62,7 @@ void PS2::out8(u16 port, u8 data)
 #ifdef PS2_DEBUG
         vlog(LogIO, "A20=%u->%u (System Control Port A)", machine().cpu().isA20Enabled(), !!(data & 0x2));
 #endif
-        m_controlPortA = data;
+        m_control_port_a = data;
         machine().cpu().set_a20_enabled(data & 0x2);
         return;
     }

@@ -31,20 +31,20 @@ class MemoryProvider {
 public:
     virtual ~MemoryProvider() { }
 
-    PhysicalAddress baseAddress() const { return m_baseAddress; }
+    PhysicalAddress base_address() const { return m_base_address; }
     u32 size() const { return m_size; }
 
     // pls no use :(
-    virtual const u8* memoryPointer(u32 address) const;
+    virtual const u8* memory_pointer(u32 address) const;
 
-    virtual u8 readMemory8(u32 address);
-    virtual u16 readMemory16(u32 address);
-    virtual u32 readMemory32(u32 address);
+    virtual u8 read_memory8(u32 address);
+    virtual u16 read_memory16(u32 address);
+    virtual u32 read_memory32(u32 address);
     virtual void write_memory8(u32 address, u8);
     virtual void write_memory16(u32 address, u16);
     virtual void write_memory32(u32 address, u32);
 
-    const u8* pointerForDirectReadAccess() const { return m_pointerForDirectReadAccess; }
+    const u8* pointer_for_direct_read_access() const { return m_pointer_for_direct_read_access; }
 
     template<typename T>
     T read(u32 address);
@@ -52,16 +52,16 @@ public:
     void write(u32 address, T);
 
 protected:
-    MemoryProvider(PhysicalAddress baseAddress, u32 size = 0)
-        : m_baseAddress(baseAddress)
+    MemoryProvider(PhysicalAddress base_address, u32 size = 0)
+        : m_base_address(base_address)
     {
-        setSize(size);
+        set_size(size);
     }
-    void setSize(u32);
-    const u8* m_pointerForDirectReadAccess { nullptr };
+    void set_size(u32);
+    const u8* m_pointer_for_direct_read_access { nullptr };
 
 private:
-    PhysicalAddress m_baseAddress;
+    PhysicalAddress m_base_address;
     u32 m_size { 0 };
 };
 
@@ -69,11 +69,11 @@ template<typename T>
 inline T MemoryProvider::read(u32 address)
 {
     if (sizeof(T) == 1)
-        return readMemory8(address);
+        return read_memory8(address);
     if (sizeof(T) == 2)
-        return readMemory16(address);
+        return read_memory16(address);
     ASSERT(sizeof(T) == 4);
-    return readMemory32(address);
+    return read_memory32(address);
 }
 
 template<typename T>

@@ -75,10 +75,10 @@ void Keyboard::reset()
 {
     memset(m_ram, 0, sizeof(m_ram));
 
-    m_systemControlPortData = 0;
+    m_system_control_port_data = 0;
     m_command = 0x00;
-    m_hasCommand = false;
-    m_lastWasCommand = false;
+    m_has_command = false;
+    m_last_was_command = false;
 
     m_leds = 0;
 
@@ -95,12 +95,12 @@ u8 Keyboard::in8(u16 port)
     u8 data = 0;
 
     if (port == 0x60) {
-        if (m_hasCommand && m_command <= 0x3F) {
+        if (m_has_command && m_command <= 0x3F) {
             u8 ramIndex = m_command & 0x3F;
-            m_hasCommand = false;
+            m_has_command = false;
             vlog(LogKeyboard, "Reading 8042 RAM [%02x] = %02x", ramIndex, m_ram[ramIndex]);
             data = m_ram[ramIndex];
-        } else if (m_lastWasCommand && m_command == CMD_SET_LEDS) {
+        } else if (m_last_was_command && m_command == CMD_SET_LEDS) {
             data = 0xFA; // ACK
         } else {
             u8 key = kbd_pop_raw();
@@ -112,20 +112,20 @@ u8 Keyboard::in8(u16 port)
     } else if (port == 0x64) {
         // POST completed successfully.
         u8 status = (m_ram[0] & ATKBD_SYSTEM_FLAG);
-        status |= m_lastWasCommand ? ATKBD_CMD_DATA : 0;
+        status |= m_last_was_command ? ATKBD_CMD_DATA : 0;
         if (kbd_has_data())
             status |= ATKBD_OUTPUT_STATUS;
-        if (isEnabled())
+        if (is_enabled())
             status |= ATKBD_UNLOCKED;
         //vlog(LogKeyboard, "Keyboard status queried (%02X)", status);
         data = status;
     } else if (port == 0x61) {
         // HACK: This should be implemented properly in the 8254 emulation.
-        if (m_systemControlPortData & 0x10)
-            m_systemControlPortData &= ~0x10;
+        if (m_system_control_port_data & 0x10)
+            m_system_control_port_data &= ~0x10;
         else
-            m_systemControlPortData |= 0x10;
-        data = m_systemControlPortData;
+            m_system_control_port_data |= 0x10;
+        data = m_system_control_port_data;
     }
 
 #ifdef KBD_DEBUG
@@ -142,7 +142,7 @@ void Keyboard::out8(u16 port, u8 data)
 
     if (port == 0x61) {
         //vlog(LogKeyboard, "System control port <- %02X", data);
-        m_systemControlPortData = data;
+        m_system_control_port_data = data;
         return;
     }
 
@@ -157,18 +157,18 @@ void Keyboard::out8(u16 port, u8 data)
         }
         vlog(LogKeyboard, "Keyboard command <- %02X", data);
         m_command = data;
-        m_hasCommand = true;
-        m_lastWasCommand = true;
+        m_has_command = true;
+        m_last_was_command = true;
         return;
     }
 
     if (port == 0x60) {
-        m_lastWasCommand = false;
-        if (!m_hasCommand) {
+        m_last_was_command = false;
+        if (!m_has_command) {
             if (data == CMD_SET_LEDS) {
                 m_command = data;
-                m_hasCommand = true;
-                m_lastWasCommand = true;
+                m_has_command = true;
+                m_last_was_command = true;
                 vlog(LogKeyboard, "Got set leds (%02X), awaiting state...", data);
                 return;
             }
@@ -176,7 +176,7 @@ void Keyboard::out8(u16 port, u8 data)
             return;
         }
 
-        m_hasCommand = false;
+        m_has_command = false;
 
         if (m_command == CMD_SET_LEDS) {
             vlog(LogKeyboard, "LEDs set to %02X\n", data);
@@ -220,7 +220,7 @@ void Keyboard::out8(u16 port, u8 data)
     IODevice::out8(port, data);
 }
 
-void Keyboard::didEnqueueData()
+void Keyboard::did_enqueue_data()
 {
     if (m_ram[0] & CCB_KEYBOARD_INTERRUPT_ENABLE)
         raise_irq();

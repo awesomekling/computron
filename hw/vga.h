@@ -45,13 +45,13 @@ public:
 
     // MemoryProvider
     virtual void write_memory8(u32 address, u8 value) override;
-    virtual u8 readMemory8(u32 address) override;
+    virtual u8 read_memory8(u32 address) override;
 
     const u8* plane(int index) const;
     const u8* text_memory() const;
 
-    void setPaletteDirty(bool);
-    bool isPaletteDirty();
+    void set_palette_dirty(bool);
+    bool is_palette_dirty();
 
     u8 read_register(u8 index) const;
 
@@ -61,24 +61,24 @@ public:
     bool cursor_enabled() const;
 
     QColor color(int index) const;
-    QColor paletteColor(int paletteIndex) const;
+    QColor palette_color(int paletteIndex) const;
 
-    u8 currentVideoMode() const;
+    u8 current_video_mode() const;
 
     u16 start_address() const;
 
-    void willRefreshScreen();
-    void didRefreshScreen();
+    void will_refresh_screen();
+    void did_refresh_screen();
 
-    bool inChain4Mode() const;
+    bool in_chain4_mode() const;
 
     void dump();
 
 signals:
-    void paletteChanged();
+    void palette_changed();
 
 private:
-    void synchronizeColors();
+    void synchronize_colors();
     u8 read_mode() const;
     u8 write_mode() const;
     u8 rotate_count() const;

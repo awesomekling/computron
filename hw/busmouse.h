@@ -38,9 +38,9 @@ public:
     virtual void out8(u16 port, u8 data) override;
     virtual u8 in8(u16 port) override;
 
-    virtual void moveEvent(u16 x, u16 y) override;
-    virtual void buttonPressEvent(u16 x, u16 y, MouseButton) override;
-    virtual void buttonReleaseEvent(u16 x, u16 y, MouseButton) override;
+    virtual void move_event(u16 x, u16 y) override;
+    virtual void button_press_event(u16 x, u16 y, MouseButton) override;
+    virtual void button_release_event(u16 x, u16 y, MouseButton) override;
 
     static BusMouse* the();
 

@@ -38,29 +38,29 @@ public:
     void enter();
     void exit();
 
-    bool isActive() const { return m_active; }
+    bool is_active() const { return m_active; }
 
-    void doConsole();
+    void do_console();
 
 private:
     CPU& m_cpu;
     bool m_active { false };
 
-    void handleCommand(const QString&);
+    void handle_command(const QString&);
 
-    void handleQuit();
-    void handleDumpRegisters();
-    void handleDumpSegment(const QStringList&);
-    void handleDumpIVT();
-    void handleReconfigure();
-    void handleStep();
-    void handleContinue();
-    void handleBreakpoint(const QStringList&);
-    void handleDumpMemory(const QStringList&);
-    void handleDumpFlatMemory(const QStringList&);
-    void handleTracing(const QStringList&);
-    void handleIRQ(const QStringList&);
-    void handleDumpUnassembled(const QStringList&);
-    void handleSelector(const QStringList&);
-    void handleStack(const QStringList&);
+    void handle_quit();
+    void handle_dump_registers();
+    void handle_dump_segment(const QStringList&);
+    void handle_dump_ivt();
+    void handle_reconfigure();
+    void handle_step();
+    void handle_continue();
+    void handle_breakpoint(const QStringList&);
+    void handle_dump_memory(const QStringList&);
+    void handle_dump_flat_memory(const QStringList&);
+    void handle_tracing(const QStringList&);
+    void handle_irq(const QStringList&);
+    void handle_dump_unassembled(const QStringList&);
+    void handle_selector(const QStringList&);
+    void handle_stack(const QStringList&);
 };

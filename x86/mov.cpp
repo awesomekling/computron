@@ -50,20 +50,20 @@ void CPU::_MOV_RM16_seg(Instruction& insn)
 
 void CPU::_MOV_seg_RM16(Instruction& insn)
 {
-    if (insn.segmentRegisterIndex() == SegmentRegisterIndex::CS)
+    if (insn.segment_register_index() == SegmentRegisterIndex::CS)
         throw InvalidOpcode("MOV CS");
-    write_segment_register(insn.segmentRegisterIndex(), insn.modrm().read16());
-    if (insn.segmentRegisterIndex() == SegmentRegisterIndex::SS) {
+    write_segment_register(insn.segment_register_index(), insn.modrm().read16());
+    if (insn.segment_register_index() == SegmentRegisterIndex::SS) {
         make_next_instruction_uninterruptible();
     }
 }
 
 void CPU::_MOV_seg_RM32(Instruction& insn)
 {
-    if (insn.segmentRegisterIndex() == SegmentRegisterIndex::CS)
+    if (insn.segment_register_index() == SegmentRegisterIndex::CS)
         throw InvalidOpcode("MOV CS");
-    write_segment_register(insn.segmentRegisterIndex(), insn.modrm().read32());
-    if (insn.segmentRegisterIndex() == SegmentRegisterIndex::SS) {
+    write_segment_register(insn.segment_register_index(), insn.modrm().read32());
+    if (insn.segment_register_index() == SegmentRegisterIndex::SS) {
         make_next_instruction_uninterruptible();
     }
 }
@@ -241,7 +241,7 @@ void CPU::_MOV_reg32_imm32(Instruction& insn)
 template<typename T>
 void CPU::doMOV_Areg_moff(Instruction& insn)
 {
-    write_register<T>(RegisterAL, read_memory<T>(current_segment(), insn.immAddress()));
+    write_register<T>(RegisterAL, read_memory<T>(current_segment(), insn.imm_address()));
 }
 
 void CPU::_MOV_AL_moff8(Instruction& insn)
@@ -262,7 +262,7 @@ void CPU::_MOV_EAX_moff32(Instruction& insn)
 template<typename T>
 void CPU::doMOV_moff_Areg(Instruction& insn)
 {
-    write_memory<T>(current_segment(), insn.immAddress(), read_register<T>(RegisterAL));
+    write_memory<T>(current_segment(), insn.imm_address(), read_register<T>(RegisterAL));
 }
 
 void CPU::_MOV_moff8_AL(Instruction& insn)

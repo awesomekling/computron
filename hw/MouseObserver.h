@@ -26,13 +26,15 @@
 
 #include "types.h"
 
-enum class MouseButton { Left,
-    Right };
+enum class MouseButton {
+    Left,
+    Right
+};
 
 class MouseObserver {
 public:
     virtual ~MouseObserver();
-    virtual void moveEvent(u16 x, u16 y) = 0;
-    virtual void buttonPressEvent(u16 x, u16 y, MouseButton) = 0;
-    virtual void buttonReleaseEvent(u16 x, u16 y, MouseButton) = 0;
+    virtual void move_event(u16 x, u16 y) = 0;
+    virtual void button_press_event(u16 x, u16 y, MouseButton) = 0;
+    virtual void button_release_event(u16 x, u16 y, MouseButton) = 0;
 };

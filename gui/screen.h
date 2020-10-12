@@ -45,16 +45,16 @@ public:
     Machine& machine() const { return m_machine; }
 
     // FIXME: These should be moved into VGA.
-    u8 currentVideoMode() const;
-    u8 currentRowCount() const;
-    u8 currentColumnCount() const;
+    u8 current_video_mode() const;
+    u8 current_row_count() const;
+    u8 current_column_count() const;
 
-    u16 nextKey();
-    u16 peekKey();
-    u8 popKeyData();
-    bool hasRawKey();
+    u16 next_key();
+    u16 peek_key();
+    u8 pop_key_data();
+    bool has_raw_key();
 
-    void setScreenSize(int width, int height);
+    void set_screen_size(int width, int height);
 
 protected:
     void keyPressEvent(QKeyEvent*) override;
@@ -65,34 +65,34 @@ protected:
 
 public slots:
     void refresh();
-    bool loadKeymap(const QString& filename);
+    bool load_keymap(const QString& filename);
 
 private slots:
-    void flushKeyBuffer();
-    void scheduleRefresh();
+    void flush_key_buffer();
+    void schedule_refresh();
 
 private:
     void paintEvent(QPaintEvent*) override;
     void resizeEvent(QResizeEvent*) override;
     void init();
 
-    MouseObserver& mouseObserver();
+    MouseObserver& mouse_observer();
 
     Renderer& renderer();
 
     int m_width { 0 };
     int m_height { 0 };
 
-    u16 scanCodeFromKeyEvent(const QKeyEvent*) const;
-    QString keyNameFromKeyEvent(const QKeyEvent*) const;
+    u16 scan_code_from_key_event(const QKeyEvent*) const;
+    QString key_name_from_key_event(const QKeyEvent*) const;
 
-    u16 keyToScanCode(const QString& keyName, Qt::KeyboardModifiers) const;
+    u16 key_to_scan_code(const QString& key_name, Qt::KeyboardModifiers) const;
 
-    QHash<u8, QString> m_keyMappings;
+    QHash<u8, QString> m_key_mappings;
 
     struct Private;
     OwnPtr<Private> d;
 
-    u8 m_videoModeInLastRefresh { 0xFF };
+    u8 m_video_mode_in_last_refresh { 0xFF };
     Machine& m_machine;
 };

@@ -52,7 +52,7 @@ struct IDEController {
         if (inLBAMode) {
             return ((u32)cylinderIndex << 8) | sectorIndex;
         }
-        return drive().toLBA(cylinderIndex, headIndex, sectorIndex);
+        return drive().to_lba(cylinderIndex, headIndex, sectorIndex);
     }
 
     template<typename T>
@@ -71,9 +71,9 @@ void IDEController::identify(IDE& ide)
 {
     u16 data[256];
     memset(data, 0, sizeof(data));
-    data[1] = drive().sectors() / (drive().sectorsPerTrack() * drive().heads());
+    data[1] = drive().sectors() / (drive().sectors_per_track() * drive().heads());
     data[3] = drive().heads();
-    data[6] = drive().sectorsPerTrack();
+    data[6] = drive().sectors_per_track();
     m_readBuffer.resize(512);
     memcpy(m_readBuffer.data(), data, sizeof(data));
     strcpy(m_readBuffer.data() + 54, "oCpmtuor niDks");
@@ -86,13 +86,13 @@ void IDEController::readSectors(IDE& ide)
 #ifdef IDE_DEBUG
     vlog(LogIDE, "ide%u: Read sectors (LBA: %u, count: %u)", controllerIndex, lba(), sectorCount);
 #endif
-    FILE* f = fopen(qPrintable(drive().imagePath()), "rb");
+    FILE* f = fopen(qPrintable(drive().image_path()), "rb");
     RELEASE_ASSERT(f);
-    m_readBuffer.resize(drive().bytesPerSector() * sectorCount);
+    m_readBuffer.resize(drive().bytes_per_sector() * sectorCount);
     int result;
-    result = fseek(f, lba() * drive().bytesPerSector(), SEEK_SET);
+    result = fseek(f, lba() * drive().bytes_per_sector(), SEEK_SET);
     ASSERT(result != -1);
-    result = fread(m_readBuffer.data(), drive().bytesPerSector(), sectorCount, f);
+    result = fread(m_readBuffer.data(), drive().bytes_per_sector(), sectorCount, f);
     ASSERT(result != -1);
     result = fclose(f);
     ASSERT(result != -1);
@@ -103,7 +103,7 @@ void IDEController::readSectors(IDE& ide)
 void IDEController::writeSectors()
 {
     vlog(LogIDE, "ide%u: Write sectors (LBA: %u, count: %u)", controllerIndex, lba(), sectorCount);
-    m_writeBuffer.resize(drive().bytesPerSector() * sectorCount);
+    m_writeBuffer.resize(drive().bytes_per_sector() * sectorCount);
     m_writeBufferIndex = 0;
 }
 
@@ -125,12 +125,12 @@ void IDEController::writeToSectorBuffer(IDE& ide, T data)
     if (m_writeBufferIndex < m_writeBuffer.size())
         return;
     vlog(LogIDE, "ide%u: Got all sector data, flushing to disk!", controllerIndex);
-    FILE* f = fopen(qPrintable(drive().imagePath()), "rb+");
+    FILE* f = fopen(qPrintable(drive().image_path()), "rb+");
     RELEASE_ASSERT(f);
     int result;
-    result = fseek(f, lba() * drive().bytesPerSector(), SEEK_SET);
+    result = fseek(f, lba() * drive().bytes_per_sector(), SEEK_SET);
     ASSERT(result != -1);
-    result = fwrite(m_writeBuffer.data(), drive().bytesPerSector(), sectorCount, f);
+    result = fwrite(m_writeBuffer.data(), drive().bytes_per_sector(), sectorCount, f);
     ASSERT(result != -1);
     result = fclose(f);
     ASSERT(result != -1);

@@ -29,11 +29,11 @@
 
 class SimpleMemoryProvider : public MemoryProvider {
 public:
-    SimpleMemoryProvider(PhysicalAddress baseAddress, u32 size, bool allowDirectReadAccess);
+    SimpleMemoryProvider(PhysicalAddress base_address, u32 size, bool allow_direct_read_access);
     virtual ~SimpleMemoryProvider();
 
-    virtual const u8* memoryPointer(u32 address) const override;
-    virtual u8 readMemory8(u32 address) override;
+    virtual const u8* memory_pointer(u32 address) const override;
+    virtual u8 read_memory8(u32 address) override;
     virtual void write_memory8(u32 address, u8) override;
 
 private:

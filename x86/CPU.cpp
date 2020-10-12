@@ -140,7 +140,7 @@ FLATTEN void CPU::decodeNext()
         ASSERT_NOT_REACHED();
 #endif
 
-    auto insn = Instruction::fromStream(*this, m_operand_size32, m_address_size32);
+    auto insn = Instruction::from_stream(*this, m_operand_size32, m_address_size32);
     if (!insn.is_valid())
         throw InvalidOpcode();
     execute(insn);
@@ -156,7 +156,7 @@ FLATTEN void CPU::execute(Instruction& insn)
 #endif
 
 #ifdef DISASSEMBLE_EVERYTHING
-    if (options.disassembleEverything)
+    if (options.disassemble_everything)
         vlog(LogCPU, "%s", qPrintable(insn.toString(m_baseEIP, x32())));
 #endif
     insn.execute(*this);
@@ -412,9 +412,9 @@ void CPU::halted_loop()
             hard_reboot();
             return;
         }
-        if (debugger().isActive()) {
+        if (debugger().is_active()) {
             save_base_address();
-            debugger().doConsole();
+            debugger().do_console();
         }
         if (PIC::has_pending_irq() && get_if())
             PIC::service_irq(*this);
@@ -451,7 +451,7 @@ void CPU::make_next_instruction_uninterruptible()
 
 void CPU::recompute_main_loop_needs_slow_stuff()
 {
-    m_main_loop_needs_slow_stuff = m_debugger_request != NoDebuggerRequest || m_should_hard_reboot || options.trace || !m_breakpoints.empty() || debugger().isActive() || !m_watches.isEmpty();
+    m_main_loop_needs_slow_stuff = m_debugger_request != NoDebuggerRequest || m_should_hard_reboot || options.trace || !m_breakpoints.empty() || debugger().is_active() || !m_watches.isEmpty();
 }
 
 NEVER_INLINE bool CPU::main_loop_slow_stuff()
@@ -480,9 +480,9 @@ NEVER_INLINE bool CPU::main_loop_slow_stuff()
         recompute_main_loop_needs_slow_stuff();
     }
 
-    if (debugger().isActive()) {
+    if (debugger().is_active()) {
         save_base_address();
-        debugger().doConsole();
+        debugger().do_console();
     }
 
     if (options.trace)
@@ -628,7 +628,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
 
     if (gate) {
         // Coming through a gate; respect bit size of gate descriptor!
-        pushSize = gate->is32Bit() ? DWordSize : WordSize;
+        pushSize = gate->is_32bit() ? DWordSize : WordSize;
     }
 
     u16 originalSS = get_ss();
@@ -645,42 +645,42 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
 
     auto descriptor = get_descriptor(selector);
 
-    if (descriptor.isNull()) {
+    if (descriptor.is_null()) {
         throw GeneralProtectionFault(0, QString("%1 to null selector").arg(toString(type)));
     }
 
-    if (descriptor.isOutsideTableLimits())
+    if (descriptor.is_outside_table_limits())
         throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to selector outside table limit").arg(toString(type)));
 
-    if (!descriptor.isCode() && !descriptor.isCallGate() && !descriptor.isTaskGate() && !descriptor.isTSS())
+    if (!descriptor.is_code() && !descriptor.is_call_gate() && !descriptor.is_task_gate() && !descriptor.is_tss())
         throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to invalid descriptor type").arg(toString(type)));
 
-    if (descriptor.isGate() && gate) {
+    if (descriptor.is_gate() && gate) {
         dump_descriptor(*gate);
         dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Gate-to-gate jumps are not allowed");
     }
 
-    if (descriptor.isTaskGate()) {
+    if (descriptor.is_task_gate()) {
         // FIXME: Implement JMP/CALL thorough task gate.
         ASSERT_NOT_REACHED();
     }
 
-    if (descriptor.isCallGate()) {
-        auto& gate = descriptor.asGate();
+    if (descriptor.is_call_gate()) {
+        auto& gate = descriptor.as_gate();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "Gate (%s) to %04x:%08x (count=%u)", gate.typeName(), gate.selector(), gate.offset(), gate.parameterCount());
 #endif
-        if (gate.parameterCount() != 0) {
+        if (gate.parameter_count() != 0) {
             // FIXME: Implement gate parameter counts.
             ASSERT_NOT_REACHED();
         }
 
-        if (gate.DPL() < get_cpl())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.DPL()).arg(get_cpl()));
+        if (gate.dpl() < get_cpl())
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.dpl()).arg(get_cpl()));
 
-        if (selectorRPL > gate.DPL())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.DPL()));
+        if (selectorRPL > gate.dpl())
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.dpl()));
 
         if (!gate.present()) {
             throw NotPresent(selector & 0xfffc, QString("Gate not present"));
@@ -691,16 +691,16 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
         return;
     }
 
-    if (descriptor.isTSS()) {
-        auto& tssDescriptor = descriptor.asTSSDescriptor();
+    if (descriptor.is_tss()) {
+        auto& tssDescriptor = descriptor.as_tss_descriptor();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "CS is this:");
         dump_descriptor(cachedDescriptor(SegmentRegisterIndex::CS));
         vlog(LogCPU, "%s to TSS descriptor (%s) -> %08x", toString(type), tssDescriptor.typeName(), tssDescriptor.base());
 #endif
-        if (tssDescriptor.DPL() < get_cpl())
+        if (tssDescriptor.dpl() < get_cpl())
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < CPL").arg(toString(type)));
-        if (tssDescriptor.DPL() < selectorRPL)
+        if (tssDescriptor.dpl() < selectorRPL)
             throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
         if (!tssDescriptor.present())
             throw NotPresent(selector & 0xfffc, "TSS not present");
@@ -709,30 +709,30 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     }
 
     // Okay, so it's a code segment then.
-    auto& codeSegment = descriptor.asCodeSegmentDescriptor();
+    auto& codeSegment = descriptor.as_code_segment_descriptor();
 
     if ((type == JumpType::CALL || type == JumpType::JMP) && !gate) {
         if (codeSegment.conforming()) {
-            if (codeSegment.DPL() > get_cpl()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(get_cpl()));
+            if (codeSegment.dpl() > get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.dpl()).arg(get_cpl()));
             }
         } else {
-            if (selectorRPL > codeSegment.DPL()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.DPL()));
+            if (selectorRPL > codeSegment.dpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.dpl()));
             }
-            if (codeSegment.DPL() != get_cpl()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.DPL()).arg(get_cpl()));
+            if (codeSegment.dpl() != get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.dpl()).arg(get_cpl()));
             }
         }
     }
 
-    if (gate && !gate->is32Bit()) {
+    if (gate && !gate->is_32bit()) {
         offset &= 0xffff;
     }
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.
-    if (!codeSegment.is32Bit()) {
+    if (!codeSegment.is_32bit()) {
         offset &= 0xffff;
     }
 
@@ -750,31 +750,31 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     set_eip(offset);
 
     if (type == JumpType::CALL && gate) {
-        if (descriptor.DPL() < originalCPL) {
+        if (descriptor.dpl() < originalCPL) {
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
 #endif
             auto tss = current_tss();
 
-            u16 newSS = tss.get_ring_ss(descriptor.DPL());
-            u32 newESP = tss.get_ring_esp(descriptor.DPL());
+            u16 newSS = tss.get_ring_ss(descriptor.dpl());
+            u32 newESP = tss.get_ring_esp(descriptor.dpl());
             auto newSSDescriptor = get_descriptor(newSS);
 
             // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
-            if (newSSDescriptor.isNull()) {
+            if (newSSDescriptor.is_null()) {
                 throw InvalidTSS(newSS & 0xfffc, "New ss is null");
             }
 
-            if (newSSDescriptor.isOutsideTableLimits()) {
+            if (newSSDescriptor.is_outside_table_limits()) {
                 throw InvalidTSS(newSS & 0xfffc, "New ss outside table limits");
             }
 
-            if (newSSDescriptor.DPL() != descriptor.DPL()) {
-                throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.DPL()).arg(descriptor.DPL()));
+            if (newSSDescriptor.dpl() != descriptor.dpl()) {
+                throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.dpl()).arg(descriptor.dpl()));
             }
 
-            if (!newSSDescriptor.isData() || !newSSDescriptor.asDataSegmentDescriptor().writable()) {
+            if (!newSSDescriptor.is_data() || !newSSDescriptor.as_data_segment_descriptor().writable()) {
                 throw InvalidTSS(newSS & 0xfffc, "New ss not a writable data segment");
             }
 
@@ -783,7 +783,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
             }
 
             BEGIN_ASSERT_NO_EXCEPTIONS
-            set_cpl(descriptor.DPL());
+            set_cpl(descriptor.dpl());
             set_ss(newSS);
             set_esp(newESP);
 
@@ -821,8 +821,8 @@ void CPU::clear_segment_register_after_return_if_needed(SegmentRegisterIndex seg
     if (read_segment_register(segreg) == 0)
         return;
     auto& cached = cached_descriptor(segreg);
-    if (cached.isNull() || (cached.DPL() < get_cpl() && (cached.isData() || cached.isNonconformingCode()))) {
-        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", toString(type), register_name(segreg), read_segment_register(segreg), cached.DPL(), get_cpl());
+    if (cached.is_null() || (cached.dpl() < get_cpl() && (cached.is_data() || cached.is_nonconforming_code()))) {
+        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", toString(type), register_name(segreg), read_segment_register(segreg), cached.dpl(), get_cpl());
         write_segment_register(segreg, 0);
     }
 }
@@ -852,13 +852,13 @@ void CPU::protected_far_return(u16 stack_adjustment)
 
     auto descriptor = get_descriptor(selector);
 
-    if (descriptor.isNull())
+    if (descriptor.is_null())
         throw GeneralProtectionFault(0, "RETF to null selector");
 
-    if (descriptor.isOutsideTableLimits())
+    if (descriptor.is_outside_table_limits())
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to selector outside table limit");
 
-    if (!descriptor.isCode()) {
+    if (!descriptor.is_code()) {
         dump_descriptor(descriptor);
         throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
@@ -866,12 +866,12 @@ void CPU::protected_far_return(u16 stack_adjustment)
     if (selectorRPL < get_cpl())
         throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(get_cpl()));
 
-    auto& codeSegment = descriptor.asCodeSegmentDescriptor();
+    auto& codeSegment = descriptor.as_code_segment_descriptor();
 
-    if (codeSegment.conforming() && codeSegment.DPL() > selectorRPL)
+    if (codeSegment.conforming() && codeSegment.dpl() > selectorRPL)
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to conforming code segment with DPL > RPL");
 
-    if (!codeSegment.conforming() && codeSegment.DPL() != selectorRPL)
+    if (!codeSegment.conforming() && codeSegment.dpl() != selectorRPL)
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to non-conforming code segment with DPL != RPL");
 
     if (!codeSegment.present())
@@ -879,7 +879,7 @@ void CPU::protected_far_return(u16 stack_adjustment)
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.
-    if (!codeSegment.is32Bit()) {
+    if (!codeSegment.is_32bit()) {
         offset &= 0xffff;
     }
 
@@ -941,7 +941,7 @@ void CPU::set_cpl(u8 cpl)
 {
     if (get_pe() && !get_vm())
         m_cs = (m_cs & ~3) | cpl;
-    cached_descriptor(SegmentRegisterIndex::CS).m_RPL = cpl;
+    cached_descriptor(SegmentRegisterIndex::CS).m_rpl = cpl;
 }
 
 void CPU::_NOP(Instruction&)
@@ -1201,7 +1201,7 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
             pte);
     }
     m_cr2 = linearAddress.get();
-    if (options.crashOnPF) {
+    if (options.crash_on_page_fault) {
         dump_all();
         vlog(LogAlert, "CRASH ON #PF");
         ASSERT_NOT_REACHED();
@@ -1289,7 +1289,7 @@ void CPU::snoop(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType access
     // FIXME: Support multi-byte snoops.
     if (get_pe() && !get_vm())
         validate_address<u8>(segreg, offset, accessType);
-    auto linearAddress = cached_descriptor(segreg).linearAddress(offset);
+    auto linearAddress = cached_descriptor(segreg).linear_address(offset);
     snoop(linearAddress, accessType);
 }
 
@@ -1298,7 +1298,7 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
 {
     if (!get_vm()) {
         if (accessType != MemoryAccessType::Execute) {
-            if (descriptor.isNull()) {
+            if (descriptor.is_null()) {
                 vlog(LogAlert, "NULL! %s offset %08X into null selector (selector index: %04X)",
                     toString(accessType),
                     offset,
@@ -1312,18 +1312,18 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
 
         switch (accessType) {
         case MemoryAccessType::Read:
-            if (descriptor.isCode() && !descriptor.asCodeSegmentDescriptor().readable()) {
+            if (descriptor.is_code() && !descriptor.as_code_segment_descriptor().readable()) {
                 throw GeneralProtectionFault(0, "Attempt to read from non-readable code segment");
             }
             break;
         case MemoryAccessType::Write:
-            if (!descriptor.isData()) {
+            if (!descriptor.is_data()) {
                 if (descriptor.m_loaded_in_ss)
                     throw StackFault(0, "Attempt to write to non-data segment");
                 else
                     throw GeneralProtectionFault(0, "Attempt to write to non-data segment");
             }
-            if (!descriptor.asDataSegmentDescriptor().writable()) {
+            if (!descriptor.as_data_segment_descriptor().writable()) {
                 if (descriptor.m_loaded_in_ss)
                     throw StackFault(0, "Attempt to write to non-writable data segment");
                 else
@@ -1332,7 +1332,7 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
             break;
         case MemoryAccessType::Execute:
             // CS should never point to a non-code segment.
-            ASSERT(descriptor.isCode());
+            ASSERT(descriptor.is_code());
             break;
         default:
             break;
@@ -1392,8 +1392,8 @@ T CPU::read_physical_memory(PhysicalAddress physicalAddress)
         return 0;
     }
     if (auto* provider = memory_provider_for_address(physicalAddress)) {
-        if (auto* directReadAccessPointer = provider->pointerForDirectReadAccess()) {
-            return *reinterpret_cast<const T*>(&directReadAccessPointer[physicalAddress.get() - provider->baseAddress().get()]);
+        if (auto* directReadAccessPointer = provider->pointer_for_direct_read_access()) {
+            return *reinterpret_cast<const T*>(&directReadAccessPointer[physicalAddress.get() - provider->base_address().get()]);
         }
         return provider->read<T>(physicalAddress.get());
     }
@@ -1464,7 +1464,7 @@ ALWAYS_INLINE T CPU::read_memory(LinearAddress linearAddress, MemoryAccessType a
 template<typename T>
 ALWAYS_INLINE T CPU::read_memory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
 {
-    auto linearAddress = descriptor.linearAddress(offset);
+    auto linearAddress = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
         validate_address<T>(descriptor, offset, accessType);
     return read_memory<T>(linearAddress, accessType);
@@ -1514,8 +1514,8 @@ template<typename T>
 LogicalAddress CPU::read_logical_address(SegmentRegisterIndex segreg, u32 offset)
 {
     LogicalAddress address;
-    address.setOffset(read_memory<T>(segreg, offset));
-    address.setSelector(read_memory16(segreg, offset + sizeof(T)));
+    address.set_offset(read_memory<T>(segreg, offset));
+    address.set_selector(read_memory16(segreg, offset + sizeof(T)));
     return address;
 }
 
@@ -1560,7 +1560,7 @@ void CPU::write_memory(LinearAddress linearAddress, T value, u8 effectiveCPL)
 template<typename T>
 void CPU::write_memory(const SegmentDescriptor& descriptor, u32 offset, T value)
 {
-    auto linearAddress = descriptor.linearAddress(offset);
+    auto linearAddress = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
         validate_address<T>(descriptor, offset, MemoryAccessType::Write);
     write_memory(linearAddress, value);
@@ -1657,7 +1657,7 @@ const u8* CPU::pointer_to_physical_memory(PhysicalAddress physicalAddress)
     if (!validate_physical_address<u8>(physicalAddress, MemoryAccessType::InternalPointer))
         return nullptr;
     if (auto* provider = memory_provider_for_address(physicalAddress))
-        return provider->memoryPointer(physicalAddress.get());
+        return provider->memory_pointer(physicalAddress.get());
     return &m_memory[physicalAddress.get()];
 }
 
@@ -1668,7 +1668,7 @@ const u8* CPU::memory_pointer(SegmentRegisterIndex segreg, u32 offset)
 
 const u8* CPU::memory_pointer(const SegmentDescriptor& descriptor, u32 offset)
 {
-    auto linearAddress = descriptor.linearAddress(offset);
+    auto linearAddress = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
         validate_address<u8>(descriptor, offset, MemoryAccessType::InternalPointer);
     return memory_pointer(linearAddress);
@@ -1776,12 +1776,12 @@ void CPU::init_watches()
 
 void CPU::register_memory_provider(MemoryProvider& provider)
 {
-    if ((provider.baseAddress().get() + provider.size()) > 1048576) {
-        vlog(LogConfig, "Can't register mapper with length %u @ %08x", provider.size(), provider.baseAddress().get());
+    if ((provider.base_address().get() + provider.size()) > 1048576) {
+        vlog(LogConfig, "Can't register mapper with length %u @ %08x", provider.size(), provider.base_address().get());
         ASSERT_NOT_REACHED();
     }
 
-    for (unsigned i = provider.baseAddress().get() / memory_provider_block_size; i < (provider.baseAddress().get() + provider.size()) / memory_provider_block_size; ++i) {
+    for (unsigned i = provider.base_address().get() / memory_provider_block_size; i < (provider.base_address().get() + provider.size()) / memory_provider_block_size; ++i) {
         vlog(LogConfig, "Register memory provider %p as mapper %u", &provider, i);
         m_memory_providers[i] = &provider;
     }

@@ -151,10 +151,10 @@ void vm_handleE6(CPU& cpu)
             u32 trax = drive->cylinders() - 1;
             cpu.set_al(0);
             cpu.set_ah(FD_NO_ERROR);
-            cpu.set_bl(drive->floppyTypeForCMOS());
+            cpu.set_bl(drive->floppy_type_for_cmos());
             cpu.set_bh(0);
             cpu.set_ch(trax & 0xFF);                                              // Tracks.
-            cpu.set_cl(((trax >> 2) & 0xC0) | (drive->sectorsPerTrack() & 0x3F)); // Sectors per track.
+            cpu.set_cl(((trax >> 2) & 0xC0) | (drive->sectors_per_track() & 0x3F)); // Sectors per track.
             cpu.set_dh(drive->heads() - 1);                                       // Sides.
 
             if (isFloppy) {
@@ -163,7 +163,7 @@ void vm_handleE6(CPU& cpu)
                 cpu.set_dl(cpu.machine().fixed0().present() + cpu.machine().fixed1().present());
             }
 
-            vlog(LogDisk, "Reporting %s geometry: %u tracks, %u spt, %u heads", qPrintable(drive->name()), drive->cylinders(), drive->sectorsPerTrack(), drive->heads());
+            vlog(LogDisk, "Reporting %s geometry: %u tracks, %u spt, %u heads", qPrintable(drive->name()), drive->cylinders(), drive->sectors_per_track(), drive->heads());
 
             // FIXME: ES:DI should points to some wacky Disk Base Table.
             if (isFloppy) {
@@ -267,13 +267,13 @@ void vm_handleE6(CPU& cpu)
 
 static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
-    auto lba = drive.toLBA(cylinder, head, sector);
+    auto lba = drive.to_lba(cylinder, head, sector);
 
     if (options.disklog)
         vlog(LogDisk, "%s reading %u sectors at %u/%u/%u (LBA %u) to %04x:%04x", qPrintable(drive.name()), count, cylinder, head, sector, lba, segment, offset);
 
-    QByteArray data(drive.bytesPerSector() * count, Qt::Uninitialized);
-    fread(data.data(), drive.bytesPerSector(), count, fp);
+    QByteArray data(drive.bytes_per_sector() * count, Qt::Uninitialized);
+    fread(data.data(), drive.bytes_per_sector(), count, fp);
     LinearAddress dest((segment << 4) + offset);
     for (int i = 0; i < data.size(); ++i)
         cpu.write_memory<u8>(dest.offset(i), data[i]);
@@ -281,24 +281,24 @@ static void bios_disk_read(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u
 
 static void bios_disk_write(CPU& cpu, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
-    auto lba = drive.toLBA(cylinder, head, sector);
+    auto lba = drive.to_lba(cylinder, head, sector);
 
     if (options.disklog)
         vlog(LogDisk, "%s writing %u sectors at %u/%u/%u (LBA %u) from %04x:%04x", qPrintable(drive.name()), count, cylinder, head, sector, lba, segment, offset);
 
     const void* source = cpu.memory_pointer(LogicalAddress(segment, offset));
-    fwrite(source, drive.bytesPerSector(), count, fp);
+    fwrite(source, drive.bytes_per_sector(), count, fp);
 }
 
 static void bios_disk_verify(CPU&, FILE* fp, DiskDrive& drive, u16 cylinder, u16 head, u16 sector, u16 count, u16 segment, u16 offset)
 {
-    auto lba = drive.toLBA(cylinder, head, sector);
+    auto lba = drive.to_lba(cylinder, head, sector);
 
     if (options.disklog)
         vlog(LogDisk, "%s verifying %u sectors at %u/%u/%u (LBA %u)", qPrintable(drive.name()), count, cylinder, head, sector, lba);
 
-    u8 dummy[count * drive.bytesPerSector()];
-    u16 veri = fread(dummy, drive.bytesPerSector(), count, fp);
+    u8 dummy[count * drive.bytes_per_sector()];
+    u16 veri = fread(dummy, drive.bytes_per_sector(), count, fp);
     if (veri != count)
         vlog(LogAlert, "veri != count, something went wrong");
 
@@ -333,7 +333,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
         goto epilogue;
     }
 
-    lba = drive->toLBA(cylinder, head, sector);
+    lba = drive->to_lba(cylinder, head, sector);
     if (lba > drive->sectors()) {
         if (options.disklog)
             vlog(LogDisk, "%s bogus sector request (LBA %u from CHS %u/%u/%u)", qPrintable(drive->name()), lba, cylinder, head, sector);
@@ -341,20 +341,20 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
         goto epilogue;
     }
 
-    if ((sector > drive->sectorsPerTrack()) || (head >= drive->heads())) {
+    if ((sector > drive->sectors_per_track()) || (head >= drive->heads())) {
         if (options.disklog)
             vlog(LogDisk, "%s request out of geometrical bounds (%u/%u/%u)", qPrintable(drive->name()), cylinder, head, sector);
         error = FD_TIMEOUT;
         goto epilogue;
     }
 
-    fp = fopen(qPrintable(drive->imagePath()), function == WriteSectors ? "rb+" : "rb");
+    fp = fopen(qPrintable(drive->image_path()), function == WriteSectors ? "rb+" : "rb");
     if (!fp) {
-        vlog(LogDisk, "PANIC: Could not access drive %d image (%s)!", driveIndex, qPrintable(drive->imagePath()));
+        vlog(LogDisk, "PANIC: Could not access drive %d image (%s)!", driveIndex, qPrintable(drive->image_path()));
         hard_exit(1);
     }
 
-    fseek(fp, lba * drive->bytesPerSector(), SEEK_SET);
+    fseek(fp, lba * drive->bytes_per_sector(), SEEK_SET);
 
     switch (function) {
     case ReadSectors:

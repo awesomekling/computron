@@ -71,10 +71,10 @@ int main(int argc, char** argv)
 
     OwnPtr<Machine> machine;
 
-    if (options.autotestPath.length()) {
-        machine = Machine::create_for_autotest(options.autotestPath);
-    } else if (options.configPath.length()) {
-        machine = Machine::create_from_file(options.configPath);
+    if (options.autotest_path.length()) {
+        machine = Machine::create_for_autotest(options.autotest_path);
+    } else if (options.config_path.length()) {
+        machine = Machine::create_from_file(options.config_path);
     } else {
         machine = Machine::create_from_file(QLatin1String("default.vmf"));
     }
@@ -121,11 +121,11 @@ void parseArguments(const QStringList& arguments)
         else if (argument == "--vlog-cycle")
             options.vlogcycle = true;
         else if (argument == "--crash-on-pf")
-            options.crashOnPF = true;
+            options.crash_on_page_fault = true;
         else if (argument == "--crash-on-gpf")
-            options.crashOnGPF = true;
+            options.crash_on_general_protection_fault = true;
         else if (argument == "--crash-on-exception")
-            options.crashOnException = true;
+            options.crash_on_exception = true;
         else if (argument == "--pedebug")
             options.pedebug = true;
         else if (argument == "--vgadebug")
@@ -146,7 +146,7 @@ void parseArguments(const QStringList& arguments)
                 fprintf(stderr, "usage: computron --config [filename]\n");
                 hard_exit(1);
             }
-            options.configPath = (*it);
+            options.config_path = (*it);
             continue;
         } else if (argument == "--run") {
             ++it;
@@ -154,7 +154,7 @@ void parseArguments(const QStringList& arguments)
                 fprintf(stderr, "usage: computron --run [filename]\n");
                 hard_exit(1);
             }
-            options.autotestPath = (*it);
+            options.autotest_path = (*it);
             continue;
         }
         ++it;

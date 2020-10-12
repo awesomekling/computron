@@ -134,37 +134,37 @@ static const unsigned CurrentAddressSize = 0xB33FBABE;
 
 struct InstructionDescriptor {
     InstructionImpl impl { nullptr };
-    bool opcodeHasRegisterIndex { false };
+    bool opcode_has_register_index { false };
     const char* mnemonic { nullptr };
     InstructionFormat format { InvalidFormat };
-    bool hasRM { false };
-    unsigned imm1Bytes { 0 };
-    unsigned imm2Bytes { 0 };
+    bool has_rm { false };
+    unsigned imm1_bytes { 0 };
+    unsigned imm2_bytes { 0 };
     InstructionDescriptor* slashes { nullptr };
 
-    unsigned imm1BytesForAddressSize(bool a32)
+    unsigned imm1_bytes_for_address_size(bool a32)
     {
-        if (imm1Bytes == CurrentAddressSize)
+        if (imm1_bytes == CurrentAddressSize)
             return a32 ? 4 : 2;
-        return imm1Bytes;
+        return imm1_bytes;
     }
 
-    unsigned imm2BytesForAddressSize(bool a32)
+    unsigned imm2_bytes_for_address_size(bool a32)
     {
-        if (imm2Bytes == CurrentAddressSize)
+        if (imm2_bytes == CurrentAddressSize)
             return a32 ? 4 : 2;
-        return imm2Bytes;
+        return imm2_bytes;
     }
 
-    IsLockPrefixAllowed lockPrefixAllowed { LockPrefixNotAllowed };
+    IsLockPrefixAllowed lock_prefix_allowed { LockPrefixNotAllowed };
 };
 
 static InstructionDescriptor s_table16[256];
 static InstructionDescriptor s_table32[256];
-static InstructionDescriptor s_0F_table16[256];
-static InstructionDescriptor s_0F_table32[256];
+static InstructionDescriptor s_0f_table16[256];
+static InstructionDescriptor s_0f_table32[256];
 
-static bool opcodeHasRegisterIndex(u8 op)
+static bool opcode_has_register_index(u8 op)
 {
     if (op >= 0x40 && op <= 0x5F)
         return true;
@@ -175,7 +175,7 @@ static bool opcodeHasRegisterIndex(u8 op)
     return false;
 }
 
-static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed)
+static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lock_prefix_allowed)
 {
     InstructionDescriptor& d = table[op];
     ASSERT(!d.impl);
@@ -183,12 +183,12 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     d.mnemonic = mnemonic;
     d.format = format;
     d.impl = impl;
-    d.lockPrefixAllowed = lockPrefixAllowed;
+    d.lock_prefix_allowed = lock_prefix_allowed;
 
     if ((format > __BeginFormatsWithRMByte && format < __EndFormatsWithRMByte) || format == MultibyteWithSlash)
-        d.hasRM = true;
+        d.has_rm = true;
     else
-        d.opcodeHasRegisterIndex = opcodeHasRegisterIndex(op);
+        d.opcode_has_register_index = opcode_has_register_index(op);
 
     switch (format) {
     case OP_RM8_imm8:
@@ -207,7 +207,7 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     case OP_imm8_EAX:
     case OP_RM16_reg16_imm8:
     case OP_RM32_reg32_imm8:
-        d.imm1Bytes = 1;
+        d.imm1_bytes = 1;
         break;
     case OP_reg16_RM16_imm16:
     case OP_AX_imm16:
@@ -215,7 +215,7 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     case OP_relimm16:
     case OP_reg16_imm16:
     case OP_RM16_imm16:
-        d.imm1Bytes = 2;
+        d.imm1_bytes = 2;
         break;
     case OP_RM32_imm32:
     case OP_reg32_RM32_imm32:
@@ -223,19 +223,19 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     case OP_EAX_imm32:
     case OP_imm32:
     case OP_relimm32:
-        d.imm1Bytes = 4;
+        d.imm1_bytes = 4;
         break;
     case OP_imm8_imm16:
-        d.imm1Bytes = 1;
-        d.imm2Bytes = 2;
+        d.imm1_bytes = 1;
+        d.imm2_bytes = 2;
         break;
     case OP_imm16_imm16:
-        d.imm1Bytes = 2;
-        d.imm2Bytes = 2;
+        d.imm1_bytes = 2;
+        d.imm2_bytes = 2;
         break;
     case OP_imm16_imm32:
-        d.imm1Bytes = 2;
-        d.imm2Bytes = 4;
+        d.imm1_bytes = 2;
+        d.imm2_bytes = 4;
         break;
     case OP_moff8_AL:
     case OP_moff16_AX:
@@ -244,7 +244,7 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     case OP_AX_moff16:
     case OP_EAX_moff32:
     case OP_NEAR_imm:
-        d.imm1Bytes = CurrentAddressSize;
+        d.imm1_bytes = CurrentAddressSize;
         break;
     //default:
     case InvalidFormat:
@@ -308,81 +308,81 @@ static void build(InstructionDescriptor* table, u8 op, const char* mnemonic, Ins
     }
 }
 
-static void buildSlash(InstructionDescriptor* table, u8 op, u8 slash, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_slash(InstructionDescriptor* table, u8 op, u8 slash, const char* mnemonic, InstructionFormat format, InstructionImpl impl, IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
     InstructionDescriptor& d = table[op];
     d.format = MultibyteWithSlash;
-    d.hasRM = true;
+    d.has_rm = true;
     if (!d.slashes)
         d.slashes = new InstructionDescriptor[8];
 
-    build(d.slashes, slash, mnemonic, format, impl, lockPrefixAllowed);
+    build(d.slashes, slash, mnemonic, format, impl, lock_prefix_allowed);
 }
 
-static void build0F(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_0f(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_0F_table16, op, mnemonic, format, impl, lockPrefixAllowed);
-    build(s_0F_table32, op, mnemonic, format, impl, lockPrefixAllowed);
+    build(s_0f_table16, op, mnemonic, format, impl, lock_prefix_allowed);
+    build(s_0f_table32, op, mnemonic, format, impl, lock_prefix_allowed);
 }
 
-static void build(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_table16, op, mnemonic, format, impl, lockPrefixAllowed);
-    build(s_table32, op, mnemonic, format, impl, lockPrefixAllowed);
+    build(s_table16, op, mnemonic, format, impl, lock_prefix_allowed);
+    build(s_table32, op, mnemonic, format, impl, lock_prefix_allowed);
 }
 
-static void build(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_table16, op, mnemonic, format16, impl16, lockPrefixAllowed);
-    build(s_table32, op, mnemonic, format32, impl32, lockPrefixAllowed);
+    build(s_table16, op, mnemonic, format16, impl16, lock_prefix_allowed);
+    build(s_table32, op, mnemonic, format32, impl32, lock_prefix_allowed);
 }
 
-static void build0F(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_0f(u8 op, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_0F_table16, op, mnemonic, format16, impl16, lockPrefixAllowed);
-    build(s_0F_table32, op, mnemonic, format32, impl32, lockPrefixAllowed);
+    build(s_0f_table16, op, mnemonic, format16, impl16, lock_prefix_allowed);
+    build(s_0f_table32, op, mnemonic, format32, impl32, lock_prefix_allowed);
 }
 
-static void build(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_table16, op, mnemonic16, format16, impl16, lockPrefixAllowed);
-    build(s_table32, op, mnemonic32, format32, impl32, lockPrefixAllowed);
+    build(s_table16, op, mnemonic16, format16, impl16, lock_prefix_allowed);
+    build(s_table32, op, mnemonic32, format32, impl32, lock_prefix_allowed);
 }
 
-static void build0F(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_0f(u8 op, const char* mnemonic16, InstructionFormat format16, void (CPU::*impl16)(Instruction&), const char* mnemonic32, InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    build(s_0F_table16, op, mnemonic16, format16, impl16, lockPrefixAllowed);
-    build(s_0F_table32, op, mnemonic32, format32, impl32, lockPrefixAllowed);
+    build(s_0f_table16, op, mnemonic16, format16, impl16, lock_prefix_allowed);
+    build(s_0f_table32, op, mnemonic32, format32, impl32, lock_prefix_allowed);
 }
 
-static void buildSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_slash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    buildSlash(s_table16, op, slash, mnemonic, format, impl, lockPrefixAllowed);
-    buildSlash(s_table32, op, slash, mnemonic, format, impl, lockPrefixAllowed);
+    build_slash(s_table16, op, slash, mnemonic, format, impl, lock_prefix_allowed);
+    build_slash(s_table32, op, slash, mnemonic, format, impl, lock_prefix_allowed);
 }
 
-static void buildSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_slash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    buildSlash(s_table16, op, slash, mnemonic, format16, impl16, lockPrefixAllowed);
-    buildSlash(s_table32, op, slash, mnemonic, format32, impl32, lockPrefixAllowed);
+    build_slash(s_table16, op, slash, mnemonic, format16, impl16, lock_prefix_allowed);
+    build_slash(s_table32, op, slash, mnemonic, format32, impl32, lock_prefix_allowed);
 }
 
-static void build0FSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_0f_slash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format16, void (CPU::*impl16)(Instruction&), InstructionFormat format32, void (CPU::*impl32)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    buildSlash(s_0F_table16, op, slash, mnemonic, format16, impl16, lockPrefixAllowed);
-    buildSlash(s_0F_table32, op, slash, mnemonic, format32, impl32, lockPrefixAllowed);
+    build_slash(s_0f_table16, op, slash, mnemonic, format16, impl16, lock_prefix_allowed);
+    build_slash(s_0f_table32, op, slash, mnemonic, format32, impl32, lock_prefix_allowed);
 }
 
-static void build0FSlash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lockPrefixAllowed = LockPrefixNotAllowed)
+static void build_0f_slash(u8 op, u8 slash, const char* mnemonic, InstructionFormat format, void (CPU::*impl)(Instruction&), IsLockPrefixAllowed lock_prefix_allowed = LockPrefixNotAllowed)
 {
-    buildSlash(s_0F_table16, op, slash, mnemonic, format, impl, lockPrefixAllowed);
-    buildSlash(s_0F_table32, op, slash, mnemonic, format, impl, lockPrefixAllowed);
+    build_slash(s_0f_table16, op, slash, mnemonic, format, impl, lock_prefix_allowed);
+    build_slash(s_0f_table32, op, slash, mnemonic, format, impl, lock_prefix_allowed);
 }
 
 void build_opcode_tables_if_needed()
 {
-    static bool hasBuiltTables = false;
-    if (hasBuiltTables)
+    static bool has_built_tables = false;
+    if (has_built_tables)
         return;
 
     build(0x00, "ADD", OP_RM8_reg8, &CPU::_ADD_RM8_reg8, LockPrefixAllowed);
@@ -593,236 +593,236 @@ void build_opcode_tables_if_needed()
     build(0xFC, "CLD", OP, &CPU::_CLD);
     build(0xFD, "STD", OP, &CPU::_STD);
 
-    buildSlash(0x80, 0, "ADD", OP_RM8_imm8, &CPU::_ADD_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 1, "OR", OP_RM8_imm8, &CPU::_OR_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 2, "ADC", OP_RM8_imm8, &CPU::_ADC_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 3, "SBB", OP_RM8_imm8, &CPU::_SBB_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 4, "AND", OP_RM8_imm8, &CPU::_AND_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 5, "SUB", OP_RM8_imm8, &CPU::_SUB_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 6, "XOR", OP_RM8_imm8, &CPU::_XOR_RM8_imm8, LockPrefixAllowed);
-    buildSlash(0x80, 7, "CMP", OP_RM8_imm8, &CPU::_CMP_RM8_imm8);
+    build_slash(0x80, 0, "ADD", OP_RM8_imm8, &CPU::_ADD_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 1, "OR", OP_RM8_imm8, &CPU::_OR_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 2, "ADC", OP_RM8_imm8, &CPU::_ADC_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 3, "SBB", OP_RM8_imm8, &CPU::_SBB_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 4, "AND", OP_RM8_imm8, &CPU::_AND_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 5, "SUB", OP_RM8_imm8, &CPU::_SUB_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 6, "XOR", OP_RM8_imm8, &CPU::_XOR_RM8_imm8, LockPrefixAllowed);
+    build_slash(0x80, 7, "CMP", OP_RM8_imm8, &CPU::_CMP_RM8_imm8);
 
-    buildSlash(0x81, 0, "ADD", OP_RM16_imm16, &CPU::_ADD_RM16_imm16, OP_RM32_imm32, &CPU::_ADD_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 1, "OR", OP_RM16_imm16, &CPU::_OR_RM16_imm16, OP_RM32_imm32, &CPU::_OR_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 2, "ADC", OP_RM16_imm16, &CPU::_ADC_RM16_imm16, OP_RM32_imm32, &CPU::_ADC_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 3, "SBB", OP_RM16_imm16, &CPU::_SBB_RM16_imm16, OP_RM32_imm32, &CPU::_SBB_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 4, "AND", OP_RM16_imm16, &CPU::_AND_RM16_imm16, OP_RM32_imm32, &CPU::_AND_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 5, "SUB", OP_RM16_imm16, &CPU::_SUB_RM16_imm16, OP_RM32_imm32, &CPU::_SUB_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 6, "XOR", OP_RM16_imm16, &CPU::_XOR_RM16_imm16, OP_RM32_imm32, &CPU::_XOR_RM32_imm32, LockPrefixAllowed);
-    buildSlash(0x81, 7, "CMP", OP_RM16_imm16, &CPU::_CMP_RM16_imm16, OP_RM32_imm32, &CPU::_CMP_RM32_imm32);
+    build_slash(0x81, 0, "ADD", OP_RM16_imm16, &CPU::_ADD_RM16_imm16, OP_RM32_imm32, &CPU::_ADD_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 1, "OR", OP_RM16_imm16, &CPU::_OR_RM16_imm16, OP_RM32_imm32, &CPU::_OR_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 2, "ADC", OP_RM16_imm16, &CPU::_ADC_RM16_imm16, OP_RM32_imm32, &CPU::_ADC_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 3, "SBB", OP_RM16_imm16, &CPU::_SBB_RM16_imm16, OP_RM32_imm32, &CPU::_SBB_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 4, "AND", OP_RM16_imm16, &CPU::_AND_RM16_imm16, OP_RM32_imm32, &CPU::_AND_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 5, "SUB", OP_RM16_imm16, &CPU::_SUB_RM16_imm16, OP_RM32_imm32, &CPU::_SUB_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 6, "XOR", OP_RM16_imm16, &CPU::_XOR_RM16_imm16, OP_RM32_imm32, &CPU::_XOR_RM32_imm32, LockPrefixAllowed);
+    build_slash(0x81, 7, "CMP", OP_RM16_imm16, &CPU::_CMP_RM16_imm16, OP_RM32_imm32, &CPU::_CMP_RM32_imm32);
 
-    buildSlash(0x83, 0, "ADD", OP_RM16_imm8, &CPU::_ADD_RM16_imm8, OP_RM32_imm8, &CPU::_ADD_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 1, "OR", OP_RM16_imm8, &CPU::_OR_RM16_imm8, OP_RM32_imm8, &CPU::_OR_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 2, "ADC", OP_RM16_imm8, &CPU::_ADC_RM16_imm8, OP_RM32_imm8, &CPU::_ADC_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 3, "SBB", OP_RM16_imm8, &CPU::_SBB_RM16_imm8, OP_RM32_imm8, &CPU::_SBB_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 4, "AND", OP_RM16_imm8, &CPU::_AND_RM16_imm8, OP_RM32_imm8, &CPU::_AND_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 5, "SUB", OP_RM16_imm8, &CPU::_SUB_RM16_imm8, OP_RM32_imm8, &CPU::_SUB_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 6, "XOR", OP_RM16_imm8, &CPU::_XOR_RM16_imm8, OP_RM32_imm8, &CPU::_XOR_RM32_imm8, LockPrefixAllowed);
-    buildSlash(0x83, 7, "CMP", OP_RM16_imm8, &CPU::_CMP_RM16_imm8, OP_RM32_imm8, &CPU::_CMP_RM32_imm8);
+    build_slash(0x83, 0, "ADD", OP_RM16_imm8, &CPU::_ADD_RM16_imm8, OP_RM32_imm8, &CPU::_ADD_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 1, "OR", OP_RM16_imm8, &CPU::_OR_RM16_imm8, OP_RM32_imm8, &CPU::_OR_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 2, "ADC", OP_RM16_imm8, &CPU::_ADC_RM16_imm8, OP_RM32_imm8, &CPU::_ADC_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 3, "SBB", OP_RM16_imm8, &CPU::_SBB_RM16_imm8, OP_RM32_imm8, &CPU::_SBB_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 4, "AND", OP_RM16_imm8, &CPU::_AND_RM16_imm8, OP_RM32_imm8, &CPU::_AND_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 5, "SUB", OP_RM16_imm8, &CPU::_SUB_RM16_imm8, OP_RM32_imm8, &CPU::_SUB_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 6, "XOR", OP_RM16_imm8, &CPU::_XOR_RM16_imm8, OP_RM32_imm8, &CPU::_XOR_RM32_imm8, LockPrefixAllowed);
+    build_slash(0x83, 7, "CMP", OP_RM16_imm8, &CPU::_CMP_RM16_imm8, OP_RM32_imm8, &CPU::_CMP_RM32_imm8);
 
-    buildSlash(0x8F, 0, "POP", OP_RM16, &CPU::_POP_RM16, OP_RM32, &CPU::_POP_RM32);
+    build_slash(0x8F, 0, "POP", OP_RM16, &CPU::_POP_RM16, OP_RM32, &CPU::_POP_RM32);
 
-    buildSlash(0xC0, 0, "ROL", OP_RM8_imm8, &CPU::_ROL_RM8_imm8);
-    buildSlash(0xC0, 1, "ROR", OP_RM8_imm8, &CPU::_ROR_RM8_imm8);
-    buildSlash(0xC0, 2, "RCL", OP_RM8_imm8, &CPU::_RCL_RM8_imm8);
-    buildSlash(0xC0, 3, "RCR", OP_RM8_imm8, &CPU::_RCR_RM8_imm8);
-    buildSlash(0xC0, 4, "SHL", OP_RM8_imm8, &CPU::_SHL_RM8_imm8);
-    buildSlash(0xC0, 5, "SHR", OP_RM8_imm8, &CPU::_SHR_RM8_imm8);
-    buildSlash(0xC0, 6, "SHL", OP_RM8_imm8, &CPU::_SHL_RM8_imm8); // Undocumented
-    buildSlash(0xC0, 7, "SAR", OP_RM8_imm8, &CPU::_SAR_RM8_imm8);
+    build_slash(0xC0, 0, "ROL", OP_RM8_imm8, &CPU::_ROL_RM8_imm8);
+    build_slash(0xC0, 1, "ROR", OP_RM8_imm8, &CPU::_ROR_RM8_imm8);
+    build_slash(0xC0, 2, "RCL", OP_RM8_imm8, &CPU::_RCL_RM8_imm8);
+    build_slash(0xC0, 3, "RCR", OP_RM8_imm8, &CPU::_RCR_RM8_imm8);
+    build_slash(0xC0, 4, "SHL", OP_RM8_imm8, &CPU::_SHL_RM8_imm8);
+    build_slash(0xC0, 5, "SHR", OP_RM8_imm8, &CPU::_SHR_RM8_imm8);
+    build_slash(0xC0, 6, "SHL", OP_RM8_imm8, &CPU::_SHL_RM8_imm8); // Undocumented
+    build_slash(0xC0, 7, "SAR", OP_RM8_imm8, &CPU::_SAR_RM8_imm8);
 
-    buildSlash(0xC1, 0, "ROL", OP_RM16_imm8, &CPU::_ROL_RM16_imm8, OP_RM32_imm8, &CPU::_ROL_RM32_imm8);
-    buildSlash(0xC1, 1, "ROR", OP_RM16_imm8, &CPU::_ROR_RM16_imm8, OP_RM32_imm8, &CPU::_ROR_RM32_imm8);
-    buildSlash(0xC1, 2, "RCL", OP_RM16_imm8, &CPU::_RCL_RM16_imm8, OP_RM32_imm8, &CPU::_RCL_RM32_imm8);
-    buildSlash(0xC1, 3, "RCR", OP_RM16_imm8, &CPU::_RCR_RM16_imm8, OP_RM32_imm8, &CPU::_RCR_RM32_imm8);
-    buildSlash(0xC1, 4, "SHL", OP_RM16_imm8, &CPU::_SHL_RM16_imm8, OP_RM32_imm8, &CPU::_SHL_RM32_imm8);
-    buildSlash(0xC1, 5, "SHR", OP_RM16_imm8, &CPU::_SHR_RM16_imm8, OP_RM32_imm8, &CPU::_SHR_RM32_imm8);
-    buildSlash(0xC1, 6, "SHL", OP_RM16_imm8, &CPU::_SHL_RM16_imm8, OP_RM32_imm8, &CPU::_SHL_RM32_imm8); // Undocumented
-    buildSlash(0xC1, 7, "SAR", OP_RM16_imm8, &CPU::_SAR_RM16_imm8, OP_RM32_imm8, &CPU::_SAR_RM32_imm8);
+    build_slash(0xC1, 0, "ROL", OP_RM16_imm8, &CPU::_ROL_RM16_imm8, OP_RM32_imm8, &CPU::_ROL_RM32_imm8);
+    build_slash(0xC1, 1, "ROR", OP_RM16_imm8, &CPU::_ROR_RM16_imm8, OP_RM32_imm8, &CPU::_ROR_RM32_imm8);
+    build_slash(0xC1, 2, "RCL", OP_RM16_imm8, &CPU::_RCL_RM16_imm8, OP_RM32_imm8, &CPU::_RCL_RM32_imm8);
+    build_slash(0xC1, 3, "RCR", OP_RM16_imm8, &CPU::_RCR_RM16_imm8, OP_RM32_imm8, &CPU::_RCR_RM32_imm8);
+    build_slash(0xC1, 4, "SHL", OP_RM16_imm8, &CPU::_SHL_RM16_imm8, OP_RM32_imm8, &CPU::_SHL_RM32_imm8);
+    build_slash(0xC1, 5, "SHR", OP_RM16_imm8, &CPU::_SHR_RM16_imm8, OP_RM32_imm8, &CPU::_SHR_RM32_imm8);
+    build_slash(0xC1, 6, "SHL", OP_RM16_imm8, &CPU::_SHL_RM16_imm8, OP_RM32_imm8, &CPU::_SHL_RM32_imm8); // Undocumented
+    build_slash(0xC1, 7, "SAR", OP_RM16_imm8, &CPU::_SAR_RM16_imm8, OP_RM32_imm8, &CPU::_SAR_RM32_imm8);
 
-    buildSlash(0xD0, 0, "ROL", OP_RM8_1, &CPU::_ROL_RM8_1);
-    buildSlash(0xD0, 1, "ROR", OP_RM8_1, &CPU::_ROR_RM8_1);
-    buildSlash(0xD0, 2, "RCL", OP_RM8_1, &CPU::_RCL_RM8_1);
-    buildSlash(0xD0, 3, "RCR", OP_RM8_1, &CPU::_RCR_RM8_1);
-    buildSlash(0xD0, 4, "SHL", OP_RM8_1, &CPU::_SHL_RM8_1);
-    buildSlash(0xD0, 5, "SHR", OP_RM8_1, &CPU::_SHR_RM8_1);
-    buildSlash(0xD0, 6, "SHL", OP_RM8_1, &CPU::_SHL_RM8_1); // Undocumented
-    buildSlash(0xD0, 7, "SAR", OP_RM8_1, &CPU::_SAR_RM8_1);
+    build_slash(0xD0, 0, "ROL", OP_RM8_1, &CPU::_ROL_RM8_1);
+    build_slash(0xD0, 1, "ROR", OP_RM8_1, &CPU::_ROR_RM8_1);
+    build_slash(0xD0, 2, "RCL", OP_RM8_1, &CPU::_RCL_RM8_1);
+    build_slash(0xD0, 3, "RCR", OP_RM8_1, &CPU::_RCR_RM8_1);
+    build_slash(0xD0, 4, "SHL", OP_RM8_1, &CPU::_SHL_RM8_1);
+    build_slash(0xD0, 5, "SHR", OP_RM8_1, &CPU::_SHR_RM8_1);
+    build_slash(0xD0, 6, "SHL", OP_RM8_1, &CPU::_SHL_RM8_1); // Undocumented
+    build_slash(0xD0, 7, "SAR", OP_RM8_1, &CPU::_SAR_RM8_1);
 
-    buildSlash(0xD1, 0, "ROL", OP_RM16_1, &CPU::_ROL_RM16_1, OP_RM32_1, &CPU::_ROL_RM32_1);
-    buildSlash(0xD1, 1, "ROR", OP_RM16_1, &CPU::_ROR_RM16_1, OP_RM32_1, &CPU::_ROR_RM32_1);
-    buildSlash(0xD1, 2, "RCL", OP_RM16_1, &CPU::_RCL_RM16_1, OP_RM32_1, &CPU::_RCL_RM32_1);
-    buildSlash(0xD1, 3, "RCR", OP_RM16_1, &CPU::_RCR_RM16_1, OP_RM32_1, &CPU::_RCR_RM32_1);
-    buildSlash(0xD1, 4, "SHL", OP_RM16_1, &CPU::_SHL_RM16_1, OP_RM32_1, &CPU::_SHL_RM32_1);
-    buildSlash(0xD1, 5, "SHR", OP_RM16_1, &CPU::_SHR_RM16_1, OP_RM32_1, &CPU::_SHR_RM32_1);
-    buildSlash(0xD1, 6, "SHL", OP_RM16_1, &CPU::_SHL_RM16_1, OP_RM32_1, &CPU::_SHL_RM32_1); // Undocumented
-    buildSlash(0xD1, 7, "SAR", OP_RM16_1, &CPU::_SAR_RM16_1, OP_RM32_1, &CPU::_SAR_RM32_1);
+    build_slash(0xD1, 0, "ROL", OP_RM16_1, &CPU::_ROL_RM16_1, OP_RM32_1, &CPU::_ROL_RM32_1);
+    build_slash(0xD1, 1, "ROR", OP_RM16_1, &CPU::_ROR_RM16_1, OP_RM32_1, &CPU::_ROR_RM32_1);
+    build_slash(0xD1, 2, "RCL", OP_RM16_1, &CPU::_RCL_RM16_1, OP_RM32_1, &CPU::_RCL_RM32_1);
+    build_slash(0xD1, 3, "RCR", OP_RM16_1, &CPU::_RCR_RM16_1, OP_RM32_1, &CPU::_RCR_RM32_1);
+    build_slash(0xD1, 4, "SHL", OP_RM16_1, &CPU::_SHL_RM16_1, OP_RM32_1, &CPU::_SHL_RM32_1);
+    build_slash(0xD1, 5, "SHR", OP_RM16_1, &CPU::_SHR_RM16_1, OP_RM32_1, &CPU::_SHR_RM32_1);
+    build_slash(0xD1, 6, "SHL", OP_RM16_1, &CPU::_SHL_RM16_1, OP_RM32_1, &CPU::_SHL_RM32_1); // Undocumented
+    build_slash(0xD1, 7, "SAR", OP_RM16_1, &CPU::_SAR_RM16_1, OP_RM32_1, &CPU::_SAR_RM32_1);
 
-    buildSlash(0xD2, 0, "ROL", OP_RM8_CL, &CPU::_ROL_RM8_CL);
-    buildSlash(0xD2, 1, "ROR", OP_RM8_CL, &CPU::_ROR_RM8_CL);
-    buildSlash(0xD2, 2, "RCL", OP_RM8_CL, &CPU::_RCL_RM8_CL);
-    buildSlash(0xD2, 3, "RCR", OP_RM8_CL, &CPU::_RCR_RM8_CL);
-    buildSlash(0xD2, 4, "SHL", OP_RM8_CL, &CPU::_SHL_RM8_CL);
-    buildSlash(0xD2, 5, "SHR", OP_RM8_CL, &CPU::_SHR_RM8_CL);
-    buildSlash(0xD2, 6, "SHL", OP_RM8_CL, &CPU::_SHL_RM8_CL); // Undocumented
-    buildSlash(0xD2, 7, "SAR", OP_RM8_CL, &CPU::_SAR_RM8_CL);
+    build_slash(0xD2, 0, "ROL", OP_RM8_CL, &CPU::_ROL_RM8_CL);
+    build_slash(0xD2, 1, "ROR", OP_RM8_CL, &CPU::_ROR_RM8_CL);
+    build_slash(0xD2, 2, "RCL", OP_RM8_CL, &CPU::_RCL_RM8_CL);
+    build_slash(0xD2, 3, "RCR", OP_RM8_CL, &CPU::_RCR_RM8_CL);
+    build_slash(0xD2, 4, "SHL", OP_RM8_CL, &CPU::_SHL_RM8_CL);
+    build_slash(0xD2, 5, "SHR", OP_RM8_CL, &CPU::_SHR_RM8_CL);
+    build_slash(0xD2, 6, "SHL", OP_RM8_CL, &CPU::_SHL_RM8_CL); // Undocumented
+    build_slash(0xD2, 7, "SAR", OP_RM8_CL, &CPU::_SAR_RM8_CL);
 
-    buildSlash(0xD3, 0, "ROL", OP_RM16_CL, &CPU::_ROL_RM16_CL, OP_RM32_CL, &CPU::_ROL_RM32_CL);
-    buildSlash(0xD3, 1, "ROR", OP_RM16_CL, &CPU::_ROR_RM16_CL, OP_RM32_CL, &CPU::_ROR_RM32_CL);
-    buildSlash(0xD3, 2, "RCL", OP_RM16_CL, &CPU::_RCL_RM16_CL, OP_RM32_CL, &CPU::_RCL_RM32_CL);
-    buildSlash(0xD3, 3, "RCR", OP_RM16_CL, &CPU::_RCR_RM16_CL, OP_RM32_CL, &CPU::_RCR_RM32_CL);
-    buildSlash(0xD3, 4, "SHL", OP_RM16_CL, &CPU::_SHL_RM16_CL, OP_RM32_CL, &CPU::_SHL_RM32_CL);
-    buildSlash(0xD3, 5, "SHR", OP_RM16_CL, &CPU::_SHR_RM16_CL, OP_RM32_CL, &CPU::_SHR_RM32_CL);
-    buildSlash(0xD3, 6, "SHL", OP_RM16_CL, &CPU::_SHL_RM16_CL, OP_RM32_CL, &CPU::_SHL_RM32_CL); // Undocumented
-    buildSlash(0xD3, 7, "SAR", OP_RM16_CL, &CPU::_SAR_RM16_CL, OP_RM32_CL, &CPU::_SAR_RM32_CL);
+    build_slash(0xD3, 0, "ROL", OP_RM16_CL, &CPU::_ROL_RM16_CL, OP_RM32_CL, &CPU::_ROL_RM32_CL);
+    build_slash(0xD3, 1, "ROR", OP_RM16_CL, &CPU::_ROR_RM16_CL, OP_RM32_CL, &CPU::_ROR_RM32_CL);
+    build_slash(0xD3, 2, "RCL", OP_RM16_CL, &CPU::_RCL_RM16_CL, OP_RM32_CL, &CPU::_RCL_RM32_CL);
+    build_slash(0xD3, 3, "RCR", OP_RM16_CL, &CPU::_RCR_RM16_CL, OP_RM32_CL, &CPU::_RCR_RM32_CL);
+    build_slash(0xD3, 4, "SHL", OP_RM16_CL, &CPU::_SHL_RM16_CL, OP_RM32_CL, &CPU::_SHL_RM32_CL);
+    build_slash(0xD3, 5, "SHR", OP_RM16_CL, &CPU::_SHR_RM16_CL, OP_RM32_CL, &CPU::_SHR_RM32_CL);
+    build_slash(0xD3, 6, "SHL", OP_RM16_CL, &CPU::_SHL_RM16_CL, OP_RM32_CL, &CPU::_SHL_RM32_CL); // Undocumented
+    build_slash(0xD3, 7, "SAR", OP_RM16_CL, &CPU::_SAR_RM16_CL, OP_RM32_CL, &CPU::_SAR_RM32_CL);
 
-    buildSlash(0xF6, 0, "TEST", OP_RM8_imm8, &CPU::_TEST_RM8_imm8);
-    buildSlash(0xF6, 1, "TEST", OP_RM8_imm8, &CPU::_TEST_RM8_imm8); // Undocumented
-    buildSlash(0xF6, 2, "NOT", OP_RM8, &CPU::_NOT_RM8, LockPrefixAllowed);
-    buildSlash(0xF6, 3, "NEG", OP_RM8, &CPU::_NEG_RM8, LockPrefixAllowed);
-    buildSlash(0xF6, 4, "MUL", OP_RM8, &CPU::_MUL_RM8);
-    buildSlash(0xF6, 5, "IMUL", OP_RM8, &CPU::_IMUL_RM8);
-    buildSlash(0xF6, 6, "DIV", OP_RM8, &CPU::_DIV_RM8);
-    buildSlash(0xF6, 7, "IDIV", OP_RM8, &CPU::_IDIV_RM8);
+    build_slash(0xF6, 0, "TEST", OP_RM8_imm8, &CPU::_TEST_RM8_imm8);
+    build_slash(0xF6, 1, "TEST", OP_RM8_imm8, &CPU::_TEST_RM8_imm8); // Undocumented
+    build_slash(0xF6, 2, "NOT", OP_RM8, &CPU::_NOT_RM8, LockPrefixAllowed);
+    build_slash(0xF6, 3, "NEG", OP_RM8, &CPU::_NEG_RM8, LockPrefixAllowed);
+    build_slash(0xF6, 4, "MUL", OP_RM8, &CPU::_MUL_RM8);
+    build_slash(0xF6, 5, "IMUL", OP_RM8, &CPU::_IMUL_RM8);
+    build_slash(0xF6, 6, "DIV", OP_RM8, &CPU::_DIV_RM8);
+    build_slash(0xF6, 7, "IDIV", OP_RM8, &CPU::_IDIV_RM8);
 
-    buildSlash(0xF7, 0, "TEST", OP_RM16_imm16, &CPU::_TEST_RM16_imm16, OP_RM32_imm32, &CPU::_TEST_RM32_imm32);
-    buildSlash(0xF7, 1, "TEST", OP_RM16_imm16, &CPU::_TEST_RM16_imm16, OP_RM32_imm32, &CPU::_TEST_RM32_imm32); // Undocumented
-    buildSlash(0xF7, 2, "NOT", OP_RM16, &CPU::_NOT_RM16, OP_RM32, &CPU::_NOT_RM32, LockPrefixAllowed);
-    buildSlash(0xF7, 3, "NEG", OP_RM16, &CPU::_NEG_RM16, OP_RM32, &CPU::_NEG_RM32, LockPrefixAllowed);
-    buildSlash(0xF7, 4, "MUL", OP_RM16, &CPU::_MUL_RM16, OP_RM32, &CPU::_MUL_RM32);
-    buildSlash(0xF7, 5, "IMUL", OP_RM16, &CPU::_IMUL_RM16, OP_RM32, &CPU::_IMUL_RM32);
-    buildSlash(0xF7, 6, "DIV", OP_RM16, &CPU::_DIV_RM16, OP_RM32, &CPU::_DIV_RM32);
-    buildSlash(0xF7, 7, "IDIV", OP_RM16, &CPU::_IDIV_RM16, OP_RM32, &CPU::_IDIV_RM32);
+    build_slash(0xF7, 0, "TEST", OP_RM16_imm16, &CPU::_TEST_RM16_imm16, OP_RM32_imm32, &CPU::_TEST_RM32_imm32);
+    build_slash(0xF7, 1, "TEST", OP_RM16_imm16, &CPU::_TEST_RM16_imm16, OP_RM32_imm32, &CPU::_TEST_RM32_imm32); // Undocumented
+    build_slash(0xF7, 2, "NOT", OP_RM16, &CPU::_NOT_RM16, OP_RM32, &CPU::_NOT_RM32, LockPrefixAllowed);
+    build_slash(0xF7, 3, "NEG", OP_RM16, &CPU::_NEG_RM16, OP_RM32, &CPU::_NEG_RM32, LockPrefixAllowed);
+    build_slash(0xF7, 4, "MUL", OP_RM16, &CPU::_MUL_RM16, OP_RM32, &CPU::_MUL_RM32);
+    build_slash(0xF7, 5, "IMUL", OP_RM16, &CPU::_IMUL_RM16, OP_RM32, &CPU::_IMUL_RM32);
+    build_slash(0xF7, 6, "DIV", OP_RM16, &CPU::_DIV_RM16, OP_RM32, &CPU::_DIV_RM32);
+    build_slash(0xF7, 7, "IDIV", OP_RM16, &CPU::_IDIV_RM16, OP_RM32, &CPU::_IDIV_RM32);
 
-    buildSlash(0xFE, 0, "INC", OP_RM8, &CPU::_INC_RM8, LockPrefixAllowed);
-    buildSlash(0xFE, 1, "DEC", OP_RM8, &CPU::_DEC_RM8, LockPrefixAllowed);
+    build_slash(0xFE, 0, "INC", OP_RM8, &CPU::_INC_RM8, LockPrefixAllowed);
+    build_slash(0xFE, 1, "DEC", OP_RM8, &CPU::_DEC_RM8, LockPrefixAllowed);
 
-    buildSlash(0xFF, 0, "INC", OP_RM16, &CPU::_INC_RM16, OP_RM32, &CPU::_INC_RM32, LockPrefixAllowed);
-    buildSlash(0xFF, 1, "DEC", OP_RM16, &CPU::_DEC_RM16, OP_RM32, &CPU::_DEC_RM32, LockPrefixAllowed);
-    buildSlash(0xFF, 2, "CALL", OP_RM16, &CPU::_CALL_RM16, OP_RM32, &CPU::_CALL_RM32);
-    buildSlash(0xFF, 3, "CALL", OP_FAR_mem16, &CPU::_CALL_FAR_mem16, OP_FAR_mem32, &CPU::_CALL_FAR_mem32);
-    buildSlash(0xFF, 4, "JMP", OP_RM16, &CPU::_JMP_RM16, OP_RM32, &CPU::_JMP_RM32);
-    buildSlash(0xFF, 5, "JMP", OP_FAR_mem16, &CPU::_JMP_FAR_mem16, OP_FAR_mem32, &CPU::_JMP_FAR_mem32);
-    buildSlash(0xFF, 6, "PUSH", OP_RM16, &CPU::_PUSH_RM16, OP_RM32, &CPU::_PUSH_RM32);
+    build_slash(0xFF, 0, "INC", OP_RM16, &CPU::_INC_RM16, OP_RM32, &CPU::_INC_RM32, LockPrefixAllowed);
+    build_slash(0xFF, 1, "DEC", OP_RM16, &CPU::_DEC_RM16, OP_RM32, &CPU::_DEC_RM32, LockPrefixAllowed);
+    build_slash(0xFF, 2, "CALL", OP_RM16, &CPU::_CALL_RM16, OP_RM32, &CPU::_CALL_RM32);
+    build_slash(0xFF, 3, "CALL", OP_FAR_mem16, &CPU::_CALL_FAR_mem16, OP_FAR_mem32, &CPU::_CALL_FAR_mem32);
+    build_slash(0xFF, 4, "JMP", OP_RM16, &CPU::_JMP_RM16, OP_RM32, &CPU::_JMP_RM32);
+    build_slash(0xFF, 5, "JMP", OP_FAR_mem16, &CPU::_JMP_FAR_mem16, OP_FAR_mem32, &CPU::_JMP_FAR_mem32);
+    build_slash(0xFF, 6, "PUSH", OP_RM16, &CPU::_PUSH_RM16, OP_RM32, &CPU::_PUSH_RM32);
 
     // Instructions starting with 0x0F are multi-byte opcodes.
-    build0FSlash(0x00, 0, "SLDT", OP_RM16, &CPU::_SLDT_RM16);
-    build0FSlash(0x00, 1, "STR", OP_RM16, &CPU::_STR_RM16);
-    build0FSlash(0x00, 2, "LLDT", OP_RM16, &CPU::_LLDT_RM16);
-    build0FSlash(0x00, 3, "LTR", OP_RM16, &CPU::_LTR_RM16);
-    build0FSlash(0x00, 4, "VERR", OP_RM16, &CPU::_VERR_RM16);
-    build0FSlash(0x00, 5, "VERW", OP_RM16, &CPU::_VERW_RM16);
+    build_0f_slash(0x00, 0, "SLDT", OP_RM16, &CPU::_SLDT_RM16);
+    build_0f_slash(0x00, 1, "STR", OP_RM16, &CPU::_STR_RM16);
+    build_0f_slash(0x00, 2, "LLDT", OP_RM16, &CPU::_LLDT_RM16);
+    build_0f_slash(0x00, 3, "LTR", OP_RM16, &CPU::_LTR_RM16);
+    build_0f_slash(0x00, 4, "VERR", OP_RM16, &CPU::_VERR_RM16);
+    build_0f_slash(0x00, 5, "VERW", OP_RM16, &CPU::_VERW_RM16);
 
-    build0FSlash(0x01, 0, "SGDT", OP_RM16, &CPU::_SGDT);
-    build0FSlash(0x01, 1, "SIDT", OP_RM16, &CPU::_SIDT);
-    build0FSlash(0x01, 2, "LGDT", OP_RM16, &CPU::_LGDT);
-    build0FSlash(0x01, 3, "LIDT", OP_RM16, &CPU::_LIDT);
-    build0FSlash(0x01, 4, "SMSW", OP_RM16, &CPU::_SMSW_RM16);
-    build0FSlash(0x01, 6, "LMSW", OP_RM16, &CPU::_LMSW_RM16);
-    build0FSlash(0x01, 7, "INVLPG", OP_RM32, &CPU::_INVLPG);
+    build_0f_slash(0x01, 0, "SGDT", OP_RM16, &CPU::_SGDT);
+    build_0f_slash(0x01, 1, "SIDT", OP_RM16, &CPU::_SIDT);
+    build_0f_slash(0x01, 2, "LGDT", OP_RM16, &CPU::_LGDT);
+    build_0f_slash(0x01, 3, "LIDT", OP_RM16, &CPU::_LIDT);
+    build_0f_slash(0x01, 4, "SMSW", OP_RM16, &CPU::_SMSW_RM16);
+    build_0f_slash(0x01, 6, "LMSW", OP_RM16, &CPU::_LMSW_RM16);
+    build_0f_slash(0x01, 7, "INVLPG", OP_RM32, &CPU::_INVLPG);
 
-    build0FSlash(0xBA, 4, "BT", OP_RM16_imm8, &CPU::_BT_RM16_imm8, OP_RM32_imm8, &CPU::_BT_RM32_imm8, LockPrefixAllowed);
-    build0FSlash(0xBA, 5, "BTS", OP_RM16_imm8, &CPU::_BTS_RM16_imm8, OP_RM32_imm8, &CPU::_BTS_RM32_imm8, LockPrefixAllowed);
-    build0FSlash(0xBA, 6, "BTR", OP_RM16_imm8, &CPU::_BTR_RM16_imm8, OP_RM32_imm8, &CPU::_BTR_RM32_imm8, LockPrefixAllowed);
-    build0FSlash(0xBA, 7, "BTC", OP_RM16_imm8, &CPU::_BTC_RM16_imm8, OP_RM32_imm8, &CPU::_BTC_RM32_imm8, LockPrefixAllowed);
+    build_0f_slash(0xBA, 4, "BT", OP_RM16_imm8, &CPU::_BT_RM16_imm8, OP_RM32_imm8, &CPU::_BT_RM32_imm8, LockPrefixAllowed);
+    build_0f_slash(0xBA, 5, "BTS", OP_RM16_imm8, &CPU::_BTS_RM16_imm8, OP_RM32_imm8, &CPU::_BTS_RM32_imm8, LockPrefixAllowed);
+    build_0f_slash(0xBA, 6, "BTR", OP_RM16_imm8, &CPU::_BTR_RM16_imm8, OP_RM32_imm8, &CPU::_BTR_RM32_imm8, LockPrefixAllowed);
+    build_0f_slash(0xBA, 7, "BTC", OP_RM16_imm8, &CPU::_BTC_RM16_imm8, OP_RM32_imm8, &CPU::_BTC_RM32_imm8, LockPrefixAllowed);
 
-    build0F(0x02, "LAR", OP_reg16_RM16, &CPU::_LAR_reg16_RM16, OP_reg32_RM32, &CPU::_LAR_reg32_RM32);
-    build0F(0x03, "LSL", OP_reg16_RM16, &CPU::_LSL_reg16_RM16, OP_reg32_RM32, &CPU::_LSL_reg32_RM32);
-    build0F(0x06, "CLTS", OP, &CPU::_CLTS);
-    build0F(0x09, "WBINVD", OP, &CPU::_WBINVD);
-    build0F(0x0B, "UD2", OP, &CPU::_UD2);
+    build_0f(0x02, "LAR", OP_reg16_RM16, &CPU::_LAR_reg16_RM16, OP_reg32_RM32, &CPU::_LAR_reg32_RM32);
+    build_0f(0x03, "LSL", OP_reg16_RM16, &CPU::_LSL_reg16_RM16, OP_reg32_RM32, &CPU::_LSL_reg32_RM32);
+    build_0f(0x06, "CLTS", OP, &CPU::_CLTS);
+    build_0f(0x09, "WBINVD", OP, &CPU::_WBINVD);
+    build_0f(0x0B, "UD2", OP, &CPU::_UD2);
 
-    build0F(0x1E, "NOP", OP_RM16, &CPU::_NOP);
+    build_0f(0x1E, "NOP", OP_RM16, &CPU::_NOP);
 
-    build0F(0x20, "MOV", OP_reg32_CR, &CPU::_MOV_reg32_CR);
-    build0F(0x21, "MOV", OP_reg32_DR, &CPU::_MOV_reg32_DR);
-    build0F(0x22, "MOV", OP_CR_reg32, &CPU::_MOV_CR_reg32);
-    build0F(0x23, "MOV", OP_DR_reg32, &CPU::_MOV_DR_reg32);
+    build_0f(0x20, "MOV", OP_reg32_CR, &CPU::_MOV_reg32_CR);
+    build_0f(0x21, "MOV", OP_reg32_DR, &CPU::_MOV_reg32_DR);
+    build_0f(0x22, "MOV", OP_CR_reg32, &CPU::_MOV_CR_reg32);
+    build_0f(0x23, "MOV", OP_DR_reg32, &CPU::_MOV_DR_reg32);
 
-    build0F(0x31, "RDTSC", OP, &CPU::_RDTSC);
+    build_0f(0x31, "RDTSC", OP, &CPU::_RDTSC);
 
-    build0F(0x40, "CMOVO", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x41, "CMOVNO", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x42, "CMOVC", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x43, "CMOVNC", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x44, "CMOVZ", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x45, "CMOVNZ", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x46, "CMOVNA", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x47, "CMOVA", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x48, "CMOVS", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x49, "CMOVNS", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4A, "CMOVP", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4B, "CMOVNP", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4C, "CMOVL", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4D, "CMOVNL", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4E, "CMOVNG", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
-    build0F(0x4F, "CMOVG", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x40, "CMOVO", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x41, "CMOVNO", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x42, "CMOVC", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x43, "CMOVNC", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x44, "CMOVZ", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x45, "CMOVNZ", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x46, "CMOVNA", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x47, "CMOVA", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x48, "CMOVS", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x49, "CMOVNS", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4A, "CMOVP", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4B, "CMOVNP", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4C, "CMOVL", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4D, "CMOVNL", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4E, "CMOVNG", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
+    build_0f(0x4F, "CMOVG", OP_reg16_RM16, &CPU::_CMOVcc_reg16_RM16, OP_reg32_RM32, &CPU::_CMOVcc_reg32_RM32);
 
-    build0F(0x80, "JO", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x81, "JNO", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x82, "JC", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x83, "JNC", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x84, "JZ", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x85, "JNZ", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x86, "JNA", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x87, "JA", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x88, "JS", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x89, "JNS", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8A, "JP", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8B, "JNP", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8C, "JL", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8D, "JNL", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8E, "JNG", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
-    build0F(0x8F, "JG", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x80, "JO", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x81, "JNO", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x82, "JC", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x83, "JNC", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x84, "JZ", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x85, "JNZ", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x86, "JNA", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x87, "JA", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x88, "JS", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x89, "JNS", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8A, "JP", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8B, "JNP", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8C, "JL", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8D, "JNL", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8E, "JNG", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
+    build_0f(0x8F, "JG", OP_NEAR_imm, &CPU::_Jcc_NEAR_imm);
 
-    build0F(0x90, "SETO", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x91, "SETNO", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x92, "SETC", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x93, "SETNC", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x94, "SETZ", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x95, "SETNZ", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x96, "SETNA", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x97, "SETA", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x98, "SETS", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x99, "SETNS", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9A, "SETP", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9B, "SETNP", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9C, "SETL", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9D, "SETNL", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9E, "SETNG", OP_RM8, &CPU::_SETcc_RM8);
-    build0F(0x9F, "SETG", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x90, "SETO", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x91, "SETNO", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x92, "SETC", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x93, "SETNC", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x94, "SETZ", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x95, "SETNZ", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x96, "SETNA", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x97, "SETA", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x98, "SETS", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x99, "SETNS", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9A, "SETP", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9B, "SETNP", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9C, "SETL", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9D, "SETNL", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9E, "SETNG", OP_RM8, &CPU::_SETcc_RM8);
+    build_0f(0x9F, "SETG", OP_RM8, &CPU::_SETcc_RM8);
 
-    build0F(0xA0, "PUSH", OP_FS, &CPU::_PUSH_FS);
-    build0F(0xA1, "POP", OP_FS, &CPU::_POP_FS);
-    build0F(0xA2, "CPUID", OP, &CPU::_CPUID);
-    build0F(0xA3, "BT", OP_RM16_reg16, &CPU::_BT_RM16_reg16, OP_RM32_reg32, &CPU::_BT_RM32_reg32);
-    build0F(0xA4, "SHLD", OP_RM16_reg16_imm8, &CPU::_SHLD_RM16_reg16_imm8, OP_RM32_reg32_imm8, &CPU::_SHLD_RM32_reg32_imm8);
-    build0F(0xA5, "SHLD", OP_RM16_reg16_CL, &CPU::_SHLD_RM16_reg16_CL, OP_RM32_reg32_CL, &CPU::_SHLD_RM32_reg32_CL);
-    build0F(0xA8, "PUSH", OP_GS, &CPU::_PUSH_GS);
-    build0F(0xA9, "POP", OP_GS, &CPU::_POP_GS);
-    build0F(0xAB, "BTS", OP_RM16_reg16, &CPU::_BTS_RM16_reg16, OP_RM32_reg32, &CPU::_BTS_RM32_reg32);
-    build0F(0xAC, "SHRD", OP_RM16_reg16_imm8, &CPU::_SHRD_RM16_reg16_imm8, OP_RM32_reg32_imm8, &CPU::_SHRD_RM32_reg32_imm8);
-    build0F(0xAD, "SHRD", OP_RM16_reg16_CL, &CPU::_SHRD_RM16_reg16_CL, OP_RM32_reg32_CL, &CPU::_SHRD_RM32_reg32_CL);
-    build0F(0xAF, "IMUL", OP_reg16_RM16, &CPU::_IMUL_reg16_RM16, OP_reg32_RM32, &CPU::_IMUL_reg32_RM32);
-    build0F(0xB1, "CMPXCHG", OP_RM16_reg16, &CPU::_CMPXCHG_RM16_reg16, OP_RM32_reg32, &CPU::_CMPXCHG_RM32_reg32);
-    build0F(0xB2, "LSS", OP_reg16_mem16, &CPU::_LSS_reg16_mem16, OP_reg32_mem32, &CPU::_LSS_reg32_mem32);
-    build0F(0xB3, "BTR", OP_RM16_reg16, &CPU::_BTR_RM16_reg16, OP_RM32_reg32, &CPU::_BTR_RM32_reg32);
-    build0F(0xB4, "LFS", OP_reg16_mem16, &CPU::_LFS_reg16_mem16, OP_reg32_mem32, &CPU::_LFS_reg32_mem32);
-    build0F(0xB5, "LGS", OP_reg16_mem16, &CPU::_LGS_reg16_mem16, OP_reg32_mem32, &CPU::_LGS_reg32_mem32);
-    build0F(0xB6, "MOVZX", OP_reg16_RM8, &CPU::_MOVZX_reg16_RM8, OP_reg32_RM8, &CPU::_MOVZX_reg32_RM8);
-    build0F(0xB7, "0xB7", OP, nullptr, "MOVZX", OP_reg32_RM16, &CPU::_MOVZX_reg32_RM16);
-    build0F(0xB9, "UD1", OP, &CPU::_UD1);
-    build0F(0xBB, "BTC", OP_RM16_reg16, &CPU::_BTC_RM16_reg16, OP_RM32_reg32, &CPU::_BTC_RM32_reg32);
-    build0F(0xBC, "BSF", OP_reg16_RM16, &CPU::_BSF_reg16_RM16, OP_reg32_RM32, &CPU::_BSF_reg32_RM32);
-    build0F(0xBD, "BSR", OP_reg16_RM16, &CPU::_BSR_reg16_RM16, OP_reg32_RM32, &CPU::_BSR_reg32_RM32);
-    build0F(0xBE, "MOVSX", OP_reg16_RM8, &CPU::_MOVSX_reg16_RM8, OP_reg32_RM8, &CPU::_MOVSX_reg32_RM8);
-    build0F(0xBF, "0xBF", OP, nullptr, "MOVSX", OP_reg32_RM16, &CPU::_MOVSX_reg32_RM16);
-    build0F(0xFF, "UD0", OP, &CPU::_UD0);
+    build_0f(0xA0, "PUSH", OP_FS, &CPU::_PUSH_FS);
+    build_0f(0xA1, "POP", OP_FS, &CPU::_POP_FS);
+    build_0f(0xA2, "CPUID", OP, &CPU::_CPUID);
+    build_0f(0xA3, "BT", OP_RM16_reg16, &CPU::_BT_RM16_reg16, OP_RM32_reg32, &CPU::_BT_RM32_reg32);
+    build_0f(0xA4, "SHLD", OP_RM16_reg16_imm8, &CPU::_SHLD_RM16_reg16_imm8, OP_RM32_reg32_imm8, &CPU::_SHLD_RM32_reg32_imm8);
+    build_0f(0xA5, "SHLD", OP_RM16_reg16_CL, &CPU::_SHLD_RM16_reg16_CL, OP_RM32_reg32_CL, &CPU::_SHLD_RM32_reg32_CL);
+    build_0f(0xA8, "PUSH", OP_GS, &CPU::_PUSH_GS);
+    build_0f(0xA9, "POP", OP_GS, &CPU::_POP_GS);
+    build_0f(0xAB, "BTS", OP_RM16_reg16, &CPU::_BTS_RM16_reg16, OP_RM32_reg32, &CPU::_BTS_RM32_reg32);
+    build_0f(0xAC, "SHRD", OP_RM16_reg16_imm8, &CPU::_SHRD_RM16_reg16_imm8, OP_RM32_reg32_imm8, &CPU::_SHRD_RM32_reg32_imm8);
+    build_0f(0xAD, "SHRD", OP_RM16_reg16_CL, &CPU::_SHRD_RM16_reg16_CL, OP_RM32_reg32_CL, &CPU::_SHRD_RM32_reg32_CL);
+    build_0f(0xAF, "IMUL", OP_reg16_RM16, &CPU::_IMUL_reg16_RM16, OP_reg32_RM32, &CPU::_IMUL_reg32_RM32);
+    build_0f(0xB1, "CMPXCHG", OP_RM16_reg16, &CPU::_CMPXCHG_RM16_reg16, OP_RM32_reg32, &CPU::_CMPXCHG_RM32_reg32);
+    build_0f(0xB2, "LSS", OP_reg16_mem16, &CPU::_LSS_reg16_mem16, OP_reg32_mem32, &CPU::_LSS_reg32_mem32);
+    build_0f(0xB3, "BTR", OP_RM16_reg16, &CPU::_BTR_RM16_reg16, OP_RM32_reg32, &CPU::_BTR_RM32_reg32);
+    build_0f(0xB4, "LFS", OP_reg16_mem16, &CPU::_LFS_reg16_mem16, OP_reg32_mem32, &CPU::_LFS_reg32_mem32);
+    build_0f(0xB5, "LGS", OP_reg16_mem16, &CPU::_LGS_reg16_mem16, OP_reg32_mem32, &CPU::_LGS_reg32_mem32);
+    build_0f(0xB6, "MOVZX", OP_reg16_RM8, &CPU::_MOVZX_reg16_RM8, OP_reg32_RM8, &CPU::_MOVZX_reg32_RM8);
+    build_0f(0xB7, "0xB7", OP, nullptr, "MOVZX", OP_reg32_RM16, &CPU::_MOVZX_reg32_RM16);
+    build_0f(0xB9, "UD1", OP, &CPU::_UD1);
+    build_0f(0xBB, "BTC", OP_RM16_reg16, &CPU::_BTC_RM16_reg16, OP_RM32_reg32, &CPU::_BTC_RM32_reg32);
+    build_0f(0xBC, "BSF", OP_reg16_RM16, &CPU::_BSF_reg16_RM16, OP_reg32_RM32, &CPU::_BSF_reg32_RM32);
+    build_0f(0xBD, "BSR", OP_reg16_RM16, &CPU::_BSR_reg16_RM16, OP_reg32_RM32, &CPU::_BSR_reg32_RM32);
+    build_0f(0xBE, "MOVSX", OP_reg16_RM8, &CPU::_MOVSX_reg16_RM8, OP_reg32_RM8, &CPU::_MOVSX_reg32_RM8);
+    build_0f(0xBF, "0xBF", OP, nullptr, "MOVSX", OP_reg32_RM16, &CPU::_MOVSX_reg32_RM16);
+    build_0f(0xFF, "UD0", OP, &CPU::_UD0);
 
-    hasBuiltTables = true;
+    has_built_tables = true;
 }
 
-FLATTEN Instruction Instruction::fromStream(InstructionStream& stream, bool o32, bool a32)
+FLATTEN Instruction Instruction::from_stream(InstructionStream& stream, bool o32, bool a32)
 {
     return Instruction(stream, o32, a32);
 }
@@ -830,21 +830,21 @@ FLATTEN Instruction Instruction::fromStream(InstructionStream& stream, bool o32,
 unsigned Instruction::length() const
 {
     unsigned len = 1;
-    if (m_hasSubOp)
+    if (m_has_sub_op)
         ++len;
-    if (m_hasRM) {
+    if (m_has_rm) {
         ++len;
-        if (m_modrm.m_hasSIB)
+        if (m_modrm.m_has_sib)
             ++len;
-        len += m_modrm.m_displacementBytes;
+        len += m_modrm.m_displacement_bytes;
     }
-    len += m_imm1Bytes;
-    len += m_imm2Bytes;
-    len += m_prefixBytes;
+    len += m_imm1_bytes;
+    len += m_imm2_bytes;
+    len += m_prefix_bytes;
     return len;
 }
 
-static SegmentRegisterIndex toSegmentPrefix(u8 op)
+static SegmentRegisterIndex to_segment_prefix(u8 op)
 {
     switch (op) {
     case 0x26:
@@ -868,31 +868,31 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     : m_a32(a32)
     , m_o32(o32)
 {
-    for (;; ++m_prefixBytes) {
+    for (;; ++m_prefix_bytes) {
         u8 opbyte = stream.read_instruction8();
         if (opbyte == Prefix::OperandSizeOverride) {
             m_o32 = !o32;
-            m_hasOperandSizeOverridePrefix = true;
+            m_has_operand_size_override_prefix = true;
             continue;
         }
         if (opbyte == Prefix::AddressSizeOverride) {
             m_a32 = !a32;
-            m_hasAddressSizeOverridePrefix = true;
+            m_has_address_size_override_prefix = true;
             continue;
         }
         if (opbyte == Prefix::REPZ || opbyte == Prefix::REPNZ) {
             // FIXME: What should we do here? Respect the first or last prefix?
-            ASSERT(!m_repPrefix);
-            m_repPrefix = opbyte;
+            ASSERT(!m_rep_prefix);
+            m_rep_prefix = opbyte;
             continue;
         }
         if (opbyte == Prefix::LOCK) {
-            m_hasLockPrefix = true;
+            m_has_lock_prefix = true;
             continue;
         }
-        auto segmentPrefix = toSegmentPrefix(opbyte);
-        if (segmentPrefix != SegmentRegisterIndex::None) {
-            m_segmentPrefix = segmentPrefix;
+        auto segment_prefix = to_segment_prefix(opbyte);
+        if (segment_prefix != SegmentRegisterIndex::None) {
+            m_segment_prefix = segment_prefix;
             continue;
         }
         m_op = opbyte;
@@ -900,15 +900,15 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     }
 
     if (m_op == 0x0F) {
-        m_hasSubOp = true;
-        m_subOp = stream.read_instruction8();
-        m_descriptor = m_o32 ? &s_0F_table32[m_subOp] : &s_0F_table16[m_subOp];
+        m_has_sub_op = true;
+        m_sub_op = stream.read_instruction8();
+        m_descriptor = m_o32 ? &s_0f_table32[m_sub_op] : &s_0f_table16[m_sub_op];
     } else {
         m_descriptor = m_o32 ? &s_table32[m_op] : &s_table16[m_op];
     }
 
-    m_hasRM = m_descriptor->hasRM;
-    if (m_hasRM) {
+    m_has_rm = m_descriptor->has_rm;
+    if (m_has_rm) {
         // Consume ModR/M (may include SIB and displacement.)
         m_modrm.decode(stream, m_a32);
         m_register_index = (m_modrm.m_rm >> 3) & 7;
@@ -923,11 +923,11 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
     }
 
     if (UNLIKELY(!m_descriptor->impl)) {
-        if (m_hasSubOp) {
+        if (m_has_sub_op) {
             if (hasSlash)
-                vlog(LogCPU, "Instruction %02X %02X /%u not understood", m_op, m_subOp, slash());
+                vlog(LogCPU, "Instruction %02X %02X /%u not understood", m_op, m_sub_op, slash());
             else
-                vlog(LogCPU, "Instruction %02X %02X not understood", m_op, m_subOp);
+                vlog(LogCPU, "Instruction %02X %02X not understood", m_op, m_sub_op);
         } else {
             if (hasSlash)
                 vlog(LogCPU, "Instruction %02X /%u not understood", m_op, slash());
@@ -938,7 +938,7 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
         return;
     }
 
-    if (UNLIKELY(m_hasLockPrefix && !m_descriptor->lockPrefixAllowed)) {
+    if (UNLIKELY(m_has_lock_prefix && !m_descriptor->lock_prefix_allowed)) {
         vlog(LogCPU, "Instruction not allowed with LOCK prefix, this will raise #UD.");
         m_descriptor = nullptr;
         return;
@@ -946,14 +946,14 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
 
     m_impl = m_descriptor->impl;
 
-    m_imm1Bytes = m_descriptor->imm1BytesForAddressSize(m_a32);
-    m_imm2Bytes = m_descriptor->imm2BytesForAddressSize(m_a32);
+    m_imm1_bytes = m_descriptor->imm1_bytes_for_address_size(m_a32);
+    m_imm2_bytes = m_descriptor->imm2_bytes_for_address_size(m_a32);
 
     // Consume immediates if present.
-    if (m_imm2Bytes)
-        m_imm2 = stream.read_bytes(m_imm2Bytes);
-    if (m_imm1Bytes)
-        m_imm1 = stream.read_bytes(m_imm1Bytes);
+    if (m_imm2_bytes)
+        m_imm2 = stream.read_bytes(m_imm2_bytes);
+    if (m_imm1_bytes)
+        m_imm1 = stream.read_bytes(m_imm1_bytes);
 }
 
 u32 InstructionStream::read_bytes(unsigned count)
@@ -970,36 +970,36 @@ u32 InstructionStream::read_bytes(unsigned count)
     return 0;
 }
 
-const char* Instruction::reg8Name() const
+const char* Instruction::reg8_name() const
 {
     return CPU::register_name(static_cast<CPU::RegisterIndex8>(register_index()));
 }
 
-const char* Instruction::reg16Name() const
+const char* Instruction::reg16_name() const
 {
     return CPU::register_name(static_cast<CPU::RegisterIndex16>(register_index()));
 }
 
-const char* Instruction::reg32Name() const
+const char* Instruction::reg32_name() const
 {
     return CPU::register_name(static_cast<CPU::RegisterIndex32>(register_index()));
 }
 
-QString MemoryOrRegisterReference::toStringO8() const
+QString MemoryOrRegisterReference::to_string_o8() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex8>(m_register_index));
     return QString("[%1]").arg(toString());
 }
 
-QString MemoryOrRegisterReference::toStringO16() const
+QString MemoryOrRegisterReference::to_string_o16() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex16>(m_register_index));
     return QString("[%1]").arg(toString());
 }
 
-QString MemoryOrRegisterReference::toStringO32() const
+QString MemoryOrRegisterReference::to_string_o32() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
@@ -1149,14 +1149,14 @@ QString MemoryOrRegisterReference::toStringA32() const
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
 
-    bool hasDisplacement = false;
+    bool has_displacement = false;
     switch (m_rm & 0xc0) {
     case 0x40:
     case 0x80:
-        hasDisplacement = true;
+        has_displacement = true;
     }
-    if (m_hasSIB && (m_sib & 7) == 5)
-        hasDisplacement = true;
+    if (m_has_sib && (m_sib & 7) == 5)
+        has_displacement = true;
 
     QString base;
     switch (m_rm & 7) {
@@ -1189,7 +1189,7 @@ QString MemoryOrRegisterReference::toStringA32() const
         break;
     }
 
-    if (!hasDisplacement)
+    if (!has_displacement)
         return base;
 
     QString disp;
@@ -1210,13 +1210,13 @@ QString MemoryOrRegisterReference::toStringA32() const
 #define IMM32_1ARGS imm32_1(), 8, 16, QLatin1Char('0')
 #define IMM32_2ARGS imm32_2(), 8, 16, QLatin1Char('0')
 #define ADDRARGS m_a32 ? imm32() : imm16(), m_a32 ? 8 : 4, 16, QLatin1Char('0')
-#define RM8ARGS m_modrm.toStringO8()
-#define RM16ARGS m_modrm.toStringO16()
-#define RM32ARGS m_modrm.toStringO32()
-#define SEGARGS CPU::register_name(segmentRegisterIndex())
+#define RM8ARGS m_modrm.to_string_o8()
+#define RM16ARGS m_modrm.to_string_o16()
+#define RM32ARGS m_modrm.to_string_o32()
+#define SEGARGS CPU::register_name(segment_register_index())
 #define CDRARGS register_index()
 
-static QString relativeAddress(u32 origin, bool x32, i8 imm)
+static QString relative_address(u32 origin, bool x32, i8 imm)
 {
     QString s;
     if (x32)
@@ -1225,7 +1225,7 @@ static QString relativeAddress(u32 origin, bool x32, i8 imm)
     return s.sprintf("%04x", w + imm);
 }
 
-static QString relativeAddress(u32 origin, bool x32, i32 imm)
+static QString relative_address(u32 origin, bool x32, i32 imm)
 {
     QString s;
     if (x32)
@@ -1235,37 +1235,37 @@ static QString relativeAddress(u32 origin, bool x32, i32 imm)
     return s.sprintf("%04x", w + si);
 }
 
-QString Instruction::toString(u32 origin, bool x32) const
+QString Instruction::to_string(u32 origin, bool x32) const
 {
-    QString segmentPrefix;
-    QString asizePrefix;
-    QString osizePrefix;
-    QString repPrefix;
-    QString lockPrefix;
+    QString segment_prefix;
+    QString asize_prefix;
+    QString osize_prefix;
+    QString rep_prefix;
+    QString lock_prefix;
     if (has_segment_prefix()) {
-        segmentPrefix = QString("%1: ").arg(CPU::register_name(m_segmentPrefix));
+        segment_prefix = QString("%1: ").arg(CPU::register_name(m_segment_prefix));
     }
     if (has_address_size_override_prefix()) {
-        asizePrefix = m_a32 ? "a32 " : "a16 ";
+        asize_prefix = m_a32 ? "a32 " : "a16 ";
     }
     if (has_operand_size_override_prefix()) {
-        osizePrefix = m_o32 ? "o32 " : "o16 ";
+        osize_prefix = m_o32 ? "o32 " : "o16 ";
     }
     if (has_lock_prefix()) {
-        lockPrefix = "lock ";
+        lock_prefix = "lock ";
     }
     if (has_rep_prefix()) {
-        repPrefix = m_repPrefix == Prefix::REPNZ ? "repnz " : "repz ";
+        rep_prefix = m_rep_prefix == Prefix::REPNZ ? "repnz " : "repz ";
     }
-    return QString("%1%2%3%4%5%6").arg(segmentPrefix).arg(asizePrefix).arg(osizePrefix).arg(lockPrefix).arg(repPrefix).arg(toStringInternal(origin, x32));
+    return QString("%1%2%3%4%5%6").arg(segment_prefix).arg(asize_prefix).arg(osize_prefix).arg(lock_prefix).arg(rep_prefix).arg(to_string_internal(origin, x32));
 }
 
-#define RELADDRARGS relativeAddress(origin + (m_a32 ? 6 : 4), x32, i32(m_a32 ? imm32() : imm16()))
-#define RELIMM8ARGS relativeAddress(origin + 2, x32, i8(imm8()))
-#define RELIMM16ARGS relativeAddress(origin + 3, x32, i32(imm16()))
-#define RELIMM32ARGS relativeAddress(origin + 5, x32, i32(imm32()))
+#define RELADDRARGS relative_address(origin + (m_a32 ? 6 : 4), x32, i32(m_a32 ? imm32() : imm16()))
+#define RELIMM8ARGS relative_address(origin + 2, x32, i8(imm8()))
+#define RELIMM16ARGS relative_address(origin + 3, x32, i32(imm16()))
+#define RELIMM32ARGS relative_address(origin + 5, x32, i32(imm32()))
 
-QString Instruction::toStringInternal(u32 origin, bool x32) const
+QString Instruction::to_string_internal(u32 origin, bool x32) const
 {
     QString mnemonic = QString(m_descriptor->mnemonic).toLower();
 
@@ -1277,15 +1277,15 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_RM32_imm8:
         return QString("%1 %2, 0x%3").arg(mnemonic).arg(RM32ARGS).arg(IMM8ARGS);
     case OP_reg16_RM16_imm8:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg16Name()).arg(RM16ARGS).arg(IMM8ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg16_name()).arg(RM16ARGS).arg(IMM8ARGS);
     case OP_reg32_RM32_imm8:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg32Name()).arg(RM32ARGS).arg(IMM8ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg32_name()).arg(RM32ARGS).arg(IMM8ARGS);
     case OP_AL_imm8:
         return QString("%1 al, 0x%2").arg(mnemonic).arg(IMM8ARGS);
     case OP_imm8:
         return QString("%1 0x%2").arg(mnemonic).arg(IMM8ARGS);
     case OP_reg8_imm8:
-        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg8Name()).arg(IMM8ARGS);
+        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg8_name()).arg(IMM8ARGS);
     case OP_AX_imm8:
         return QString("%1 ax, 0x%2").arg(mnemonic).arg(IMM8ARGS);
     case OP_EAX_imm8:
@@ -1301,11 +1301,11 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_imm16:
         return QString("%1 0x%2").arg(mnemonic).arg(IMM16ARGS);
     case OP_reg16_imm16:
-        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg16Name()).arg(IMM16ARGS);
+        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg16_name()).arg(IMM16ARGS);
     case OP_reg16_RM16_imm16:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg16Name()).arg(RM16ARGS).arg(IMM16ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg16_name()).arg(RM16ARGS).arg(IMM16ARGS);
     case OP_reg32_RM32_imm32:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg32Name()).arg(RM32ARGS).arg(IMM32ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(reg32_name()).arg(RM32ARGS).arg(IMM32ARGS);
     case OP_imm32:
         return QString("%1 0x%2").arg(mnemonic).arg(IMM32ARGS);
     case OP_EAX_imm32:
@@ -1325,7 +1325,7 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP:
         return QString("%1").arg(mnemonic);
     case OP_reg32:
-        return QString("%1 %2").arg(mnemonic).arg(reg32Name());
+        return QString("%1 %2").arg(mnemonic).arg(reg32_name());
     case OP_imm8_imm16:
         return QString("%1 0x%2, 0x%3").arg(mnemonic).arg(IMM8_1ARGS).arg(IMM16_2ARGS);
     case OP_moff8_AL:
@@ -1345,7 +1345,7 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_imm16_imm32:
         return QString("%1 0x%2:0x%3").arg(mnemonic).arg(IMM16_1ARGS).arg(IMM32_2ARGS);
     case OP_reg32_imm32:
-        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg32Name()).arg(IMM32ARGS);
+        return QString("%1 %2, 0x%3").arg(mnemonic).arg(reg32_name()).arg(IMM32ARGS);
     case OP_RM8_1:
         return QString("%1 %2, 1").arg(mnemonic).arg(RM8ARGS);
     case OP_RM16_1:
@@ -1359,11 +1359,11 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_RM32_CL:
         return QString("%1 %2, cl").arg(mnemonic).arg(RM32ARGS);
     case OP_reg16:
-        return QString("%1 %2").arg(mnemonic).arg(reg16Name());
+        return QString("%1 %2").arg(mnemonic).arg(reg16_name());
     case OP_AX_reg16:
-        return QString("%1 ax, %2").arg(mnemonic).arg(reg16Name());
+        return QString("%1 ax, %2").arg(mnemonic).arg(reg16_name());
     case OP_EAX_reg32:
-        return QString("%1 eax, %2").arg(mnemonic).arg(reg32Name());
+        return QString("%1 eax, %2").arg(mnemonic).arg(reg32_name());
     case OP_3:
         return QString("%1 3").arg(mnemonic);
     case OP_AL_DX:
@@ -1379,7 +1379,7 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_DX_EAX:
         return QString("%1 dx, eax").arg(mnemonic);
     case OP_reg8_CL:
-        return QString("%1 %2, cl").arg(mnemonic).arg(reg8Name());
+        return QString("%1 %2, cl").arg(mnemonic).arg(reg8_name());
     case OP_RM8:
         return QString("%1 %2").arg(mnemonic).arg(RM8ARGS);
     case OP_RM16:
@@ -1387,23 +1387,23 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_RM32:
         return QString("%1 %2").arg(mnemonic).arg(RM32ARGS);
     case OP_RM8_reg8:
-        return QString("%1 %2, %3").arg(mnemonic).arg(RM8ARGS).arg(reg8Name());
+        return QString("%1 %2, %3").arg(mnemonic).arg(RM8ARGS).arg(reg8_name());
     case OP_RM16_reg16:
-        return QString("%1 %2, %3").arg(mnemonic).arg(RM16ARGS).arg(reg16Name());
+        return QString("%1 %2, %3").arg(mnemonic).arg(RM16ARGS).arg(reg16_name());
     case OP_RM32_reg32:
-        return QString("%1 %2, %3").arg(mnemonic).arg(RM32ARGS).arg(reg32Name());
+        return QString("%1 %2, %3").arg(mnemonic).arg(RM32ARGS).arg(reg32_name());
     case OP_reg8_RM8:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg8Name()).arg(RM8ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg8_name()).arg(RM8ARGS);
     case OP_reg16_RM16:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg16Name()).arg(RM16ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg16_name()).arg(RM16ARGS);
     case OP_reg32_RM32:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg32Name()).arg(RM32ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg32_name()).arg(RM32ARGS);
     case OP_reg32_RM16:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg32Name()).arg(RM16ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg32_name()).arg(RM16ARGS);
     case OP_reg16_RM8:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg16Name()).arg(RM8ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg16_name()).arg(RM8ARGS);
     case OP_reg32_RM8:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg32Name()).arg(RM8ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg32_name()).arg(RM8ARGS);
     case OP_RM16_imm16:
         return QString("%1 %2, 0x%3").arg(mnemonic).arg(RM16ARGS).arg(IMM16ARGS);
     case OP_RM32_imm32:
@@ -1417,9 +1417,9 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_seg_RM32:
         return QString("%1 %2, %3").arg(mnemonic).arg(SEGARGS).arg(RM32ARGS);
     case OP_reg16_mem16:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg16Name()).arg(RM16ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg16_name()).arg(RM16ARGS);
     case OP_reg32_mem32:
-        return QString("%1 %2, %3").arg(mnemonic).arg(reg32Name()).arg(RM32ARGS);
+        return QString("%1 %2, %3").arg(mnemonic).arg(reg32_name()).arg(RM32ARGS);
     case OP_FAR_mem16:
         return QString("%1 far %2").arg(mnemonic).arg(RM16ARGS);
     case OP_FAR_mem32:
@@ -1441,13 +1441,13 @@ QString Instruction::toStringInternal(u32 origin, bool x32) const
     case OP_NEAR_imm:
         return QString("%1 near 0x%2").arg(mnemonic).arg(RELADDRARGS);
     case OP_RM16_reg16_imm8:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(RM16ARGS).arg(reg16Name()).arg(IMM8ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(RM16ARGS).arg(reg16_name()).arg(IMM8ARGS);
     case OP_RM32_reg32_imm8:
-        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(RM32ARGS).arg(reg32Name()).arg(IMM8ARGS);
+        return QString("%1 %2, %3, 0x%4").arg(mnemonic).arg(RM32ARGS).arg(reg32_name()).arg(IMM8ARGS);
     case OP_RM16_reg16_CL:
-        return QString("%1 %2, %3, cl").arg(mnemonic).arg(RM16ARGS).arg(reg16Name());
+        return QString("%1 %2, %3, cl").arg(mnemonic).arg(RM16ARGS).arg(reg16_name());
     case OP_RM32_reg32_CL:
-        return QString("%1 %2, %3, cl").arg(mnemonic).arg(RM32ARGS).arg(reg32Name());
+        return QString("%1 %2, %3, cl").arg(mnemonic).arg(RM32ARGS).arg(reg32_name());
     case InstructionPrefix:
         return mnemonic;
     case InvalidFormat:

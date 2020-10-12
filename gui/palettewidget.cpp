@@ -39,7 +39,7 @@ PaletteWidget::PaletteWidget(Machine& machine, QWidget* parent)
     , d(make<Private>())
     , m_machine(machine)
 {
-    connect(&m_machine.vga(), SIGNAL(paletteChanged()), this, SLOT(onPaletteChanged()));
+    connect(&m_machine.vga(), SIGNAL(palette_changed()), this, SLOT(onPaletteChanged()));
 }
 
 PaletteWidget::~PaletteWidget()

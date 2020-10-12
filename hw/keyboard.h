@@ -43,19 +43,19 @@ public:
     virtual u8 in8(u16 port) override;
     virtual void out8(u16 port, u8 data) override;
 
-    bool isEnabled() const { return m_enabled; }
+    bool is_enabled() const { return m_enabled; }
 
-    void didEnqueueData();
+    void did_enqueue_data();
 
 signals:
     void ledsChanged(int);
 
 private:
-    u8 m_systemControlPortData;
+    u8 m_system_control_port_data;
     u8 m_ram[64];
     u8 m_command;
-    bool m_hasCommand;
-    bool m_lastWasCommand;
+    bool m_has_command;
+    bool m_last_was_command;
     u8 m_leds { 0 };
     bool m_enabled { true };
 };

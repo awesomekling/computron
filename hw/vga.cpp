@@ -98,12 +98,12 @@ struct VGA::Private {
 
     bool vga_enabled;
 
-    bool paletteDirty { true };
+    bool palette_dirty { true };
 
     bool write_protect;
 
-    bool screenInRefresh { false };
-    u8 statusRegister { 0 };
+    bool screen_in_refresh { false };
+    u8 status_register { 0 };
 };
 
 static const RGBColor default_vga_color_registers[256] = {
@@ -255,9 +255,9 @@ void VGA::reset()
 
     memcpy(d->dac.color, default_vga_color_registers, sizeof(default_vga_color_registers));
 
-    d->paletteDirty = true;
-    d->screenInRefresh = false;
-    d->statusRegister = 0;
+    d->palette_dirty = true;
+    d->screen_in_refresh = false;
+    d->status_register = 0;
 
     d->memory = new u8[0x40000];
     d->plane[0] = d->memory;
@@ -274,8 +274,8 @@ void VGA::reset()
 
     d->write_protect = false;
 
-    synchronizeColors();
-    setPaletteDirty(true);
+    synchronize_colors();
+    set_palette_dirty(true);
 }
 
 void VGA::out8(u16 port, u8 data)
@@ -426,7 +426,7 @@ void VGA::out8(u16 port, u8 data)
             break;
         }
 
-        setPaletteDirty(true);
+        set_palette_dirty(true);
         break;
     }
 
@@ -463,15 +463,15 @@ void VGA::out8(u16 port, u8 data)
     }
 }
 
-void VGA::willRefreshScreen()
+void VGA::will_refresh_screen()
 {
-    d->screenInRefresh = true;
+    d->screen_in_refresh = true;
 }
 
-void VGA::didRefreshScreen()
+void VGA::did_refresh_screen()
 {
-    d->screenInRefresh = false;
-    d->statusRegister |= 0x08;
+    d->screen_in_refresh = false;
+    d->status_register |= 0x08;
 }
 
 u8 VGA::in8(u16 port)
@@ -512,7 +512,7 @@ u8 VGA::in8(u16 port)
 
     case 0x3BA:
     case 0x3DA: {
-        u8 value = d->statusRegister;
+        u8 value = d->status_register;
         // 6845 - Port 3DA Status Register
         //
         //  |7|6|5|4|3|2|1|0|  3DA Status Register
@@ -522,8 +522,8 @@ u8 VGA::in8(u16 port)
         //  | | | | `------- 1 = vertical retrace, RAM access OK for next 1.25ms
         //  `-------------- unused
 
-        d->statusRegister ^= 0x01;
-        d->statusRegister &= 0x01;
+        d->status_register ^= 0x01;
+        d->status_register &= 0x01;
 
         d->attr.next_3c0_is_index = true;
         return value;
@@ -634,20 +634,20 @@ u8 VGA::read_register(u8 index) const
     return d->crtc.reg[index];
 }
 
-void VGA::setPaletteDirty(bool dirty)
+void VGA::set_palette_dirty(bool dirty)
 {
-    if (dirty == d->paletteDirty)
+    if (dirty == d->palette_dirty)
         return;
-    d->paletteDirty = dirty;
-    emit paletteChanged();
+    d->palette_dirty = dirty;
+    emit palette_changed();
 }
 
-bool VGA::isPaletteDirty()
+bool VGA::is_palette_dirty()
 {
-    return d->paletteDirty;
+    return d->palette_dirty;
 }
 
-QColor VGA::paletteColor(int attribute_register_index) const
+QColor VGA::palette_color(int attribute_register_index) const
 {
     const RGBColor& c = d->dac.color[d->attr.palette_reg[attribute_register_index]];
     return c;
@@ -664,14 +664,14 @@ u16 VGA::start_address() const
     return weld<u16>(d->crtc.reg[0x0C], d->crtc.reg[0x0D]);
 }
 
-u8 VGA::currentVideoMode() const
+u8 VGA::current_video_mode() const
 {
     // FIXME: This is not the correct way to obtain the video mode (BDA.)
     //        Need to find out how the 6845 stores this information.
     return machine().cpu().read_physical_memory<u8>(PhysicalAddress(0x449)) & 0x7f;
 }
 
-bool VGA::inChain4Mode() const
+bool VGA::in_chain4_mode() const
 {
     return d->sequencer.reg[0x4] & 0x8;
 }
@@ -734,7 +734,7 @@ void VGA::write_memory8(u32 address, u8 value)
 
     machine().notify_screen();
 
-    if (inChain4Mode()) {
+    if (in_chain4_mode()) {
         d->memory[(offset & ~0x03) + (offset % 4) * 65536] = value;
         return;
     }
@@ -933,7 +933,7 @@ void VGA::write_memory8(u32 address, u8 value)
         d->plane[3][offset] = new_val[3];
 }
 
-u8 VGA::readMemory8(u32 address)
+u8 VGA::read_memory8(u32 address)
 {
     u32 offset;
     switch (d->graphics_ctrl.memory_map_select) {
@@ -957,7 +957,7 @@ u8 VGA::readMemory8(u32 address)
         break;
     }
 
-    if (inChain4Mode())
+    if (in_chain4_mode())
         return d->memory[(offset & ~3) + (offset % 4) * 65536];
 
     if (read_mode() != 0) {
@@ -979,17 +979,17 @@ const u8* VGA::plane(int index) const
     return d->plane[index];
 }
 
-void VGA::synchronizeColors()
+void VGA::synchronize_colors()
 {
     for (int i = 0; i < 16; ++i) {
-        d->color[i] = paletteColor(i);
+        d->color[i] = palette_color(i);
         d->brush[i] = QBrush(d->color[i]);
     }
 }
 
 void VGA::dump()
 {
-    vlog(LogVGA, "current video mode: %u", currentVideoMode());
+    vlog(LogVGA, "current video mode: %u", current_video_mode());
     vlog(LogVGA, "alphanumeric_mode_disable: %u", d->graphics_ctrl.alphanumeric_mode_disable);
     vlog(LogVGA, "maximum_scanline: %u", d->crtc.maximum_scanline);
 }

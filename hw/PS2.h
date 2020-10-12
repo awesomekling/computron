@@ -36,5 +36,5 @@ public:
     virtual void out8(u16 port, u8 data) override;
 
 private:
-    u8 m_controlPortA { 0 };
+    u8 m_control_port_a { 0 };
 };

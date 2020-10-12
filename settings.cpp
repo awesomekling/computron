@@ -67,7 +67,7 @@ static bool parseAddress(const QString& string, u32* address)
     if (!ok)
         return false;
 
-    *address = realModeAddressToPhysicalAddress(segment, offset).get();
+    *address = real_mode_address_to_physical_address(segment, offset).get();
     return true;
 }
 
@@ -157,11 +157,11 @@ bool Settings::handle_fixed_disk(const QStringList& arguments)
     vlog(LogConfig, "Fixed disk %u: %s (%ld KiB)", index, qPrintable(fileName), size);
 
     DiskDrive::Configuration& config = index == 0 ? m_fixed0 : m_fixed1;
-    config.imagePath = fileName;
-    config.sectorsPerTrack = 63;
+    config.image_path = fileName;
+    config.sectors_per_track = 63;
     config.heads = 16;
-    config.bytesPerSector = 512;
-    config.sectors = (size * 1024) / config.bytesPerSector;
+    config.bytes_per_sector = 512;
+    config.sectors = (size * 1024) / config.bytes_per_sector;
 
     return true;
 }
@@ -195,14 +195,14 @@ bool Settings::handle_floppy_disk(const QStringList& arguments)
     }
 
     DiskDrive::Configuration& config = index == 0 ? m_floppy0 : m_floppy1;
-    config.imagePath = fileName;
-    config.sectorsPerTrack = ft->sectorsPerTrack;
+    config.image_path = fileName;
+    config.sectors_per_track = ft->sectorsPerTrack;
     config.heads = ft->heads;
     config.sectors = ft->sectors;
-    config.floppyTypeForCMOS = ft->mediaType;
-    config.bytesPerSector = ft->bytesPerSector;
+    config.floppy_type_for_cmos = ft->mediaType;
+    config.bytes_per_sector = ft->bytesPerSector;
 
-    vlog(LogConfig, "Floppy %u: %s (%uspt, %uh, %us (%ub))", index, qPrintable(fileName), config.sectorsPerTrack, config.heads, config.sectors, config.bytesPerSector);
+    vlog(LogConfig, "Floppy %u: %s (%uspt, %uh, %us (%ub))", index, qPrintable(fileName), config.sectors_per_track, config.heads, config.sectors, config.bytes_per_sector);
     return true;
 }
 
@@ -221,7 +221,7 @@ OwnPtr<Settings> Settings::create_for_autotest(const QString& fileName)
     settings->m_entryDS = autotestEntryDS;
     settings->m_entrySS = autotestEntrySS;
     settings->m_entrySP = autotestEntrySP;
-    settings->m_files.insert(realModeAddressToPhysicalAddress(autotestEntryCS, autotestEntryIP).get(), fileName);
+    settings->m_files.insert(real_mode_address_to_physical_address(autotestEntryCS, autotestEntryIP).get(), fileName);
 
     settings->m_for_autotest = true;
     return settings;

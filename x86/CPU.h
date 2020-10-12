@@ -170,9 +170,9 @@ public:
     u16 limit() const { return m_limit; }
     u16 selector() const { return m_selector; }
 
-    void setBase(LinearAddress address) { m_base = address; }
-    void setLimit(u16 limit) { m_limit = limit; }
-    void setSelector(u16 selector) { m_selector = selector; }
+    void set_base(LinearAddress address) { m_base = address; }
+    void set_limit(u16 limit) { m_limit = limit; }
+    void set_selector(u16 selector) { m_selector = selector; }
 
     void clear()
     {
@@ -361,7 +361,7 @@ public:
 
     // Conventional memory size in KiB (will be reported by CMOS)
     u32 base_memory_size() const { return m_base_memory_size; }
-    void setBaseMemorySize(u32 size) { m_base_memory_size = size; }
+    void set_base_memory_size(u32 size) { m_base_memory_size = size; }
 
     void set_memory_size_and_reallocate_if_needed(u32);
 
@@ -1825,10 +1825,10 @@ inline void CPU::cmp_flags(typename TypeDoubler<T>::type result, T dest, T src)
 ALWAYS_INLINE void Instruction::execute(CPU& cpu)
 {
     m_cpu = &cpu;
-    cpu.set_segment_prefix(m_segmentPrefix);
+    cpu.set_segment_prefix(m_segment_prefix);
     cpu.m_effective_operand_size32 = m_o32;
     cpu.m_effective_address_size32 = m_a32;
-    if (m_hasRM)
+    if (m_has_rm)
         m_modrm.resolve(cpu);
     (cpu.*m_impl)(*this);
 }

@@ -42,12 +42,12 @@ void CPU::_JMP_imm32(Instruction& insn)
 
 void CPU::_JMP_imm16_imm16(Instruction& insn)
 {
-    far_jump(insn.immAddress16_16(), JumpType::JMP);
+    far_jump(insn.imm_address16_16(), JumpType::JMP);
 }
 
 void CPU::_JMP_imm16_imm32(Instruction& insn)
 {
-    far_jump(insn.immAddress16_32(), JumpType::JMP);
+    far_jump(insn.imm_address16_32(), JumpType::JMP);
 }
 
 void CPU::_JMP_short_imm8(Instruction& insn)
@@ -122,7 +122,7 @@ void CPU::_Jcc_NEAR_imm(Instruction& insn)
 {
     if (!evaluate(insn.cc()))
         return;
-    jump_relative32(insn.immAddress());
+    jump_relative32(insn.imm_address());
 }
 
 void CPU::_CALL_imm16(Instruction& insn)
@@ -139,12 +139,12 @@ void CPU::_CALL_imm32(Instruction& insn)
 
 void CPU::_CALL_imm16_imm16(Instruction& insn)
 {
-    far_jump(insn.immAddress16_16(), JumpType::CALL);
+    far_jump(insn.imm_address16_16(), JumpType::CALL);
 }
 
 void CPU::_CALL_imm16_imm32(Instruction& insn)
 {
-    far_jump(insn.immAddress16_32(), JumpType::CALL);
+    far_jump(insn.imm_address16_32(), JumpType::CALL);
 }
 
 void CPU::_CALL_RM16(Instruction& insn)

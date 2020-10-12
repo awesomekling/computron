@@ -29,13 +29,13 @@
 
 class ROM final : public MemoryProvider {
 public:
-    ROM(PhysicalAddress baseAddress, const QString& fileName);
+    ROM(PhysicalAddress base_address, const QString& file_name);
     virtual ~ROM();
 
     bool isValid() const;
 
-    virtual const u8* memoryPointer(u32 address) const override;
-    virtual u8 readMemory8(u32 address) override;
+    virtual const u8* memory_pointer(u32 address) const override;
+    virtual u8 read_memory8(u32 address) override;
     virtual void write_memory8(u32 address, u8) override;
 
 private:

@@ -149,9 +149,9 @@ void Mode0DRenderer::render()
     }
 }
 
-void BufferedRenderer::willBecomeActive()
+void BufferedRenderer::will_become_active()
 {
-    const_cast<Screen&>(screen()).setScreenSize(m_buffer.width() * m_scale, m_buffer.height() * m_scale);
+    const_cast<Screen&>(screen()).set_screen_size(m_buffer.width() * m_scale, m_buffer.height() * m_scale);
 }
 
 void BufferedRenderer::paint(QPainter& p)
@@ -159,19 +159,19 @@ void BufferedRenderer::paint(QPainter& p)
     p.drawImage(QRect(0, 0, m_buffer.width() * m_scale, m_buffer.height() * m_scale), m_buffer);
 }
 
-void Mode0DRenderer::synchronizeColors()
+void Mode0DRenderer::synchronize_colors()
 {
     for (unsigned i = 0; i < 16; ++i)
-        m_buffer.setColor(i, vga().paletteColor(i).rgb());
+        m_buffer.setColor(i, vga().palette_color(i).rgb());
 }
 
-void Mode12Renderer::synchronizeColors()
+void Mode12Renderer::synchronize_colors()
 {
     for (unsigned i = 0; i < 16; ++i)
-        m_buffer.setColor(i, vga().paletteColor(i).rgb());
+        m_buffer.setColor(i, vga().palette_color(i).rgb());
 }
 
-void Mode13Renderer::synchronizeColors()
+void Mode13Renderer::synchronize_colors()
 {
     for (unsigned i = 0; i < 256; ++i)
         m_buffer.setColor(i, vga().color(i).rgb());
@@ -225,9 +225,9 @@ void Mode13Renderer::render()
     }
 }
 
-void TextRenderer::willBecomeActive()
+void TextRenderer::will_become_active()
 {
-    const_cast<Screen&>(screen()).setScreenSize(m_characterWidth * m_columns, m_characterHeight * m_rows);
+    const_cast<Screen&>(screen()).set_screen_size(m_characterWidth * m_columns, m_characterHeight * m_rows);
 }
 
 void TextRenderer::paint(QPainter& p)
@@ -244,7 +244,7 @@ void TextRenderer::paint(QPainter& p)
 
     if (vga().cursor_enabled()) {
         u16 raw_cursor = vga().cursor_location() - vga().start_address();
-        u16 screen_columns = screen().currentColumnCount();
+        u16 screen_columns = screen().current_column_count();
         u16 row = screen_columns ? (raw_cursor / screen_columns) : 0;
         u16 column = screen_columns ? (raw_cursor % screen_columns) : 0;
         u8 cursor_start = vga().cursor_start_scanline();
@@ -259,18 +259,18 @@ void TextRenderer::paint(QPainter& p)
     }
 }
 
-void TextRenderer::synchronizeColors()
+void TextRenderer::synchronize_colors()
 {
     for (int i = 0; i < 16; ++i) {
-        m_color[i] = vga().paletteColor(i);
+        m_color[i] = vga().palette_color(i);
         m_brush[i] = QBrush(m_color[i]);
     }
 }
 
-void TextRenderer::synchronizeFont()
+void TextRenderer::synchronize_font()
 {
     auto vector = screen().machine().cpu().get_real_mode_interrupt_vector(0x43);
-    auto physicalAddress = PhysicalAddress::fromRealMode(vector);
+    auto physicalAddress = PhysicalAddress::from_real_mode(vector);
     auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointer_to_physical_memory(physicalAddress));
 
     for (int i = 0; i < 256; ++i)

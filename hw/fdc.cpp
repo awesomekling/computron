@@ -67,7 +67,7 @@ enum FDCDataRate {
     _1000kbps = 3,
 };
 
-static const char* toString(FDCDataRate rate)
+static const char* to_string(FDCDataRate rate)
 {
     switch (rate) {
     case _500kbps:
@@ -90,38 +90,38 @@ struct FDCDrive {
     u8 cylinder { 0 };
     u8 head { 0 };
     u8 sector { 0 };
-    u8 stepRateTime { 0 };
-    u8 headLoadTime { 0 };
-    u8 headUnloadTime { 0 };
-    u8 bytesPerSector { 0 };
-    u8 endOfTrack { 0 };
-    u8 gap3Length { 0 };
-    u8 dataLength { 0 };
-    u8 digitalInputRegister { 0 };
+    u8 step_rate_time { 0 };
+    u8 head_load_time { 0 };
+    u8 head_unload_time { 0 };
+    u8 bytes_per_sector { 0 };
+    u8 end_of_track { 0 };
+    u8 gap3_length { 0 };
+    u8 data_length { 0 };
+    u8 digital_input_register { 0 };
 };
 
 struct FDC::Private {
     FDCDrive drive[2];
-    u8 driveIndex;
+    u8 drive_index;
     bool enabled;
-    FDCDataRate dataRate;
-    u8 dataDirection;
-    u8 mainStatusRegister;
-    u8 statusRegister[4];
-    bool hasPendingReset { false };
+    FDCDataRate data_rate;
+    u8 data_direction;
+    u8 main_status_register;
+    u8 status_register[4];
+    bool has_pending_reset { false };
     QVector<u8> command;
-    u8 commandSize;
-    QList<u8> commandResult;
-    u8 configureData { 0 };
-    u8 precompensationStartNumber { 0 };
-    u8 perpendicularModeConfig { 0 };
+    u8 command_size;
+    QList<u8> command_result;
+    u8 configure_data { 0 };
+    u8 precompensation_start_number { 0 };
+    u8 perpendicular_mode_config { 0 };
     bool lock { false };
-    u8 expectedSenseInterruptCount { 0 };
+    u8 expected_sense_interrupt_count { 0 };
 
-    FDCDrive& currentDrive()
+    FDCDrive& current_drive()
     {
-        ASSERT(driveIndex < 2);
-        return drive[driveIndex];
+        ASSERT(drive_index < 2);
+        return drive[drive_index];
     }
 };
 
@@ -143,38 +143,38 @@ FDC::~FDC()
 {
 }
 
-void FDC::setDataDirection(DataDirection direction)
+void FDC::set_data_direction(DataDirection direction)
 {
     if (direction == DataDirection::FromFDC)
-        d->mainStatusRegister |= (unsigned)DataDirection::FromFDC;
+        d->main_status_register |= (unsigned)DataDirection::FromFDC;
     else
-        d->mainStatusRegister &= ~(unsigned)DataDirection::FromFDC;
+        d->main_status_register &= ~(unsigned)DataDirection::FromFDC;
 }
 
-FDC::DataDirection FDC::dataDirection() const
+FDC::DataDirection FDC::data_direction() const
 {
-    return static_cast<DataDirection>(d->mainStatusRegister & (unsigned)DataDirection::Mask);
+    return static_cast<DataDirection>(d->main_status_register & (unsigned)DataDirection::Mask);
 }
 
-void FDC::setUsingDMA(bool value)
+void FDC::set_using_dma(bool value)
 {
     if (value)
-        d->mainStatusRegister &= ~FDC_MSR_NONDMA;
+        d->main_status_register &= ~FDC_MSR_NONDMA;
     else
-        d->mainStatusRegister |= FDC_MSR_NONDMA;
+        d->main_status_register |= FDC_MSR_NONDMA;
 }
 
-bool FDC::usingDMA() const
+bool FDC::using_dma() const
 {
-    return !(d->mainStatusRegister & FDC_MSR_NONDMA);
+    return !(d->main_status_register & FDC_MSR_NONDMA);
 }
 
-void FDC::resetController(ResetSource resetSource)
+void FDC::reset_controller(ResetSource reset_source)
 {
-    if (resetSource == Software) {
+    if (reset_source == Software) {
         vlog(LogFDC, "Reset by software");
     } else {
-        d->dataRate = FDCDataRate::_250kbps;
+        d->data_rate = FDCDataRate::_250kbps;
         d->lock = false;
 
         // FIXME: I think we should pretend the disks are changed.
@@ -183,33 +183,33 @@ void FDC::resetController(ResetSource resetSource)
         //d->drive[1].digitalInputRegister = 0x80;
     }
 
-    d->hasPendingReset = false;
-    d->driveIndex = 0;
+    d->has_pending_reset = false;
+    d->drive_index = 0;
     d->enabled = false;
-    setUsingDMA(false);
-    setDataDirection(DataDirection::ToFDC);
-    d->mainStatusRegister = 0;
+    set_using_dma(false);
+    set_data_direction(DataDirection::ToFDC);
+    d->main_status_register = 0;
 
-    d->commandSize = 0;
+    d->command_size = 0;
     d->command.clear();
 
-    d->statusRegister[0] = 0;
-    d->statusRegister[1] = 0;
-    d->statusRegister[2] = 0;
-    d->statusRegister[3] = 0x28;
+    d->status_register[0] = 0;
+    d->status_register[1] = 0;
+    d->status_register[2] = 0;
+    d->status_register[3] = 0x28;
 
     for (unsigned i = 0; i < 2; ++i) {
         d->drive[i].cylinder = 0;
         d->drive[i].head = 0;
         d->drive[i].sector = 0;
-        d->drive[i].endOfTrack = 0;
+        d->drive[i].end_of_track = 0;
     }
 
-    d->perpendicularModeConfig = 0;
+    d->perpendicular_mode_config = 0;
 
     if (!d->lock) {
-        d->configureData = 0;
-        d->precompensationStartNumber = 0;
+        d->configure_data = 0;
+        d->precompensation_start_number = 0;
     }
 
     lower_irq();
@@ -217,7 +217,7 @@ void FDC::resetController(ResetSource resetSource)
 
 void FDC::reset()
 {
-    resetController(ResetSource::Hardware);
+    reset_controller(ResetSource::Hardware);
 }
 
 u8 FDC::in8(u16 port)
@@ -241,31 +241,31 @@ u8 FDC::in8(u16 port)
         break;
 
     case 0x3F4: {
-        vlog(LogFDC, "Read main status register: %02x (direction: %s)", d->mainStatusRegister, (dataDirection() == DataDirection::ToFDC) ? "to FDC" : "from FDC");
-        return d->mainStatusRegister;
+        vlog(LogFDC, "Read main status register: %02x (direction: %s)", d->main_status_register, (data_direction() == DataDirection::ToFDC) ? "to FDC" : "from FDC");
+        return d->main_status_register;
     }
 
     case 0x3F5: {
-        if (d->commandResult.isEmpty()) {
+        if (d->command_result.isEmpty()) {
             vlog(LogFDC, "Read from empty command result register");
             return IODevice::JunkValue;
         }
 
-        data = d->commandResult.takeFirst();
+        data = d->command_result.takeFirst();
         vlog(LogFDC, "Read command result byte %02X", data);
 
-        if (d->commandResult.isEmpty()) {
-            setDataDirection(DataDirection::ToFDC);
+        if (d->command_result.isEmpty()) {
+            set_data_direction(DataDirection::ToFDC);
         }
 
         break;
 
     case 0x3F7:
-        if (d->driveIndex < 2) {
-            vlog(LogFDC, "Read drive %u DIR = %02X", d->driveIndex, d->currentDrive().digitalInputRegister);
-            data = d->currentDrive().digitalInputRegister;
+        if (d->drive_index < 2) {
+            vlog(LogFDC, "Read drive %u DIR = %02X", d->drive_index, d->current_drive().digital_input_register);
+            data = d->current_drive().digital_input_register;
         } else
-            vlog(LogFDC, "Wanted DIR, but invalid drive %u selected", d->driveIndex);
+            vlog(LogFDC, "Wanted DIR, but invalid drive %u selected", d->drive_index);
         break;
     }
 
@@ -291,30 +291,30 @@ void FDC::out8(u16 port, u8 data)
 #endif
     switch (port) {
     case 0x3F2: {
-        bool wasEnabled = d->enabled;
+        bool was_enabled = d->enabled;
 
         vlog(LogFDC, "Writing to FDC digital output, data: %02X", data);
 
-        d->driveIndex = data & 3;
+        d->drive_index = data & 3;
         d->enabled = (data & 0x04) != 0;
-        setUsingDMA(data & 0x08);
+        set_using_dma(data & 0x08);
 
         d->drive[0].motor = (data & 0x10) != 0;
         d->drive[1].motor = (data & 0x20) != 0;
 
-        vlog(LogFDC, "  Current drive: %u", d->driveIndex);
+        vlog(LogFDC, "  Current drive: %u", d->drive_index);
         vlog(LogFDC, "  FDC enabled:   %s", d->enabled ? "yes" : "no");
-        vlog(LogFDC, "  DMA+I/O mode:  %s", usingDMA() ? "yes" : "no");
+        vlog(LogFDC, "  DMA+I/O mode:  %s", using_dma() ? "yes" : "no");
 
         vlog(LogFDC, "  Motors:        %u %u", d->drive[0].motor, d->drive[1].motor);
 
-        //if (!d->currentDrive().motor)
-        //    vlog(LogFDC, "Invalid state: Current drive (%u) has motor off.", d->driveIndex);
+        //if (!d->current_drive().motor)
+        //    vlog(LogFDC, "Invalid state: Current drive (%u) has motor off.", d->drive_index);
 
-        if (!wasEnabled && d->enabled) {
+        if (!was_enabled && d->enabled) {
             // Back to business.
-        } else if (wasEnabled && !d->enabled) {
-            resetControllerSoon();
+        } else if (was_enabled && !d->enabled) {
+            reset_controller_soon();
         }
 
         break;
@@ -324,11 +324,11 @@ void FDC::out8(u16 port, u8 data)
         vlog(LogFDC, "Command byte: %02X", data);
 
         if (d->command.isEmpty()) {
-            d->mainStatusRegister &= FDC_MSR_DIO;
-            d->mainStatusRegister |= FDC_MSR_RQM | FDC_MSR_CMDBSY;
+            d->main_status_register &= FDC_MSR_DIO;
+            d->main_status_register |= FDC_MSR_RQM | FDC_MSR_CMDBSY;
             // Determine the command length
             if (isReadDataCommand(data)) {
-                d->commandSize = 9;
+                d->command_size = 9;
             } else {
                 switch (data) {
                 case GetVersion:
@@ -336,19 +336,19 @@ void FDC::out8(u16 port, u8 data)
                 case DumpRegisters:
                 case Lock:
                 case Unlock:
-                    d->commandSize = 1;
+                    d->command_size = 1;
                     break;
                 case Recalibrate:
                 case PerpendicularMode:
                 case SenseDriveStatus:
-                    d->commandSize = 2;
+                    d->command_size = 2;
                     break;
                 case SeekToTrack:
                 case SpecifyStepAndHeadLoad:
-                    d->commandSize = 3;
+                    d->command_size = 3;
                     break;
                 case Configure:
-                    d->commandSize = 4;
+                    d->command_size = 4;
                     break;
                 }
             }
@@ -356,17 +356,17 @@ void FDC::out8(u16 port, u8 data)
 
         d->command.append(data);
 
-        if (d->command.size() >= d->commandSize) {
-            executeCommandSoon();
+        if (d->command.size() >= d->command_size) {
+            execute_command_soon();
         }
         break;
     }
 
     case 0x3f4:
-        d->dataRate = static_cast<FDCDataRate>(data & 3);
-        vlog(LogFDC, "Set data rate (via Data Rate Select Register): %s", toString(d->dataRate));
+        d->data_rate = static_cast<FDCDataRate>(data & 3);
+        vlog(LogFDC, "Set data rate (via Data Rate Select Register): %s", to_string(d->data_rate));
         if (data & 0x80) {
-            resetControllerSoon();
+            reset_controller_soon();
         }
         if (data & 0x40) {
             // Power down
@@ -375,8 +375,8 @@ void FDC::out8(u16 port, u8 data)
         break;
 
     case 0x3f7:
-        d->dataRate = static_cast<FDCDataRate>(data & 3);
-        vlog(LogFDC, "Set data rate (via Configuration Control Register): %s", toString(d->dataRate));
+        d->data_rate = static_cast<FDCDataRate>(data & 3);
+        vlog(LogFDC, "Set data rate (via Configuration Control Register): %s", to_string(d->data_rate));
         break;
 
     default:
@@ -384,185 +384,185 @@ void FDC::out8(u16 port, u8 data)
     }
 }
 
-void FDC::resetControllerSoon()
+void FDC::reset_controller_soon()
 {
-    d->hasPendingReset = true;
-    d->mainStatusRegister &= FDC_MSR_NONDMA;
-    executeCommandSoon();
+    d->has_pending_reset = true;
+    d->main_status_register &= FDC_MSR_NONDMA;
+    execute_command_soon();
 }
 
-void FDC::executeReadDataCommand()
+void FDC::execute_read_data_command()
 {
-    d->driveIndex = d->command[1] & 3;
-    d->currentDrive().head = (d->command[1] >> 2) & 1;
-    d->currentDrive().cylinder = d->command[2];
-    d->currentDrive().head = d->command[3];
-    d->currentDrive().sector = d->command[4];
-    d->currentDrive().bytesPerSector = d->command[5];
-    d->currentDrive().endOfTrack = d->command[6];
-    d->currentDrive().gap3Length = d->command[7];
-    d->currentDrive().dataLength = d->command[8];
+    d->drive_index = d->command[1] & 3;
+    d->current_drive().head = (d->command[1] >> 2) & 1;
+    d->current_drive().cylinder = d->command[2];
+    d->current_drive().head = d->command[3];
+    d->current_drive().sector = d->command[4];
+    d->current_drive().bytes_per_sector = d->command[5];
+    d->current_drive().end_of_track = d->command[6];
+    d->current_drive().gap3_length = d->command[7];
+    d->current_drive().data_length = d->command[8];
     vlog(LogFDC, "ReadData { drive:%u, C:%u H:%u, S:%u / bpS:%u, EOT:%u, g3l:%u, dl:%u }",
-        d->driveIndex,
-        d->currentDrive().cylinder,
-        d->currentDrive().head,
-        d->currentDrive().sector,
-        128 << d->currentDrive().bytesPerSector,
-        d->currentDrive().endOfTrack,
-        d->currentDrive().gap3Length,
-        d->currentDrive().dataLength);
+        d->drive_index,
+        d->current_drive().cylinder,
+        d->current_drive().head,
+        d->current_drive().sector,
+        128 << d->current_drive().bytes_per_sector,
+        d->current_drive().end_of_track,
+        d->current_drive().gap3_length,
+        d->current_drive().data_length);
 }
 
-void FDC::executeCommandSoon()
+void FDC::execute_command_soon()
 {
     // FIXME: Don't do this immediately, do it "soon"!
-    executeCommand();
+    execute_command();
 }
 
-void FDC::executeCommand()
+void FDC::execute_command()
 {
-    executeCommandInternal();
+    execute_command_internal();
     d->command.clear();
-    if ((d->statusRegister[0] & 0xc0) == 0x80) {
+    if ((d->status_register[0] & 0xc0) == 0x80) {
         // Command was invalid
-        d->commandResult.clear();
-        d->commandResult.append(d->statusRegister[0]);
+        d->command_result.clear();
+        d->command_result.append(d->status_register[0]);
     }
-    setDataDirection(!d->commandResult.isEmpty() ? DataDirection::FromFDC : DataDirection::ToFDC);
-    d->mainStatusRegister |= FDC_MSR_RQM;
+    set_data_direction(!d->command_result.isEmpty() ? DataDirection::FromFDC : DataDirection::ToFDC);
+    d->main_status_register |= FDC_MSR_RQM;
 
-    if (d->commandResult.isEmpty()) {
-        d->mainStatusRegister &= ~FDC_MSR_CMDBSY;
+    if (d->command_result.isEmpty()) {
+        d->main_status_register &= ~FDC_MSR_CMDBSY;
     } else {
-        d->mainStatusRegister |= FDC_MSR_CMDBSY;
+        d->main_status_register |= FDC_MSR_CMDBSY;
     }
 }
 
-void FDC::executeCommandInternal()
+void FDC::execute_command_internal()
 {
-    if (d->hasPendingReset) {
-        resetController(Software);
-        d->expectedSenseInterruptCount = 4;
-        generateFDCInterrupt();
+    if (d->has_pending_reset) {
+        reset_controller(Software);
+        d->expected_sense_interrupt_count = 4;
+        generate_fdc_interrupt();
         return;
     }
 
     vlog(LogFDC, "Executing command %02x", d->command[0]);
-    d->commandResult.clear();
+    d->command_result.clear();
 
     if (isReadDataCommand(d->command[0]))
-        return executeReadDataCommand();
+        return execute_read_data_command();
 
     switch (d->command[0]) {
     case SpecifyStepAndHeadLoad:
-        d->currentDrive().stepRateTime = (d->command[1] >> 4) & 0xf;
-        d->currentDrive().headUnloadTime = d->command[1] & 0xf;
-        d->currentDrive().headLoadTime = (d->command[2] >> 1) & 0x7f;
+        d->current_drive().step_rate_time = (d->command[1] >> 4) & 0xf;
+        d->current_drive().head_unload_time = d->command[1] & 0xf;
+        d->current_drive().head_load_time = (d->command[2] >> 1) & 0x7f;
 
-        setUsingDMA(!(d->command[2] & 1));
+        set_using_dma(!(d->command[2] & 1));
         vlog(LogFDC, "SpecifyStepAndHeadLoad { SRT:%1x, HUT:%1x, HLT:%1x, ND:%1x }",
-            d->currentDrive().stepRateTime,
-            d->currentDrive().headUnloadTime,
-            d->currentDrive().headLoadTime,
-            !usingDMA());
+            d->current_drive().step_rate_time,
+            d->current_drive().head_unload_time,
+            d->current_drive().head_load_time,
+            !using_dma());
         break;
     case SenseInterruptStatus:
         vlog(LogFDC, "SenseInterruptStatus");
-        d->commandResult.append(d->statusRegister[0]);
-        d->commandResult.append(d->currentDrive().cylinder);
+        d->command_result.append(d->status_register[0]);
+        d->command_result.append(d->current_drive().cylinder);
         // Linux sends 4 SenseInterruptStatus commands after a controller reset because of "drive polling"
-        if (d->expectedSenseInterruptCount) {
-            u8 driveIndex = 4 - d->expectedSenseInterruptCount;
-            d->statusRegister[0] &= 0xf8;
-            d->statusRegister[0] |= (d->drive[driveIndex].head << 2) | driveIndex;
-            --d->expectedSenseInterruptCount;
+        if (d->expected_sense_interrupt_count) {
+            u8 driveIndex = 4 - d->expected_sense_interrupt_count;
+            d->status_register[0] &= 0xf8;
+            d->status_register[0] |= (d->drive[driveIndex].head << 2) | driveIndex;
+            --d->expected_sense_interrupt_count;
         } else if (!is_irq_raised()) {
-            d->statusRegister[0] = 0x80;
+            d->status_register[0] = 0x80;
         }
         break;
     case Recalibrate:
-        d->driveIndex = d->command[1] & 3;
-        generateFDCInterrupt();
-        vlog(LogFDC, "Recalibrate { drive:%u }", d->driveIndex);
+        d->drive_index = d->command[1] & 3;
+        generate_fdc_interrupt();
+        vlog(LogFDC, "Recalibrate { drive:%u }", d->drive_index);
         break;
     case SeekToTrack:
-        d->driveIndex = d->command[1] & 3;
-        d->currentDrive().head = (d->command[1] >> 2) & 1;
-        d->currentDrive().cylinder = d->command[2];
+        d->drive_index = d->command[1] & 3;
+        d->current_drive().head = (d->command[1] >> 2) & 1;
+        d->current_drive().cylinder = d->command[2];
         vlog(LogFDC, "SeekToTrack { drive:%u, C:%u, H:%u }",
-            d->driveIndex,
-            d->currentDrive().cylinder,
-            d->currentDrive().head);
-        generateFDCInterrupt(true);
+            d->drive_index,
+            d->current_drive().cylinder,
+            d->current_drive().head);
+        generate_fdc_interrupt(true);
         break;
     case GetVersion:
         vlog(LogFDC, "Get version");
 #ifdef FDC_NEC765
-        d->commandResult.append(0x80);
+        d->command_result.append(0x80);
 #else
-        updateStatus();
-        d->commandResult.append(d->statusRegister[0]);
+        update_status();
+        d->command_result.append(d->status_register[0]);
 #endif
         break;
     case DumpRegisters:
-        d->commandResult.append(d->drive[0].cylinder);
-        d->commandResult.append(d->drive[1].cylinder);
-        d->commandResult.append(0); // Drive 2 cylinder
-        d->commandResult.append(0); // Drive 3 cylinder
-        d->commandResult.append((d->currentDrive().stepRateTime << 4) | (d->currentDrive().headUnloadTime));
-        d->commandResult.append((d->currentDrive().headUnloadTime << 1) | !usingDMA());
-        d->commandResult.append((d->currentDrive().endOfTrack << 1) | !usingDMA());
-        d->commandResult.append((d->lock * 0x80) | (d->perpendicularModeConfig & 0x7f));
-        d->commandResult.append(d->configureData);
-        d->commandResult.append(d->precompensationStartNumber);
+        d->command_result.append(d->drive[0].cylinder);
+        d->command_result.append(d->drive[1].cylinder);
+        d->command_result.append(0); // Drive 2 cylinder
+        d->command_result.append(0); // Drive 3 cylinder
+        d->command_result.append((d->current_drive().step_rate_time << 4) | (d->current_drive().head_unload_time));
+        d->command_result.append((d->current_drive().head_unload_time << 1) | !using_dma());
+        d->command_result.append((d->current_drive().end_of_track << 1) | !using_dma());
+        d->command_result.append((d->lock * 0x80) | (d->perpendicular_mode_config & 0x7f));
+        d->command_result.append(d->configure_data);
+        d->command_result.append(d->precompensation_start_number);
         break;
     case PerpendicularMode:
-        d->perpendicularModeConfig = d->command[1];
-        vlog(LogFDC, "Perpendicular mode configuration: %02x", d->perpendicularModeConfig);
+        d->perpendicular_mode_config = d->command[1];
+        vlog(LogFDC, "Perpendicular mode configuration: %02x", d->perpendicular_mode_config);
         break;
     case Lock:
     case Unlock:
         d->lock = (d->command[0] & 0x80);
-        d->commandResult.append(d->lock * 0x10);
+        d->command_result.append(d->lock * 0x10);
         break;
     case Configure:
         if (d->command[1] != 0) {
             vlog(LogFDC, "Weird, expected second byte of Configure command to be all zeroes!");
         }
-        d->configureData = d->command[2];
-        d->precompensationStartNumber = d->command[3];
+        d->configure_data = d->command[2];
+        d->precompensation_start_number = d->command[3];
         break;
     case SenseDriveStatus: {
         u8 driveIndex = d->command[1] & 3;
         d->drive[driveIndex].head = (d->command[1] >> 2) & 1;
-        d->statusRegister[3] = 0x28; // Reserved bits, always set.
-        d->statusRegister[3] |= d->command[1] & 7;
+        d->status_register[3] = 0x28; // Reserved bits, always set.
+        d->status_register[3] |= d->command[1] & 7;
         if (d->drive[driveIndex].cylinder == 0)
-            d->statusRegister[3] |= 0x10;
-        d->commandResult.append(d->statusRegister[3]);
+            d->status_register[3] |= 0x10;
+        d->command_result.append(d->status_register[3]);
         break;
     }
     default:
         vlog(LogFDC, "Unknown command! %02X", d->command[0]);
         if (d->command[0] != 0x18)
             ASSERT_NOT_REACHED();
-        d->statusRegister[0] = 0x80;
+        d->status_register[0] = 0x80;
         break;
     }
 }
 
-void FDC::updateStatus(bool seekCompleted)
+void FDC::update_status(bool seekCompleted)
 {
-    d->statusRegister[0] = d->driveIndex;
-    d->statusRegister[0] |= d->currentDrive().head * 0x02;
+    d->status_register[0] = d->drive_index;
+    d->status_register[0] |= d->current_drive().head * 0x02;
 
     if (seekCompleted)
-        d->statusRegister[0] |= 0x20;
+        d->status_register[0] |= 0x20;
 }
 
-void FDC::generateFDCInterrupt(bool seekCompleted)
+void FDC::generate_fdc_interrupt(bool seek_completed)
 {
-    updateStatus(seekCompleted);
-    vlog(LogFDC, "Raise IRQ%s", seekCompleted ? " (seek completed)" : "");
+    update_status(seek_completed);
+    vlog(LogFDC, "Raise IRQ%s", seek_completed ? " (seek completed)" : "");
     raise_irq();
 }

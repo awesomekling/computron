@@ -30,35 +30,35 @@
 class DiskDrive {
 public:
     struct Configuration {
-        QString imagePath;
-        unsigned sectorsPerTrack { 0 };
+        QString image_path;
+        unsigned sectors_per_track { 0 };
         unsigned heads { 0 };
         unsigned sectors { 0 };
-        unsigned bytesPerSector { 0 };
-        u8 floppyTypeForCMOS { 0 };
+        unsigned bytes_per_sector { 0 };
+        u8 floppy_type_for_cmos { 0 };
     };
 
     explicit DiskDrive(const QString& name);
     ~DiskDrive();
 
     QString name() const { return m_name; }
-    void setConfiguration(Configuration);
+    void set_configuration(Configuration);
 
-    void setImagePath(const QString&);
-    QString imagePath() const { return m_config.imagePath; }
+    void set_image_path(const QString&);
+    QString image_path() const { return m_config.image_path; }
 
-    u32 toLBA(u16 cylinder, u8 head, u16 sector)
+    u32 to_lba(u16 cylinder, u8 head, u16 sector)
     {
-        return (sector - 1) + (head * sectorsPerTrack()) + (cylinder * sectorsPerTrack() * heads());
+        return (sector - 1) + (head * sectors_per_track()) + (cylinder * sectors_per_track() * heads());
     }
 
     bool present() const { return m_present; }
-    unsigned cylinders() const { return (m_config.sectors / m_config.sectorsPerTrack / m_config.heads) - 2; }
+    unsigned cylinders() const { return (m_config.sectors / m_config.sectors_per_track / m_config.heads) - 2; }
     unsigned heads() const { return m_config.heads; }
     unsigned sectors() const { return m_config.sectors; }
-    unsigned sectorsPerTrack() const { return m_config.sectorsPerTrack; }
-    unsigned bytesPerSector() const { return m_config.bytesPerSector; }
-    u8 floppyTypeForCMOS() const { return m_config.floppyTypeForCMOS; }
+    unsigned sectors_per_track() const { return m_config.sectors_per_track; }
+    unsigned bytes_per_sector() const { return m_config.bytes_per_sector; }
+    u8 floppy_type_for_cmos() const { return m_config.floppy_type_for_cmos; }
 
     //private:
     Configuration m_config;

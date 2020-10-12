@@ -65,7 +65,7 @@ void CMOS::reset()
     m_ram[ExtendedMemoryInKilobytesAltMSB] = most_significant<u8>(cpu.extended_memory_size() / 1024 - 1024);
 
     // FIXME: This clearly belongs elsewhere.
-    m_ram[FloppyDriveTypes] = (machine().floppy0().floppyTypeForCMOS() << 4) | machine().floppy1().floppyTypeForCMOS();
+    m_ram[FloppyDriveTypes] = (machine().floppy0().floppy_type_for_cmos() << 4) | machine().floppy1().floppy_type_for_cmos();
 
     update_clock();
 }

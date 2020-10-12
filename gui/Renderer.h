@@ -37,9 +37,9 @@ public:
     const Screen& screen() const;
     const VGA& vga() const;
 
-    virtual void synchronizeFont() = 0;
-    virtual void synchronizeColors() = 0;
-    virtual void willBecomeActive() = 0;
+    virtual void synchronize_font() = 0;
+    virtual void synchronize_colors() = 0;
+    virtual void will_become_active() = 0;
     virtual void render() = 0;
     virtual void paint(QPainter&) = 0;
 
@@ -60,9 +60,9 @@ public:
     {
     }
 
-    virtual void synchronizeFont() override;
-    virtual void synchronizeColors() override;
-    virtual void willBecomeActive() override;
+    virtual void synchronize_font() override;
+    virtual void synchronize_colors() override;
+    virtual void will_become_active() override;
     virtual void render() override { }
     virtual void paint(QPainter&) override;
 
@@ -86,9 +86,9 @@ public:
     {
     }
 
-    virtual void synchronizeFont() override { }
-    virtual void synchronizeColors() override { }
-    virtual void willBecomeActive() override { }
+    virtual void synchronize_font() override { }
+    virtual void synchronize_colors() override { }
+    virtual void will_become_active() override { }
     virtual void render() override { }
     virtual void paint(QPainter&) override { }
 };
@@ -96,7 +96,7 @@ public:
 class BufferedRenderer : public Renderer {
 public:
     virtual void paint(QPainter&) override;
-    virtual void willBecomeActive() override;
+    virtual void will_become_active() override;
 
 protected:
     explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
@@ -110,8 +110,8 @@ class Mode04Renderer final : public BufferedRenderer {
 public:
     explicit Mode04Renderer(Screen&);
 
-    virtual void synchronizeFont() override { }
-    virtual void synchronizeColors() override { }
+    virtual void synchronize_font() override { }
+    virtual void synchronize_colors() override { }
     virtual void render() override;
 };
 
@@ -122,8 +122,8 @@ public:
     {
     }
 
-    virtual void synchronizeFont() override { }
-    virtual void synchronizeColors() override;
+    virtual void synchronize_font() override { }
+    virtual void synchronize_colors() override;
     virtual void render() override;
 };
 
@@ -134,8 +134,8 @@ public:
     {
     }
 
-    virtual void synchronizeFont() override { }
-    virtual void synchronizeColors() override;
+    virtual void synchronize_font() override { }
+    virtual void synchronize_colors() override;
     virtual void render() override;
 };
 
@@ -146,7 +146,7 @@ public:
     {
     }
 
-    virtual void synchronizeFont() override { }
-    virtual void synchronizeColors() override;
+    virtual void synchronize_font() override { }
+    virtual void synchronize_colors() override;
     virtual void render() override;
 };
