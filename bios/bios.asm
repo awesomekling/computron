@@ -786,11 +786,10 @@ _bios_interrupt15:
     jmp     bios_a20_control
 
 bios_move_extended_block:
-    push    bp
-    mov     bp, sp
-
     pusha
     push    ds
+
+    mov     bp, sp
 
     stub 0x15 ; FIXME: remove this when no longer needed for debugging
 
@@ -942,7 +941,6 @@ bios_move_extended_block:
     pop     ds
     popa
 
-    pop     bp
     mov     ah, 0x00
     clc
     ret
