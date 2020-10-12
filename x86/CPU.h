@@ -133,27 +133,35 @@ private:
 
 union PartAddressableRegister {
     struct {
-        u32 fullDWORD;
+        u64 full_u64;
     };
 #ifdef CT_BIG_ENDIAN
     struct {
-        u16 __highWORD;
-        u16 lowWORD;
+        u32 __high_u32;
+        u32 full_u32;
     };
     struct {
-        u16 __highWORD2;
-        u8 highBYTE;
-        u8 lowBYTE;
+        u16 __high_u16;
+        u16 low_u16;
+    };
+    struct {
+        u16 __high_u16_2;
+        u8 high_u8;
+        u8 low_u8;
     };
 #else
     struct {
-        u16 lowWORD;
-        u16 __highWORD;
+        u32 full_u32;
+        u32 __high_u32;
     };
     struct {
-        u8 lowBYTE;
-        u8 highBYTE;
-        u8 __highWORD2;
+        u16 low_u16;
+        u16 __high_u16;
+    };
+    struct {
+        u8 low_u8;
+        u8 high_u8;
+        u8 __high_u16_2;
     };
 #endif
 };
@@ -479,8 +487,8 @@ public:
     void set_debug_register(int register_index, u32 value) { *m_debug_register_map[register_index] = value; }
 
     u8& mutable_reg8(RegisterIndex8 index) { return *m_byte_registers[index]; }
-    u16& mutable_reg16(RegisterIndex16 index) { return m_gpr[index].lowWORD; }
-    u32& mutable_reg32(RegisterIndex32 index) { return m_gpr[index].fullDWORD; }
+    u16& mutable_reg16(RegisterIndex16 index) { return m_gpr[index].low_u16; }
+    u32& mutable_reg32(RegisterIndex32 index) { return m_gpr[index].full_u32; }
 
     u32 get_eax() const { return read_register<u32>(RegisterEAX); }
     u32 get_ebx() const { return read_register<u32>(RegisterEBX); }
@@ -1673,7 +1681,7 @@ ALWAYS_INLINE u16& Instruction::reg16()
 #ifdef DEBUG_INSTRUCTION
     ASSERT(m_cpu);
 #endif
-    return m_cpu->m_gpr[register_index()].lowWORD;
+    return m_cpu->m_gpr[register_index()].low_u16;
 }
 
 ALWAYS_INLINE u16& Instruction::segreg()
@@ -1691,7 +1699,7 @@ ALWAYS_INLINE u32& Instruction::reg32()
     ASSERT(m_cpu);
     ASSERT(m_cpu->o32());
 #endif
-    return m_cpu->m_gpr[register_index()].fullDWORD;
+    return m_cpu->m_gpr[register_index()].full_u32;
 }
 
 template<>
@@ -1740,9 +1748,9 @@ ALWAYS_INLINE T CPU::read_register(int register_index) const
     if (sizeof(T) == 1)
         return *m_byte_registers[register_index];
     if (sizeof(T) == 2)
-        return m_gpr[register_index].lowWORD;
+        return m_gpr[register_index].low_u16;
     if (sizeof(T) == 4)
-        return m_gpr[register_index].fullDWORD;
+        return m_gpr[register_index].full_u32;
     ASSERT_NOT_REACHED();
 }
 
@@ -1752,9 +1760,9 @@ ALWAYS_INLINE void CPU::write_register(int register_index, T value)
     if (sizeof(T) == 1)
         *m_byte_registers[register_index] = value;
     else if (sizeof(T) == 2)
-        m_gpr[register_index].lowWORD = value;
+        m_gpr[register_index].low_u16 = value;
     else if (sizeof(T) == 4)
-        m_gpr[register_index].fullDWORD = value;
+        m_gpr[register_index].full_u32 = value;
     else
         ASSERT_NOT_REACHED();
 }

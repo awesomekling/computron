@@ -78,24 +78,24 @@ CPU* g_cpu = 0;
 u32 CPU::read_register_for_address_size(int register_index)
 {
     if (a32())
-        return m_gpr[register_index].fullDWORD;
-    return m_gpr[register_index].lowWORD;
+        return m_gpr[register_index].full_u32;
+    return m_gpr[register_index].low_u16;
 }
 
 void CPU::write_register_for_address_size(int register_index, u32 data)
 {
     if (a32())
-        m_gpr[register_index].fullDWORD = data;
+        m_gpr[register_index].full_u32 = data;
     else
-        m_gpr[register_index].lowWORD = data;
+        m_gpr[register_index].low_u16 = data;
 }
 
 void CPU::step_register_for_address_size(int register_index, u32 stepSize)
 {
     if (a32())
-        m_gpr[register_index].fullDWORD += get_df() ? -stepSize : stepSize;
+        m_gpr[register_index].full_u32 += get_df() ? -stepSize : stepSize;
     else
-        m_gpr[register_index].lowWORD += get_df() ? -stepSize : stepSize;
+        m_gpr[register_index].low_u16 += get_df() ? -stepSize : stepSize;
 }
 
 bool CPU::decrement_cx_for_address_size()
@@ -267,14 +267,14 @@ CPU::CPU(Machine& m)
     m_debug_register_map[6] = &m_dr6;
     m_debug_register_map[7] = &m_dr7;
 
-    m_byte_registers[RegisterAH] = &m_gpr[RegisterEAX].highBYTE;
-    m_byte_registers[RegisterBH] = &m_gpr[RegisterEBX].highBYTE;
-    m_byte_registers[RegisterCH] = &m_gpr[RegisterECX].highBYTE;
-    m_byte_registers[RegisterDH] = &m_gpr[RegisterEDX].highBYTE;
-    m_byte_registers[RegisterAL] = &m_gpr[RegisterEAX].lowBYTE;
-    m_byte_registers[RegisterBL] = &m_gpr[RegisterEBX].lowBYTE;
-    m_byte_registers[RegisterCL] = &m_gpr[RegisterECX].lowBYTE;
-    m_byte_registers[RegisterDL] = &m_gpr[RegisterEDX].lowBYTE;
+    m_byte_registers[RegisterAH] = &m_gpr[RegisterEAX].high_u8;
+    m_byte_registers[RegisterBH] = &m_gpr[RegisterEBX].high_u8;
+    m_byte_registers[RegisterCH] = &m_gpr[RegisterECX].high_u8;
+    m_byte_registers[RegisterDH] = &m_gpr[RegisterEDX].high_u8;
+    m_byte_registers[RegisterAL] = &m_gpr[RegisterEAX].low_u8;
+    m_byte_registers[RegisterBL] = &m_gpr[RegisterEBX].low_u8;
+    m_byte_registers[RegisterCL] = &m_gpr[RegisterECX].low_u8;
+    m_byte_registers[RegisterDL] = &m_gpr[RegisterEDX].low_u8;
 
     m_segment_map[(int)SegmentRegisterIndex::CS] = &this->m_cs;
     m_segment_map[(int)SegmentRegisterIndex::DS] = &this->m_ds;
