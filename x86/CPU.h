@@ -730,11 +730,11 @@ public:
     template<typename T>
     T read_memory_metal(LinearAddress address);
     template<typename T>
-    T read_memory(LinearAddress address, MemoryAccessType accessType = MemoryAccessType::Read, u8 effectiveCPL = 0xff);
+    T read_memory(LinearAddress address, MemoryAccessType access_type = MemoryAccessType::Read, u8 effectiveCPL = 0xff);
     template<typename T>
-    T read_memory(const SegmentDescriptor&, u32 offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    T read_memory(const SegmentDescriptor&, u32 offset, MemoryAccessType access_type = MemoryAccessType::Read);
     template<typename T>
-    T read_memory(SegmentRegisterIndex, u32 offset, MemoryAccessType accessType = MemoryAccessType::Read);
+    T read_memory(SegmentRegisterIndex, u32 offset, MemoryAccessType access_type = MemoryAccessType::Read);
     template<typename T>
     void write_memory_metal(LinearAddress, T);
     template<typename T>
@@ -812,7 +812,7 @@ public:
 
     // Current execution mode (16 or 32 bit)
     bool x16() const { return !x32(); }
-    bool x32() const { return cached_descriptor(SegmentRegisterIndex::CS).D(); }
+    bool x32() const { return cached_descriptor(SegmentRegisterIndex::CS).d(); }
 
     bool a16() const { return !m_effective_address_size32; }
     bool a32() const { return m_effective_address_size32; }

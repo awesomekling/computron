@@ -280,7 +280,7 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
     validate_data_segment(SegmentRegisterIndex::FS);
     validate_data_segment(SegmentRegisterIndex::GS);
 
-    EXCEPTION_ON(GeneralProtectionFault, 0, get_eip() > cached_descriptor(SegmentRegisterIndex::CS).effectiveLimit(), "Task switch to EIP outside CS limit");
+    EXCEPTION_ON(GeneralProtectionFault, 0, get_eip() > cached_descriptor(SegmentRegisterIndex::CS).effective_limit(), "Task switch to EIP outside CS limit");
 
     set_ldt(incomingTSS.get_ldt());
     set_cs(incomingTSS.get_cs());

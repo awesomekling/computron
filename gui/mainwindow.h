@@ -36,11 +36,11 @@ public:
     MainWindow();
     virtual ~MainWindow();
 
-    void addMachine(Machine*);
+    void add_machine(Machine*);
 
 private slots:
-    void onLedsChanged(int);
-    void updateIPS();
+    void on_leds_changed(int);
+    void update_ips();
 
 private:
     struct Private;

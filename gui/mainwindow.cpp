@@ -35,14 +35,14 @@
 
 struct MainWindow::Private {
     Keyboard* keyboard;
-    QStatusBar* statusBar;
-    QLabel* messageLabel;
-    QLabel* scrollLockLabel;
-    QLabel* numLockLabel;
-    QLabel* capsLockLabel;
-    QTimer ipsTimer;
-    u64 cycleCount { 0 };
-    QTime cycleTimer;
+    QStatusBar* status_bar;
+    QLabel* message_label;
+    QLabel* scroll_lock_label;
+    QLabel* num_lock_label;
+    QLabel* caps_lock_label;
+    QTimer ips_timer;
+    u64 cycle_count { 0 };
+    QTime cycle_timer;
     CPU* cpu { nullptr };
 };
 
@@ -50,72 +50,72 @@ MainWindow::MainWindow()
     : d(make<Private>())
 {
     setWindowTitle("Computron");
-    connect(&d->ipsTimer, SIGNAL(timeout()), this, SLOT(updateIPS()));
-    d->ipsTimer.start(500);
+    connect(&d->ips_timer, SIGNAL(timeout()), this, SLOT(update_ips()));
+    d->ips_timer.start(500);
 }
 
 MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::addMachine(Machine* machine)
+void MainWindow::add_machine(Machine* machine)
 {
     d->cpu = &machine->cpu();
 
-    MachineWidget* machineWidget = new MachineWidget(*machine);
-    setCentralWidget(machineWidget);
-    setFocusProxy(machineWidget);
+    MachineWidget* machine_widget = new MachineWidget(*machine);
+    setCentralWidget(machine_widget);
+    setFocusProxy(machine_widget);
 
     d->keyboard = &machine->keyboard();
 
-    d->statusBar = new QStatusBar;
-    setStatusBar(d->statusBar);
+    d->status_bar = new QStatusBar;
+    setStatusBar(d->status_bar);
 
-    d->scrollLockLabel = new QLabel("SCRL");
-    d->numLockLabel = new QLabel("NUM");
-    d->capsLockLabel = new QLabel("CAPS");
+    d->scroll_lock_label = new QLabel("SCRL");
+    d->num_lock_label = new QLabel("NUM");
+    d->caps_lock_label = new QLabel("CAPS");
 
-    d->scrollLockLabel->setAutoFillBackground(true);
-    d->numLockLabel->setAutoFillBackground(true);
-    d->capsLockLabel->setAutoFillBackground(true);
+    d->scroll_lock_label->setAutoFillBackground(true);
+    d->num_lock_label->setAutoFillBackground(true);
+    d->caps_lock_label->setAutoFillBackground(true);
 
-    onLedsChanged(0);
+    on_leds_changed(0);
 
-    connect(d->keyboard, SIGNAL(ledsChanged(int)), this, SLOT(onLedsChanged(int)), Qt::QueuedConnection);
+    connect(d->keyboard, SIGNAL(leds_changed(int)), this, SLOT(on_leds_changed(int)), Qt::QueuedConnection);
 
-    d->messageLabel = new QLabel;
-    d->statusBar->addWidget(d->messageLabel, 1);
-    d->statusBar->addWidget(d->capsLockLabel);
-    d->statusBar->addWidget(d->numLockLabel);
-    d->statusBar->addWidget(d->scrollLockLabel);
+    d->message_label = new QLabel;
+    d->status_bar->addWidget(d->message_label, 1);
+    d->status_bar->addWidget(d->caps_lock_label);
+    d->status_bar->addWidget(d->num_lock_label);
+    d->status_bar->addWidget(d->scroll_lock_label);
 }
 
-void MainWindow::onLedsChanged(int leds)
+void MainWindow::on_leds_changed(int leds)
 {
-    QPalette paletteForLED[2];
-    paletteForLED[0] = d->scrollLockLabel->palette();
-    paletteForLED[1] = d->scrollLockLabel->palette();
-    paletteForLED[0].setColor(d->scrollLockLabel->backgroundRole(), Qt::gray);
-    paletteForLED[1].setColor(d->scrollLockLabel->backgroundRole(), Qt::green);
+    QPalette palette_for_led[2];
+    palette_for_led[0] = d->scroll_lock_label->palette();
+    palette_for_led[1] = d->scroll_lock_label->palette();
+    palette_for_led[0].setColor(d->scroll_lock_label->backgroundRole(), Qt::gray);
+    palette_for_led[1].setColor(d->scroll_lock_label->backgroundRole(), Qt::green);
 
     bool scrollLock = leds & Keyboard::LED::ScrollLock;
     bool numLock = leds & Keyboard::LED::NumLock;
     bool capsLock = leds & Keyboard::LED::CapsLock;
 
-    d->scrollLockLabel->setPalette(paletteForLED[scrollLock]);
-    d->numLockLabel->setPalette(paletteForLED[numLock]);
-    d->capsLockLabel->setPalette(paletteForLED[capsLock]);
+    d->scroll_lock_label->setPalette(palette_for_led[scrollLock]);
+    d->num_lock_label->setPalette(palette_for_led[numLock]);
+    d->caps_lock_label->setPalette(palette_for_led[capsLock]);
 }
 
-void MainWindow::updateIPS()
+void MainWindow::update_ips()
 {
     if (!d->cpu)
         return;
-    auto cpuCycles = d->cpu->cycle();
-    auto cycles = cpuCycles - d->cycleCount;
-    double elapsed = d->cycleTimer.elapsed() / 1000.0;
+    auto cpu_cycles = d->cpu->cycle();
+    auto cycles = cpu_cycles - d->cycle_count;
+    double elapsed = d->cycle_timer.elapsed() / 1000.0;
     double ips = cycles / elapsed;
-    d->messageLabel->setText(QString("Op/s: %1").arg((u64)ips));
-    d->cycleCount = cpuCycles;
-    d->cycleTimer.start();
+    d->message_label->setText(QString("Op/s: %1").arg((u64)ips));
+    d->cycle_count = cpu_cycles;
+    d->cycle_timer.start();
 }

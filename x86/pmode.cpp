@@ -183,14 +183,14 @@ void CPU::_LMSW_RM16(Instruction& insn)
 
     m_cr0 = (m_cr0 & 0xFFFFFFF0) | (msw & 0x0F);
 #ifdef PMODE_DEBUG
-    vlog(LogCPU, "LMSW set CR0=%08X, PE=%u", getCR0(), getPE());
+    vlog(LogCPU, "LMSW set CR0=%08X, PE=%u", getCR0(), get_pe());
 #endif
 }
 
 void CPU::_SMSW_RM16(Instruction& insn)
 {
 #ifdef PMODE_DEBUG
-    vlog(LogCPU, "SMSW get LSW(CR0)=%04X, PE=%u", getCR0() & 0xFFFF, getPE());
+    vlog(LogCPU, "SMSW get LSW(CR0)=%04X, PE=%u", getCR0() & 0xFFFF, get_pe());
 #endif
     insn.modrm().write_special(get_cr0(), o32());
 }
@@ -269,7 +269,7 @@ void CPU::_LSL_reg16_RM16(Instruction& insn)
     else if (descriptor.is_tss())
         effectiveLimit = descriptor.as_tss_descriptor().effective_limit();
     else
-        effectiveLimit = descriptor.as_segment_descriptor().effectiveLimit();
+        effectiveLimit = descriptor.as_segment_descriptor().effective_limit();
     insn.reg16() = effectiveLimit;
     set_zf(1);
 }
@@ -292,7 +292,7 @@ void CPU::_LSL_reg32_RM32(Instruction& insn)
     else if (descriptor.is_tss())
         effectiveLimit = descriptor.as_tss_descriptor().effective_limit();
     else
-        effectiveLimit = descriptor.as_segment_descriptor().effectiveLimit();
+        effectiveLimit = descriptor.as_segment_descriptor().effective_limit();
     insn.reg32() = effectiveLimit;
     set_zf(1);
 }

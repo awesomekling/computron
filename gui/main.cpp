@@ -34,7 +34,7 @@
 #include <QtWidgets/QApplication>
 #include <signal.h>
 
-static void parseArguments(const QStringList& arguments);
+static void parse_arguments(const QStringList& arguments);
 
 RuntimeOptions options;
 
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
         QApplication::setWindowIcon(QIcon(":/icons/computron.ico"));
     }
 
-    parseArguments(app->arguments());
+    parse_arguments(app->arguments());
 
     signal(SIGINT, sigint_handler);
 
@@ -97,14 +97,14 @@ int main(int argc, char** argv)
     }
 
     MainWindow mainWindow;
-    mainWindow.addMachine(machine.ptr());
+    mainWindow.add_machine(machine.ptr());
     mainWindow.show();
     mainWindow.setFocus();
 
     return app->exec();
 }
 
-void parseArguments(const QStringList& arguments)
+void parse_arguments(const QStringList& arguments)
 {
     for (auto it = arguments.begin(); it != arguments.end();) {
         const auto& argument = *it;

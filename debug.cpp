@@ -122,7 +122,7 @@ void vlog(VLogChannel channel, const char* format, ...)
         fprintf(s_logfile, "(%8s) ", prefix);
 
     if (g_cpu) {
-        fprintf(s_logfile, "[%04x:%08x] ", g_cpu->getBaseCS(), g_cpu->currentBaseInstructionPointer());
+        fprintf(s_logfile, "[%04x:%08x] ", g_cpu->get_base_cs(), g_cpu->current_base_instruction_pointer());
     }
 
     va_start(ap, format);

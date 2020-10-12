@@ -48,7 +48,7 @@ public:
     void did_enqueue_data();
 
 signals:
-    void ledsChanged(int);
+    void leds_changed(int);
 
 private:
     u8 m_system_control_port_data;

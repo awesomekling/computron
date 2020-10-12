@@ -182,7 +182,7 @@ void Keyboard::out8(u16 port, u8 data)
             vlog(LogKeyboard, "LEDs set to %02X\n", data);
             if (m_leds != data) {
                 m_leds = data;
-                emit ledsChanged(m_leds);
+                emit leds_changed(m_leds);
             }
             return;
         }

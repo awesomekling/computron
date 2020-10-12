@@ -85,7 +85,7 @@ void CPU::iret_from_real_mode()
     u32 flags = pop_operand_sized_value();
 
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), currentStackPointer());
+    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), currentStackPointer());
 #endif
 
     set_cs(selector);
@@ -123,7 +123,7 @@ void CPU::_IRET(Instruction&)
     u16 selector = popper.pop_operand_sized_value();
     u32 flags = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, getSS(), popper.adjustedStackPointer());
+    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), popper.adjustedStackPointer());
 #endif
 
     if (flags & Flag::VM) {
@@ -193,7 +193,7 @@ void CPU::real_mode_interrupt(u8 isr, InterruptSource source)
         vlog(LogCPU, "PE=0 interrupt %02x,%04x%s -> %04x:%04x", isr, get_ax(), source == InterruptSource::External ? " (external)" : "", vector.selector(), vector.offset());
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=0] Interrupt from %04x:%08x to %04x:%08x", getBaseCS(), currentBaseInstructionPointer(), vector.selector(), vector.offset());
+    vlog(LogCPU, "[PE=0] Interrupt from %04x:%08x to %04x:%08x", get_base_cs(), current_base_instruction_pointer(), vector.selector(), vector.offset());
 #endif
 
     set_cs(vector.selector());
@@ -313,7 +313,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
     }
 
     // FIXME: Stack-related exceptions should come before this.
-    if (offset > codeDescriptor.effectiveLimit()) {
+    if (offset > codeDescriptor.effective_limit()) {
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
@@ -358,8 +358,8 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         set_esp(newESP);
 
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Interrupt to inner ring, ss:esp %04x:%08x -> %04x:%08x", originalSS, originalESP, getSS(), get_esp());
-        vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), get_esp());
+        vlog(LogCPU, "Interrupt to inner ring, ss:esp %04x:%08x -> %04x:%08x", originalSS, originalESP, get_ss(), get_esp());
+        vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, get_ss(), get_esp());
 #endif
         push_value_with_size(originalSS, gate.size());
         push_value_with_size(originalESP, gate.size());
@@ -380,8 +380,8 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
     }
 
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Push %u-bit flags %08x @stack{%04x:%08x}", gate.size(), flags, getSS(), get_esp());
-    vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", gate.size(), originalCS, originalEIP, getSS(), get_esp());
+    vlog(LogCPU, "Push %u-bit flags %08x @stack{%04x:%08x}", gate.size(), flags, get_ss(), get_esp());
+    vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", gate.size(), originalCS, originalEIP, get_ss(), get_esp());
 #endif
     BEGIN_ASSERT_NO_EXCEPTIONS
     push_value_with_size(flags, gate.size());
@@ -465,8 +465,8 @@ void CPU::interrupt_from_vm86_mode(Gate& gate, u32 offset, CodeSegmentDescriptor
     push_value_with_size(get_ds(), gate.size());
     push_value_with_size(get_es(), gate.size());
 #ifdef DEBUG_VM86
-    vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, getSS(), get_esp());
-    LinearAddress esp_laddr = cachedDescriptor(SegmentRegisterIndex::SS).base().offset(get_esp());
+    vlog(LogCPU, "Push %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", gate.size(), originalSS, originalESP, get_ss(), get_esp());
+    LinearAddress esp_laddr = cached_descriptor(SegmentRegisterIndex::SS).base().offset(get_esp());
     PhysicalAddress esp_paddr = translateAddress(esp_laddr, MemoryAccessType::Write);
     vlog(LogCPU, "Relevant stack pointer at P 0x%08x", esp_paddr.get());
 #endif
@@ -503,7 +503,7 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 {
     ASSERT(get_pe());
 #ifdef DEBUG_JUMPS
-    u16 originalSS = getSS();
+    u16 originalSS = get_ss();
     u32 originalESP = get_esp();
     u16 originalCS = getCS();
     u32 originalEIP = getEIP();
@@ -515,7 +515,7 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
     u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, PG=%u] IRET from %04x:%08x to %04x:%08x", getPE(), getPG(), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, PG=%u] IRET from %04x:%08x to %04x:%08x", get_pe(), getPG(), get_base_cs(), current_base_instruction_pointer(), selector, offset);
 #endif
 
     auto descriptor = get_descriptor(selector);
@@ -550,8 +550,8 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
     if (!codeSegment.is_32bit())
         offset &= 0xffff;
 
-    if (offset > codeSegment.effectiveLimit()) {
-        vlog(LogCPU, "IRET to eip(%08x) outside limit(%08x)", offset, codeSegment.effectiveLimit());
+    if (offset > codeSegment.effective_limit()) {
+        vlog(LogCPU, "IRET to eip(%08x) outside limit(%08x)", offset, codeSegment.effective_limit());
         dump_descriptor(codeSegment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
@@ -563,7 +563,7 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
         newESP = popper.pop_operand_sized_value();
         newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
+        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjustedStackPointer());
         vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
 #endif
         END_ASSERT_NO_EXCEPTIONS

@@ -99,7 +99,7 @@ void CPU::dump_trace()
         get_eax(), get_ebx(), get_ecx(), get_edx(), get_esp(), get_ebp(), get_esi(), get_edi(),
         getCR0(), getCR1(), getCR2(), getCR3(), getCR4(), getCR5(), getCR6(), getCR7(),
         getDR0(), getDR1(), getDR2(), getDR3(), getDR4(), getDR5(), getDR6(), getDR7(),
-        getDS(), getES(), getSS(), getFS(), getGS(),
+        getDS(), getES(), get_ss(), getFS(), getGS(),
         getCF(), getPF(), getAF(), getZF(),
         getSF(), getIF(), getDF(), getOF()
     );
@@ -452,7 +452,7 @@ void CPU::dump_descriptor(const Gate& gate, const char* prefix)
         gate.selector(),
         gate.offset(),
         gate.parameter_count(),
-        gate.D() ? 32 : 16,
+        gate.d() ? 32 : 16,
         gate.present(),
         gate.dpl());
     if (gate.is_call_gate()) {
@@ -482,7 +482,7 @@ void CPU::dump_descriptor(const SystemDescriptor& descriptor, const char* prefix
         descriptor.index(),
         descriptor.type_name(),
         (u8)descriptor.type(),
-        descriptor.D() ? 32 : 16,
+        descriptor.d() ? 32 : 16,
         descriptor.present(),
         descriptor.dpl());
 }
@@ -494,8 +494,8 @@ void CPU::dump_descriptor(const CodeSegmentDescriptor& segment, const char* pref
         segment.index(),
         segment.is_global() ? "global" : " local",
         segment.base(),
-        segment.effectiveLimit(),
-        segment.D() ? 32 : 16,
+        segment.effective_limit(),
+        segment.d() ? 32 : 16,
         segment.present(),
         segment.granularity() ? "4k" : "1b",
         segment.dpl(),
@@ -511,8 +511,8 @@ void CPU::dump_descriptor(const DataSegmentDescriptor& segment, const char* pref
         segment.index(),
         segment.is_global() ? "global" : " local",
         segment.base(),
-        segment.effectiveLimit(),
-        segment.D() ? 32 : 16,
+        segment.effective_limit(),
+        segment.d() ? 32 : 16,
         segment.present(),
         segment.granularity() ? "4k" : "1b",
         segment.dpl(),

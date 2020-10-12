@@ -270,8 +270,8 @@ void TextRenderer::synchronize_colors()
 void TextRenderer::synchronize_font()
 {
     auto vector = screen().machine().cpu().get_real_mode_interrupt_vector(0x43);
-    auto physicalAddress = PhysicalAddress::from_real_mode(vector);
-    auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointer_to_physical_memory(physicalAddress));
+    auto physical_address = PhysicalAddress::from_real_mode(vector);
+    auto* fbmp = (const fontcharbitmap_t*)(screen().machine().cpu().pointer_to_physical_memory(physical_address));
 
     for (int i = 0; i < 256; ++i)
         m_character[i] = QBitmap::fromData(QSize(m_characterWidth, m_characterHeight), fbmp[i].data, QImage::Format_Mono);

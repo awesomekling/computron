@@ -42,11 +42,14 @@
 #define FD_TIMEOUT 0x80
 #define FD_FIXED_NOT_READY 0xAA
 
-enum DiskCallFunction { ReadSectors,
+enum DiskCallFunction {
+    ReadSectors,
     WriteSectors,
-    VerifySectors };
+    VerifySectors
+};
+
 void bios_disk_call(CPU&, DiskCallFunction);
-static void vm_handleE6(CPU& cpu);
+static void vm_handle_e6(CPU& cpu);
 
 void vm_call8(CPU& cpu, u16 port, u8 data)
 {
@@ -60,7 +63,7 @@ void vm_call8(CPU& cpu, u16 port, u8 data)
         }
         break;
     case 0xE6:
-        vm_handleE6(cpu);
+        vm_handle_e6(cpu);
         break;
     case 0xE2:
         bios_disk_call(cpu, ReadSectors);
@@ -78,7 +81,7 @@ void vm_call8(CPU& cpu, u16 port, u8 data)
     }
 }
 
-static DiskDrive* diskDriveForBIOSIndex(Machine& machine, u8 index)
+static DiskDrive* disk_drive_for_bios_index(Machine& machine, u8 index)
 {
     switch (index) {
     case 0x00:
@@ -97,7 +100,7 @@ static DiskDrive* diskDriveForBIOSIndex(Machine& machine, u8 index)
     return nullptr;
 }
 
-void vm_handleE6(CPU& cpu)
+void vm_handle_e6(CPU& cpu)
 {
     extern u16 kbd_hit();
     extern u16 kbd_getc();
@@ -134,7 +137,7 @@ void vm_handleE6(CPU& cpu)
         cpu.write_physical_memory<u32>(PhysicalAddress(0x046c), tick_count);
         break;
     case 0x1300:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
+        drive = disk_drive_for_bios_index(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             cpu.set_ah(FD_NO_ERROR);
             cpu.set_cf(0);
@@ -145,7 +148,7 @@ void vm_handleE6(CPU& cpu)
         cpu.write_physical_memory<u8>(PhysicalAddress(cpu.get_dl() < 2 ? 0x0441 : 0x0474), cpu.get_ah());
         break;
     case 0x1308:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
+        drive = disk_drive_for_bios_index(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             bool isFloppy = cpu.get_dl() < 2;
             u32 trax = drive->cylinders() - 1;
@@ -153,9 +156,9 @@ void vm_handleE6(CPU& cpu)
             cpu.set_ah(FD_NO_ERROR);
             cpu.set_bl(drive->floppy_type_for_cmos());
             cpu.set_bh(0);
-            cpu.set_ch(trax & 0xFF);                                              // Tracks.
+            cpu.set_ch(trax & 0xFF);                                                // Tracks.
             cpu.set_cl(((trax >> 2) & 0xC0) | (drive->sectors_per_track() & 0x3F)); // Sectors per track.
-            cpu.set_dh(drive->heads() - 1);                                       // Sides.
+            cpu.set_dh(drive->heads() - 1);                                         // Sides.
 
             if (isFloppy) {
                 cpu.set_dl(cpu.machine().floppy0().present() + cpu.machine().floppy1().present());
@@ -181,7 +184,7 @@ void vm_handleE6(CPU& cpu)
 
         break;
     case 0x1315:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
+        drive = disk_drive_for_bios_index(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             cpu.set_ah(0x01); // Diskette, no change detection present.
             if (cpu.get_dl() > 1) {
@@ -198,7 +201,7 @@ void vm_handleE6(CPU& cpu)
         }
         break;
     case 0x1318:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
+        drive = disk_drive_for_bios_index(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             vlog(LogDisk, "Setting media type for %s:", qPrintable(drive->name()));
             vlog(LogDisk, "%d sectors per track", cpu.get_cl());
@@ -248,7 +251,7 @@ void vm_handleE6(CPU& cpu)
      * CF = !AL
      */
     case 0x3333:
-        drive = diskDriveForBIOSIndex(cpu.machine(), cpu.get_dl());
+        drive = disk_drive_for_bios_index(cpu.machine(), cpu.get_dl());
         if (drive && drive->present()) {
             cpu.set_al(1);
             cpu.set_cf(0);
@@ -320,7 +323,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
     FILE* fp;
     u32 lba;
 
-    auto* drive = diskDriveForBIOSIndex(cpu.machine(), driveIndex);
+    auto* drive = disk_drive_for_bios_index(cpu.machine(), driveIndex);
     u8 error = FD_NO_ERROR;
 
     if (!drive || !drive->present()) {

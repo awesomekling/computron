@@ -190,7 +190,7 @@ T CPU::doSAR(T data, unsigned steps)
 }
 
 template<typename T>
-inline T allOnes()
+inline T all_ones()
 {
     if (TypeTrivia<T>::bits == 8)
         return 0xff;
@@ -205,7 +205,7 @@ T CPU::doRCL(T data, unsigned steps)
 {
     // FIXME: This is painfully unoptimized.
     T result = data;
-    T mask = allOnes<T>();
+    T mask = all_ones<T>();
     steps &= 0x1f;
     if (!steps)
         return data;

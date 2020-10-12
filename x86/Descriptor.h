@@ -60,7 +60,7 @@ public:
 
     unsigned dpl() const { return m_dpl; }
     bool present() const { return m_p; }
-    bool D() const { return m_d; }
+    bool d() const { return m_d; }
     bool available() const { return m_avl; }
 
     unsigned type() const { return m_type; }
@@ -245,7 +245,7 @@ public:
     bool readable() const;
     bool writable() const;
 
-    u32 effectiveLimit() const { return m_effective_limit; }
+    u32 effective_limit() const { return m_effective_limit; }
     bool granularity() const { return m_g; }
 
     LinearAddress linear_address(u32 offset) const { return LinearAddress(m_segment_base + offset); }

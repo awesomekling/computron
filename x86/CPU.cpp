@@ -58,14 +58,14 @@ static bool shouldLogAllMemoryAccesses(PhysicalAddress address)
     return false;
 }
 
-static bool shouldLogMemoryWrite(PhysicalAddress address)
+static bool should_log_memory_write(PhysicalAddress address)
 {
     if (shouldLogAllMemoryAccesses(address))
         return true;
     return false;
 }
 
-static bool shouldLogMemoryRead(PhysicalAddress address)
+static bool should_log_memory_read(PhysicalAddress address)
 {
     if (shouldLogAllMemoryAccesses(address))
         return true;
@@ -123,7 +123,7 @@ FLATTEN void CPU::decodeNext()
 #endif
 
 #ifdef CRASH_ON_EXECUTE_00000000
-    if (UNLIKELY(currentBaseInstructionPointer() == 0 && (getPE() || !getBaseCS()))) {
+    if (UNLIKELY(current_base_instruction_pointer() == 0 && (get_pe() || !get_base_cs()))) {
         dumpAll();
         vlog(LogCPU, "It seems like we've jumped to 00000000 :(");
         ASSERT_NOT_REACHED();
@@ -157,7 +157,7 @@ FLATTEN void CPU::execute(Instruction& insn)
 
 #ifdef DISASSEMBLE_EVERYTHING
     if (options.disassemble_everything)
-        vlog(LogCPU, "%s", qPrintable(insn.toString(m_baseEIP, x32())));
+        vlog(LogCPU, "%s", qPrintable(insn.to_string(m_base_eip, x32())));
 #endif
     insn.execute(*this);
 
@@ -561,11 +561,11 @@ void CPU::jump_absolute32(u32 address)
         ASSERT_NOT_REACHED();
     }
 #endif
-    //    vlog(LogCPU, "[PE=%u] Abs jump to %08X", getPE(), address);
+    //    vlog(LogCPU, "[PE=%u] Abs jump to %08X", get_pe(), address);
     m_eip = address;
 }
 
-static const char* toString(JumpType type)
+static const char* to_string(JumpType type)
 {
     switch (type) {
     case JumpType::CALL:
@@ -591,11 +591,11 @@ void CPU::real_mode_far_jump(LogicalAddress address, JumpType type)
     ASSERT(!get_pe() || get_vm());
     u16 selector = address.selector();
     u32 offset = address.offset();
-    u16 originalCS = get_cs();
-    u32 originalEIP = get_eip();
+    u16 original_cs = get_cs();
+    u32 original_eip = get_eip();
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, VM=%u] %s from %04x:%08x to %04x:%08x", getPE(), getVM(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, VM=%u] %s from %04x:%08x to %04x:%08x", get_pe(), get_vm(), to_string(type), get_base_cs(), current_base_instruction_pointer(), selector, offset);
 #endif
 
     set_cs(selector);
@@ -603,10 +603,10 @@ void CPU::real_mode_far_jump(LogicalAddress address, JumpType type)
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, originalCS, originalEIP, getSS(), get_esp());
+        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, originalCS, originalEIP, get_ss(), get_esp());
 #endif
-        push_operand_sized_value(originalCS);
-        push_operand_sized_value(originalEIP);
+        push_operand_sized_value(original_cs);
+        push_operand_sized_value(original_eip);
     }
 }
 
@@ -624,36 +624,36 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     ASSERT(get_pe());
     u16 selector = address.selector();
     u32 offset = address.offset();
-    ValueSize pushSize = o32() ? DWordSize : WordSize;
+    ValueSize push_size = o32() ? DWordSize : WordSize;
 
     if (gate) {
         // Coming through a gate; respect bit size of gate descriptor!
-        pushSize = gate->is_32bit() ? DWordSize : WordSize;
+        push_size = gate->is_32bit() ? DWordSize : WordSize;
     }
 
-    u16 originalSS = get_ss();
-    u32 originalESP = get_esp();
-    u16 originalCPL = get_cpl();
-    u16 originalCS = get_cs();
-    u32 originalEIP = get_eip();
+    u16 original_ss = get_ss();
+    u32 original_esp = get_esp();
+    u16 original_cpl = get_cpl();
+    u16 original_cs = get_cs();
+    u32 original_eip = get_eip();
 
     u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), toString(type), getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", get_pe(), getPG(), toString(type), get_base_cs(), current_base_instruction_pointer(), selector, offset);
 #endif
 
     auto descriptor = get_descriptor(selector);
 
     if (descriptor.is_null()) {
-        throw GeneralProtectionFault(0, QString("%1 to null selector").arg(toString(type)));
+        throw GeneralProtectionFault(0, QString("%1 to null selector").arg(to_string(type)));
     }
 
     if (descriptor.is_outside_table_limits())
-        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to selector outside table limit").arg(toString(type)));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to selector outside table limit").arg(to_string(type)));
 
     if (!descriptor.is_code() && !descriptor.is_call_gate() && !descriptor.is_task_gate() && !descriptor.is_tss())
-        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to invalid descriptor type").arg(toString(type)));
+        throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to invalid descriptor type").arg(to_string(type)));
 
     if (descriptor.is_gate() && gate) {
         dump_descriptor(*gate);
@@ -677,10 +677,10 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
         }
 
         if (gate.dpl() < get_cpl())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(toString(type)).arg(gate.dpl()).arg(get_cpl()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with DPL(%2) < CPL(%3)").arg(to_string(type)).arg(gate.dpl()).arg(get_cpl()));
 
         if (selectorRPL > gate.dpl())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(toString(type)).arg(selectorRPL).arg(gate.dpl()));
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to gate with RPL(%2) > DPL(%3)").arg(to_string(type)).arg(selectorRPL).arg(gate.dpl()));
 
         if (!gate.present()) {
             throw NotPresent(selector & 0xfffc, QString("Gate not present"));
@@ -692,36 +692,36 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     }
 
     if (descriptor.is_tss()) {
-        auto& tssDescriptor = descriptor.as_tss_descriptor();
+        auto& tss_descriptor = descriptor.as_tss_descriptor();
 #ifdef DEBUG_JUMPS
         vlog(LogCPU, "CS is this:");
-        dump_descriptor(cachedDescriptor(SegmentRegisterIndex::CS));
-        vlog(LogCPU, "%s to TSS descriptor (%s) -> %08x", toString(type), tssDescriptor.typeName(), tssDescriptor.base());
+        dump_descriptor(cached_descriptor(SegmentRegisterIndex::CS));
+        vlog(LogCPU, "%s to TSS descriptor (%s) -> %08x", to_string(type), tss_descriptor.type_name(), tss_descriptor.base());
 #endif
-        if (tssDescriptor.dpl() < get_cpl())
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < CPL").arg(toString(type)));
-        if (tssDescriptor.dpl() < selectorRPL)
-            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(toString(type)));
-        if (!tssDescriptor.present())
+        if (tss_descriptor.dpl() < get_cpl())
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < CPL").arg(to_string(type)));
+        if (tss_descriptor.dpl() < selectorRPL)
+            throw GeneralProtectionFault(selector & 0xfffc, QString("%1 to TSS descriptor with DPL < RPL").arg(to_string(type)));
+        if (!tss_descriptor.present())
             throw NotPresent(selector & 0xfffc, "TSS not present");
-        task_switch(selector, tssDescriptor, type);
+        task_switch(selector, tss_descriptor, type);
         return;
     }
 
     // Okay, so it's a code segment then.
-    auto& codeSegment = descriptor.as_code_segment_descriptor();
+    auto& code_segment = descriptor.as_code_segment_descriptor();
 
     if ((type == JumpType::CALL || type == JumpType::JMP) && !gate) {
-        if (codeSegment.conforming()) {
-            if (codeSegment.dpl() > get_cpl()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(toString(type)).arg(codeSegment.dpl()).arg(get_cpl()));
+        if (code_segment.conforming()) {
+            if (code_segment.dpl() > get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) > CPL(%3)").arg(to_string(type)).arg(code_segment.dpl()).arg(get_cpl()));
             }
         } else {
-            if (selectorRPL > codeSegment.dpl()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(toString(type)).arg(selectorRPL).arg(codeSegment.dpl()));
+            if (selectorRPL > code_segment.dpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment RPL(%2) > CPL(%3)").arg(to_string(type)).arg(selectorRPL).arg(code_segment.dpl()));
             }
-            if (codeSegment.dpl() != get_cpl()) {
-                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(toString(type)).arg(codeSegment.dpl()).arg(get_cpl()));
+            if (code_segment.dpl() != get_cpl()) {
+                throw GeneralProtectionFault(selector & 0xfffc, QString("%1 -> Code segment DPL(%2) != CPL(%3)").arg(to_string(type)).arg(code_segment.dpl()).arg(get_cpl()));
             }
         }
     }
@@ -732,17 +732,17 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
 
     // NOTE: A 32-bit jump into a 16-bit segment might have irrelevant higher bits set.
     // Mask them off to make sure we don't incorrectly fail limit checks.
-    if (!codeSegment.is_32bit()) {
+    if (!code_segment.is_32bit()) {
         offset &= 0xffff;
     }
 
-    if (!codeSegment.present()) {
+    if (!code_segment.present()) {
         throw NotPresent(selector & 0xfffc, QString("Code segment not present"));
     }
 
-    if (offset > codeSegment.effectiveLimit()) {
-        vlog(LogCPU, "%s to eip(%08x) outside limit(%08x)", toString(type), offset, codeSegment.effectiveLimit());
-        dump_descriptor(codeSegment);
+    if (offset > code_segment.effective_limit()) {
+        vlog(LogCPU, "%s to eip(%08x) outside limit(%08x)", to_string(type), offset, code_segment.effective_limit());
+        dump_descriptor(code_segment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
 
@@ -750,70 +750,70 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     set_eip(offset);
 
     if (type == JumpType::CALL && gate) {
-        if (descriptor.dpl() < originalCPL) {
+        if (descriptor.dpl() < original_cpl) {
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
 #endif
             auto tss = current_tss();
 
-            u16 newSS = tss.get_ring_ss(descriptor.dpl());
-            u32 newESP = tss.get_ring_esp(descriptor.dpl());
-            auto newSSDescriptor = get_descriptor(newSS);
+            u16 new_ss = tss.get_ring_ss(descriptor.dpl());
+            u32 new_esp = tss.get_ring_esp(descriptor.dpl());
+            auto new_ss_descriptor = get_descriptor(new_ss);
 
             // FIXME: For JumpType::INT, exceptions related to newSS should contain the extra error code.
 
-            if (newSSDescriptor.is_null()) {
-                throw InvalidTSS(newSS & 0xfffc, "New ss is null");
+            if (new_ss_descriptor.is_null()) {
+                throw InvalidTSS(new_ss & 0xfffc, "New ss is null");
             }
 
-            if (newSSDescriptor.is_outside_table_limits()) {
-                throw InvalidTSS(newSS & 0xfffc, "New ss outside table limits");
+            if (new_ss_descriptor.is_outside_table_limits()) {
+                throw InvalidTSS(new_ss & 0xfffc, "New ss outside table limits");
             }
 
-            if (newSSDescriptor.dpl() != descriptor.dpl()) {
-                throw InvalidTSS(newSS & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(newSSDescriptor.dpl()).arg(descriptor.dpl()));
+            if (new_ss_descriptor.dpl() != descriptor.dpl()) {
+                throw InvalidTSS(new_ss & 0xfffc, QString("New ss DPL(%1) != code segment DPL(%2)").arg(new_ss_descriptor.dpl()).arg(descriptor.dpl()));
             }
 
-            if (!newSSDescriptor.is_data() || !newSSDescriptor.as_data_segment_descriptor().writable()) {
-                throw InvalidTSS(newSS & 0xfffc, "New ss not a writable data segment");
+            if (!new_ss_descriptor.is_data() || !new_ss_descriptor.as_data_segment_descriptor().writable()) {
+                throw InvalidTSS(new_ss & 0xfffc, "New ss not a writable data segment");
             }
 
-            if (!newSSDescriptor.present()) {
-                throw StackFault(newSS & 0xfffc, "New ss not present");
+            if (!new_ss_descriptor.present()) {
+                throw StackFault(new_ss & 0xfffc, "New ss not present");
             }
 
             BEGIN_ASSERT_NO_EXCEPTIONS
             set_cpl(descriptor.dpl());
-            set_ss(newSS);
-            set_esp(newESP);
+            set_ss(new_ss);
+            set_esp(new_esp);
 
 #ifdef DEBUG_JUMPS
-            vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, getSS(), getSP());
-            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, getSS(), get_esp());
+            vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, get_ss(), getSP());
+            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, get_ss(), get_esp());
 #endif
-            push_value_with_size(originalSS, pushSize);
-            push_value_with_size(originalESP, pushSize);
+            push_value_with_size(original_ss, push_size);
+            push_value_with_size(original_esp, push_size);
             END_ASSERT_NO_EXCEPTIONS
         } else {
 #ifdef DEBUG_JUMPS
             vlog(LogCPU, "%s same privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL());
 #endif
-            set_cpl(originalCPL);
+            set_cpl(original_cpl);
         }
     }
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", pushSize, originalCS, originalEIP, getSS(), get_esp());
+        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", pushSize, originalCS, originalEIP, get_ss(), get_esp());
 #endif
         BEGIN_ASSERT_NO_EXCEPTIONS
-        push_value_with_size(originalCS, pushSize);
-        push_value_with_size(originalEIP, pushSize);
+        push_value_with_size(original_cs, push_size);
+        push_value_with_size(original_eip, push_size);
         END_ASSERT_NO_EXCEPTIONS
     }
 
     if (!gate)
-        set_cpl(originalCPL);
+        set_cpl(original_cpl);
 }
 
 void CPU::clear_segment_register_after_return_if_needed(SegmentRegisterIndex segreg, JumpType type)
@@ -822,7 +822,7 @@ void CPU::clear_segment_register_after_return_if_needed(SegmentRegisterIndex seg
         return;
     auto& cached = cached_descriptor(segreg);
     if (cached.is_null() || (cached.dpl() < get_cpl() && (cached.is_data() || cached.is_nonconforming_code()))) {
-        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", toString(type), register_name(segreg), read_segment_register(segreg), cached.dpl(), get_cpl());
+        vlog(LogCPU, "%s clearing %s(%04x) with DPL=%u (CPL now %u)", to_string(type), register_name(segreg), read_segment_register(segreg), cached.dpl(), get_cpl());
         write_segment_register(segreg, 0);
     }
 }
@@ -831,7 +831,7 @@ void CPU::protected_far_return(u16 stack_adjustment)
 {
     ASSERT(get_pe());
 #ifdef DEBUG_JUMPS
-    u16 originalSS = getSS();
+    u16 originalSS = get_ss();
     u32 originalESP = get_esp();
     u16 originalCS = getCS();
     u32 originalEIP = getEIP();
@@ -841,13 +841,13 @@ void CPU::protected_far_return(u16 stack_adjustment)
 
     u32 offset = popper.pop_operand_sized_value();
     u16 selector = popper.pop_operand_sized_value();
-    u16 originalCPL = get_cpl();
-    u8 selectorRPL = selector & 3;
+    u16 original_cpl = get_cpl();
+    u8 selector_rpl = selector & 3;
 
     popper.adjust_stack_pointer(stack_adjustment);
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", getPE(), getPG(), "RETF", getBaseCS(), currentBaseInstructionPointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", get_pe(), getPG(), "RETF", get_base_cs(), current_base_instruction_pointer(), selector, offset);
 #endif
 
     auto descriptor = get_descriptor(selector);
@@ -863,15 +863,15 @@ void CPU::protected_far_return(u16 stack_adjustment)
         throw GeneralProtectionFault(selector & 0xfffc, "Not a code segment");
     }
 
-    if (selectorRPL < get_cpl())
-        throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selectorRPL).arg(get_cpl()));
+    if (selector_rpl < get_cpl())
+        throw GeneralProtectionFault(selector & 0xfffc, QString("RETF with RPL(%1) < CPL(%2)").arg(selector_rpl).arg(get_cpl()));
 
     auto& codeSegment = descriptor.as_code_segment_descriptor();
 
-    if (codeSegment.conforming() && codeSegment.dpl() > selectorRPL)
+    if (codeSegment.conforming() && codeSegment.dpl() > selector_rpl)
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to conforming code segment with DPL > RPL");
 
-    if (!codeSegment.conforming() && codeSegment.dpl() != selectorRPL)
+    if (!codeSegment.conforming() && codeSegment.dpl() != selector_rpl)
         throw GeneralProtectionFault(selector & 0xfffc, "RETF to non-conforming code segment with DPL != RPL");
 
     if (!codeSegment.present())
@@ -883,8 +883,8 @@ void CPU::protected_far_return(u16 stack_adjustment)
         offset &= 0xffff;
     }
 
-    if (offset > codeSegment.effectiveLimit()) {
-        vlog(LogCPU, "RETF to eip(%08x) outside limit(%08x)", offset, codeSegment.effectiveLimit());
+    if (offset > codeSegment.effective_limit()) {
+        vlog(LogCPU, "RETF to eip(%08x) outside limit(%08x)", offset, codeSegment.effective_limit());
         dump_descriptor(codeSegment);
         throw GeneralProtectionFault(0, "Offset outside segment limit");
     }
@@ -893,12 +893,12 @@ void CPU::protected_far_return(u16 stack_adjustment)
     set_cs(selector);
     set_eip(offset);
 
-    if (selectorRPL > originalCPL) {
+    if (selector_rpl > original_cpl) {
         BEGIN_ASSERT_NO_EXCEPTIONS
         u32 newESP = popper.pop_operand_sized_value();
         u16 newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, getSS(), popper.adjustedStackPointer());
+        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjustedStackPointer());
         vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
 #endif
 
@@ -914,7 +914,7 @@ void CPU::protected_far_return(u16 stack_adjustment)
         popper.commit();
     }
 
-    if (get_cpl() != originalCPL)
+    if (get_cpl() != original_cpl)
         adjust_stack_pointer(stack_adjustment);
 }
 
@@ -1154,7 +1154,7 @@ void CPU::_LEA_reg16_mem16(Instruction& insn)
     insn.reg16() = insn.modrm().offset();
 }
 
-static const char* toString(CPU::MemoryAccessType type)
+static const char* to_string(CPU::MemoryAccessType type)
 {
     switch (type) {
     case CPU::MemoryAccessType::Read:
@@ -1170,37 +1170,37 @@ static const char* toString(CPU::MemoryAccessType type)
     }
 }
 
-PhysicalAddress CPU::translate_address(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+PhysicalAddress CPU::translate_address(LinearAddress linear_address, MemoryAccessType access_type, u8 effective_cpl)
 {
     if (!get_pe() || !get_pg())
-        return PhysicalAddress(linearAddress.get());
-    return translate_address_slow_case(linearAddress, accessType, effectiveCPL);
+        return PhysicalAddress(linear_address.get());
+    return translate_address_slow_case(linear_address, access_type, effective_cpl);
 }
 
-static u16 makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode)
+static u16 makePFErrorCode(PageFaultFlags::Flags flags, CPU::MemoryAccessType access_type, bool user_mode)
 {
     return flags
-        | (accessType == CPU::MemoryAccessType::Write ? PageFaultFlags::Write : PageFaultFlags::Read)
-        | (inUserMode ? PageFaultFlags::UserMode : PageFaultFlags::SupervisorMode)
-        | (accessType == CPU::MemoryAccessType::Execute ? PageFaultFlags::InstructionFetch : 0);
+        | (access_type == CPU::MemoryAccessType::Write ? PageFaultFlags::Write : PageFaultFlags::Read)
+        | (user_mode ? PageFaultFlags::UserMode : PageFaultFlags::SupervisorMode)
+        | (access_type == CPU::MemoryAccessType::Execute ? PageFaultFlags::InstructionFetch : 0);
 }
 
-Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flags, CPU::MemoryAccessType accessType, bool inUserMode, const char* faultTable, u32 pde, u32 pte)
+Exception CPU::PageFault(LinearAddress linear_address, PageFaultFlags::Flags flags, CPU::MemoryAccessType access_type, bool user_mode, const char* fault_table, u32 pde, u32 pte)
 {
-    u16 error = makePFErrorCode(flags, accessType, inUserMode);
+    u16 error = makePFErrorCode(flags, access_type, user_mode);
     if (options.log_exceptions) {
         vlog(LogCPU, "Exception: #PF(%04x) %s in %s for %s %s @%08x, PDBR=%08x, PDE=%08x, PTE=%08x",
             error,
             (flags & PageFaultFlags::ProtectionViolation) ? "PV" : "NP",
-            faultTable,
-            inUserMode ? "User" : "Supervisor",
-            toString(accessType),
-            linearAddress.get(),
+            fault_table,
+            user_mode ? "User" : "Supervisor",
+            to_string(access_type),
+            linear_address.get(),
             get_cr3(),
             pde,
             pte);
     }
-    m_cr2 = linearAddress.get();
+    m_cr2 = linear_address.get();
     if (options.crash_on_page_fault) {
         dump_all();
         vlog(LogAlert, "CRASH ON #PF");
@@ -1212,95 +1212,95 @@ Exception CPU::PageFault(LinearAddress linearAddress, PageFaultFlags::Flags flag
         ASSERT_NOT_REACHED();
     }
 #endif
-    return Exception(0xe, error, linearAddress.get(), "Page fault");
+    return Exception(0xe, error, linear_address.get(), "Page fault");
 }
 
-PhysicalAddress CPU::translate_address_slow_case(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+PhysicalAddress CPU::translate_address_slow_case(LinearAddress linear_address, MemoryAccessType access_type, u8 effective_cpl)
 {
     ASSERT(get_cr3() < m_memory_size);
 
-    u32 dir = (linearAddress.get() >> 22) & 0x3FF;
-    u32 page = (linearAddress.get() >> 12) & 0x3FF;
-    u32 offset = linearAddress.get() & 0xFFF;
+    u32 dir = (linear_address.get() >> 22) & 0x3FF;
+    u32 page = (linear_address.get() >> 12) & 0x3FF;
+    u32 offset = linear_address.get() & 0xFFF;
 
     ASSERT(!(get_cr3() & 0x03ff));
 
-    PhysicalAddress pdeAddress(get_cr3() + dir * sizeof(u32));
-    u32 pageDirectoryEntry = read_physical_memory<u32>(pdeAddress);
-    PhysicalAddress pteAddress((pageDirectoryEntry & 0xfffff000) + page * sizeof(u32));
-    u32 pageTableEntry = read_physical_memory<u32>(pteAddress);
+    PhysicalAddress pde_address(get_cr3() + dir * sizeof(u32));
+    u32 page_directory_entry = read_physical_memory<u32>(pde_address);
+    PhysicalAddress pte_address((page_directory_entry & 0xfffff000) + page * sizeof(u32));
+    u32 page_table_entry = read_physical_memory<u32>(pte_address);
 
-    bool inUserMode;
-    if (effectiveCPL == 0xff)
-        inUserMode = get_cpl() == 3;
+    bool user_mode;
+    if (effective_cpl == 0xff)
+        user_mode = get_cpl() == 3;
     else
-        inUserMode = effectiveCPL == 3;
+        user_mode = effective_cpl == 3;
 
-    if (!(pageDirectoryEntry & PageTableEntryFlags::Present)) {
-        throw PageFault(linearAddress, PageFaultFlags::NotPresent, accessType, inUserMode, "PDE", pageDirectoryEntry);
+    if (!(page_directory_entry & PageTableEntryFlags::Present)) {
+        throw PageFault(linear_address, PageFaultFlags::NotPresent, access_type, user_mode, "PDE", page_directory_entry);
     }
 
-    if (!(pageTableEntry & PageTableEntryFlags::Present)) {
-        throw PageFault(linearAddress, PageFaultFlags::NotPresent, accessType, inUserMode, "PTE", pageDirectoryEntry, pageTableEntry);
+    if (!(page_table_entry & PageTableEntryFlags::Present)) {
+        throw PageFault(linear_address, PageFaultFlags::NotPresent, access_type, user_mode, "PTE", page_directory_entry, page_table_entry);
     }
 
-    if (inUserMode) {
-        if (!(pageDirectoryEntry & PageTableEntryFlags::UserSupervisor)) {
-            throw PageFault(linearAddress, PageFaultFlags::ProtectionViolation, accessType, inUserMode, "PDE", pageDirectoryEntry);
+    if (user_mode) {
+        if (!(page_directory_entry & PageTableEntryFlags::UserSupervisor)) {
+            throw PageFault(linear_address, PageFaultFlags::ProtectionViolation, access_type, user_mode, "PDE", page_directory_entry);
         }
-        if (!(pageTableEntry & PageTableEntryFlags::UserSupervisor)) {
-            throw PageFault(linearAddress, PageFaultFlags::ProtectionViolation, accessType, inUserMode, "PTE", pageDirectoryEntry, pageTableEntry);
-        }
-    }
-
-    if ((inUserMode || get_cr0() & CR0::WP) && accessType == MemoryAccessType::Write) {
-        if (!(pageDirectoryEntry & PageTableEntryFlags::ReadWrite)) {
-            throw PageFault(linearAddress, PageFaultFlags::ProtectionViolation, accessType, inUserMode, "PDE", pageDirectoryEntry);
-        }
-        if (!(pageTableEntry & PageTableEntryFlags::ReadWrite)) {
-            throw PageFault(linearAddress, PageFaultFlags::ProtectionViolation, accessType, inUserMode, "PTE", pageDirectoryEntry, pageTableEntry);
+        if (!(page_table_entry & PageTableEntryFlags::UserSupervisor)) {
+            throw PageFault(linear_address, PageFaultFlags::ProtectionViolation, access_type, user_mode, "PTE", page_directory_entry, page_table_entry);
         }
     }
 
-    if (accessType == MemoryAccessType::Write)
-        pageTableEntry |= PageTableEntryFlags::Dirty;
+    if ((user_mode || get_cr0() & CR0::WP) && access_type == MemoryAccessType::Write) {
+        if (!(page_directory_entry & PageTableEntryFlags::ReadWrite)) {
+            throw PageFault(linear_address, PageFaultFlags::ProtectionViolation, access_type, user_mode, "PDE", page_directory_entry);
+        }
+        if (!(page_table_entry & PageTableEntryFlags::ReadWrite)) {
+            throw PageFault(linear_address, PageFaultFlags::ProtectionViolation, access_type, user_mode, "PTE", page_directory_entry, page_table_entry);
+        }
+    }
 
-    pageDirectoryEntry |= PageTableEntryFlags::Accessed;
-    pageTableEntry |= PageTableEntryFlags::Accessed;
+    if (access_type == MemoryAccessType::Write)
+        page_table_entry |= PageTableEntryFlags::Dirty;
 
-    write_physical_memory(pdeAddress, pageDirectoryEntry);
-    write_physical_memory(pteAddress, pageTableEntry);
+    page_directory_entry |= PageTableEntryFlags::Accessed;
+    page_table_entry |= PageTableEntryFlags::Accessed;
 
-    PhysicalAddress physicalAddress((pageTableEntry & 0xfffff000) | offset);
+    write_physical_memory(pde_address, page_directory_entry);
+    write_physical_memory(pte_address, page_table_entry);
+
+    PhysicalAddress physical_address((page_table_entry & 0xfffff000) | offset);
 #ifdef DEBUG_PAGING
     if (options.log_page_translations)
-        vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x] <PTE @ %08x>", linearAddress.get(), dir, page, offset, physicalAddress.get(), pageDirectoryEntry, pageTableEntry, pteAddress);
+        vlog(LogCPU, "PG=1 Translating %08x {dir=%03x, page=%03x, offset=%03x} => %08x [%08x + %08x] <PTE @ %08x>", linear_address.get(), dir, page, offset, physical_address.get(), page_directory_entry, page_table_entry, pte_address);
 #endif
-    return physicalAddress;
+    return physical_address;
 }
 
-void CPU::snoop(LinearAddress linearAddress, MemoryAccessType accessType)
+void CPU::snoop(LinearAddress linear_address, MemoryAccessType access_type)
 {
-    translate_address(linearAddress, accessType);
+    translate_address(linear_address, access_type);
 }
 
-void CPU::snoop(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
+void CPU::snoop(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType access_type)
 {
     // FIXME: Support multi-byte snoops.
     if (get_pe() && !get_vm())
-        validate_address<u8>(segreg, offset, accessType);
-    auto linearAddress = cached_descriptor(segreg).linear_address(offset);
-    snoop(linearAddress, accessType);
+        validate_address<u8>(segreg, offset, access_type);
+    auto linear_address = cached_descriptor(segreg).linear_address(offset);
+    snoop(linear_address, access_type);
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType access_type)
 {
     if (!get_vm()) {
-        if (accessType != MemoryAccessType::Execute) {
+        if (access_type != MemoryAccessType::Execute) {
             if (descriptor.is_null()) {
                 vlog(LogAlert, "NULL! %s offset %08X into null selector (selector index: %04X)",
-                    toString(accessType),
+                    to_string(access_type),
                     offset,
                     descriptor.index());
                 if (descriptor.m_loaded_in_ss)
@@ -1310,7 +1310,7 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
             }
         }
 
-        switch (accessType) {
+        switch (access_type) {
         case MemoryAccessType::Read:
             if (descriptor.is_code() && !descriptor.as_code_segment_descriptor().readable()) {
                 throw GeneralProtectionFault(0, "Attempt to read from non-readable code segment");
@@ -1341,23 +1341,23 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
 
 #if 0
     // FIXME: Is this appropriate somehow? Need to figure it out. The code below as-is breaks IRET.
-    if (getCPL() > descriptor.DPL()) {
-        throw GeneralProtectionFault(0, QString("Insufficient privilege for access (CPL=%1, DPL=%2)").arg(getCPL()).arg(descriptor.DPL()));
+    if (get_cpl() > descriptor.dpl()) {
+        throw GeneralProtectionFault(0, QString("Insufficient privilege for access (CPL=%1, DPL=%2)").arg(get_cpl()).arg(descriptor.dpl()));
     }
 #endif
 
-    if (UNLIKELY((offset + (sizeof(T) - 1)) > descriptor.effectiveLimit())) {
+    if (UNLIKELY((offset + (sizeof(T) - 1)) > descriptor.effective_limit())) {
         vlog(LogAlert, "%zu-bit %s offset %08X outside limit (selector index: %04X, effective limit: %08X [%08X x %s])",
             sizeof(T) * 8,
-            toString(accessType),
+            to_string(access_type),
             offset,
             descriptor.index(),
-            descriptor.effectiveLimit(),
+            descriptor.effective_limit(),
             descriptor.limit(),
             descriptor.granularity() ? "4K" : "1b");
         //ASSERT_NOT_REACHED();
         dump_descriptor(descriptor);
-        //dumpAll();
+        //dump_all();
         //debugger().enter();
         if (descriptor.m_loaded_in_ss)
             throw StackFault(0, "Access outside segment limit");
@@ -1367,37 +1367,37 @@ ALWAYS_INLINE void CPU::validate_address(const SegmentDescriptor& descriptor, u3
 }
 
 template<typename T>
-ALWAYS_INLINE void CPU::validate_address(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE void CPU::validate_address(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType access_type)
 {
-    validate_address<T>(cached_descriptor(segreg), offset, accessType);
+    validate_address<T>(cached_descriptor(segreg), offset, access_type);
 }
 
 template<typename T>
-ALWAYS_INLINE bool CPU::validate_physical_address(PhysicalAddress physicalAddress, MemoryAccessType accessType)
+ALWAYS_INLINE bool CPU::validate_physical_address(PhysicalAddress physical_address, MemoryAccessType access_type)
 {
-    UNUSED_PARAM(accessType);
-    if (physicalAddress.get() < m_memory_size)
+    UNUSED_PARAM(access_type);
+    if (physical_address.get() < m_memory_size)
         return true;
     return false;
 }
 
 template<typename T>
-T CPU::read_physical_memory(PhysicalAddress physicalAddress)
+T CPU::read_physical_memory(PhysicalAddress physical_address)
 {
-    if (!validate_physical_address<T>(physicalAddress, MemoryAccessType::Read)) {
-        vlog(LogCPU, "Read outside physical memory: %08x", physicalAddress.get());
+    if (!validate_physical_address<T>(physical_address, MemoryAccessType::Read)) {
+        vlog(LogCPU, "Read outside physical memory: %08x", physical_address.get());
 #ifdef DEBUG_PHYSICAL_OOB
         debugger().enter();
 #endif
         return 0;
     }
-    if (auto* provider = memory_provider_for_address(physicalAddress)) {
-        if (auto* directReadAccessPointer = provider->pointer_for_direct_read_access()) {
-            return *reinterpret_cast<const T*>(&directReadAccessPointer[physicalAddress.get() - provider->base_address().get()]);
+    if (auto* provider = memory_provider_for_address(physical_address)) {
+        if (auto* direct_read_access_pointer = provider->pointer_for_direct_read_access()) {
+            return *reinterpret_cast<const T*>(&direct_read_access_pointer[physical_address.get() - provider->base_address().get()]);
         }
-        return provider->read<T>(physicalAddress.get());
+        return provider->read<T>(physical_address.get());
     }
-    return *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]);
+    return *reinterpret_cast<T*>(&m_memory[physical_address.get()]);
 }
 
 template u8 CPU::read_physical_memory<u8>(PhysicalAddress);
@@ -1405,19 +1405,19 @@ template u16 CPU::read_physical_memory<u16>(PhysicalAddress);
 template u32 CPU::read_physical_memory<u32>(PhysicalAddress);
 
 template<typename T>
-void CPU::write_physical_memory(PhysicalAddress physicalAddress, T data)
+void CPU::write_physical_memory(PhysicalAddress physical_address, T data)
 {
-    if (!validate_physical_address<T>(physicalAddress, MemoryAccessType::Write)) {
-        vlog(LogCPU, "Write outside physical memory: %08x", physicalAddress.get());
+    if (!validate_physical_address<T>(physical_address, MemoryAccessType::Write)) {
+        vlog(LogCPU, "Write outside physical memory: %08x", physical_address.get());
 #ifdef DEBUG_PHYSICAL_OOB
         debugger().enter();
 #endif
         return;
     }
-    if (auto* provider = memory_provider_for_address(physicalAddress)) {
-        provider->write<T>(physicalAddress.get(), data);
+    if (auto* provider = memory_provider_for_address(physical_address)) {
+        provider->write<T>(physical_address.get(), data);
     } else {
-        *reinterpret_cast<T*>(&m_memory[physicalAddress.get()]) = data;
+        *reinterpret_cast<T*>(&m_memory[physical_address.get()]) = data;
     }
 }
 
@@ -1426,54 +1426,54 @@ template void CPU::write_physical_memory<u16>(PhysicalAddress, u16);
 template void CPU::write_physical_memory<u32>(PhysicalAddress, u32);
 
 template<typename T>
-ALWAYS_INLINE T CPU::read_memory(LinearAddress linearAddress, MemoryAccessType accessType, u8 effectiveCPL)
+ALWAYS_INLINE T CPU::read_memory(LinearAddress linear_address, MemoryAccessType access_type, u8 effective_cpl)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
-        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            u8 b1 = read_memory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
-            u8 b2 = read_memory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
-            u8 b3 = read_memory<u8>(linearAddress.offset(2), accessType, effectiveCPL);
-            u8 b4 = read_memory<u8>(linearAddress.offset(3), accessType, effectiveCPL);
+        if (get_pg() && (linear_address.get() & 0xfffff000) != (((linear_address.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            u8 b1 = read_memory<u8>(linear_address.offset(0), access_type, effective_cpl);
+            u8 b2 = read_memory<u8>(linear_address.offset(1), access_type, effective_cpl);
+            u8 b3 = read_memory<u8>(linear_address.offset(2), access_type, effective_cpl);
+            u8 b4 = read_memory<u8>(linear_address.offset(3), access_type, effective_cpl);
             return weld<u32>(weld<u16>(b4, b3), weld<u16>(b2, b1));
         }
     } else if constexpr (sizeof(T) == 2) {
-        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            u8 b1 = read_memory<u8>(linearAddress.offset(0), accessType, effectiveCPL);
-            u8 b2 = read_memory<u8>(linearAddress.offset(1), accessType, effectiveCPL);
+        if (get_pg() && (linear_address.get() & 0xfffff000) != (((linear_address.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            u8 b1 = read_memory<u8>(linear_address.offset(0), access_type, effective_cpl);
+            u8 b2 = read_memory<u8>(linear_address.offset(1), access_type, effective_cpl);
             return weld<u16>(b2, b1);
         }
     }
 
-    auto physicalAddress = translate_address(linearAddress, accessType, effectiveCPL);
+    auto physical_address = translate_address(linear_address, access_type, effective_cpl);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20_mask());
+    physical_address.mask(a20_mask());
 #endif
-    T value = read_physical_memory<T>(physicalAddress);
+    T value = read_physical_memory<T>(physical_address);
 #ifdef MEMORY_DEBUGGING
-    if (options.memdebug || shouldLogMemoryRead(physicalAddress)) {
+    if (options.memdebug || should_log_memory_read(physical_address)) {
         if (options.novlog)
-            printf("%04X:%08X: %zu-bit read [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
+            printf("%04X:%08X: %zu-bit read [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physical_address.get(), value);
         else
-            vlog(LogCPU, "%zu-bit read [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
+            vlog(LogCPU, "%zu-bit read [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physical_address.get(), value);
     }
 #endif
     return value;
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::read_memory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::read_memory(const SegmentDescriptor& descriptor, u32 offset, MemoryAccessType access_type)
 {
-    auto linearAddress = descriptor.linear_address(offset);
+    auto linear_address = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
-        validate_address<T>(descriptor, offset, accessType);
-    return read_memory<T>(linearAddress, accessType);
+        validate_address<T>(descriptor, offset, access_type);
+    return read_memory<T>(linear_address, access_type);
 }
 
 template<typename T>
-ALWAYS_INLINE T CPU::read_memory(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType accessType)
+ALWAYS_INLINE T CPU::read_memory(SegmentRegisterIndex segreg, u32 offset, MemoryAccessType access_type)
 {
-    return read_memory<T>(cached_descriptor(segreg), offset, accessType);
+    return read_memory<T>(cached_descriptor(segreg), offset, access_type);
 }
 
 template<typename T>
@@ -1523,47 +1523,47 @@ template LogicalAddress CPU::read_logical_address<u16>(SegmentRegisterIndex, u32
 template LogicalAddress CPU::read_logical_address<u32>(SegmentRegisterIndex, u32);
 
 template<typename T>
-void CPU::write_memory(LinearAddress linearAddress, T value, u8 effectiveCPL)
+void CPU::write_memory(LinearAddress linear_address, T value, u8 effectiveCPL)
 {
     // FIXME: This needs to be optimized.
     if constexpr (sizeof(T) == 4) {
-        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            write_memory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            write_memory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
-            write_memory<u8>(linearAddress.offset(2), (value >> 16) & 0xff, effectiveCPL);
-            write_memory<u8>(linearAddress.offset(3), (value >> 24) & 0xff, effectiveCPL);
+        if (get_pg() && (linear_address.get() & 0xfffff000) != (((linear_address.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            write_memory<u8>(linear_address.offset(0), value & 0xff, effectiveCPL);
+            write_memory<u8>(linear_address.offset(1), (value >> 8) & 0xff, effectiveCPL);
+            write_memory<u8>(linear_address.offset(2), (value >> 16) & 0xff, effectiveCPL);
+            write_memory<u8>(linear_address.offset(3), (value >> 24) & 0xff, effectiveCPL);
             return;
         }
     } else if constexpr (sizeof(T) == 2) {
-        if (get_pg() && (linearAddress.get() & 0xfffff000) != (((linearAddress.get() + (sizeof(T) - 1)) & 0xfffff000))) {
-            write_memory<u8>(linearAddress.offset(0), value & 0xff, effectiveCPL);
-            write_memory<u8>(linearAddress.offset(1), (value >> 8) & 0xff, effectiveCPL);
+        if (get_pg() && (linear_address.get() & 0xfffff000) != (((linear_address.get() + (sizeof(T) - 1)) & 0xfffff000))) {
+            write_memory<u8>(linear_address.offset(0), value & 0xff, effectiveCPL);
+            write_memory<u8>(linear_address.offset(1), (value >> 8) & 0xff, effectiveCPL);
             return;
         }
     }
 
-    auto physicalAddress = translate_address(linearAddress, MemoryAccessType::Write, effectiveCPL);
+    auto physical_address = translate_address(linear_address, MemoryAccessType::Write, effectiveCPL);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20_mask());
+    physical_address.mask(a20_mask());
 #endif
 #ifdef MEMORY_DEBUGGING
-    if (options.memdebug || shouldLogMemoryWrite(physicalAddress)) {
+    if (options.memdebug || should_log_memory_write(physical_address)) {
         if (options.novlog)
-            printf("%04X:%08X: %zu-bit write [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
+            printf("%04X:%08X: %zu-bit write [A20=%s] 0x%08X, value: %08X\n", get_base_cs(), current_base_instruction_pointer(), sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physical_address.get(), value);
         else
-            vlog(LogCPU, "%zu-bit write [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physicalAddress.get(), value);
+            vlog(LogCPU, "%zu-bit write [A20=%s] 0x%08X, value: %08X", sizeof(T) * 8, is_a20_enabled() ? "on" : "off", physical_address.get(), value);
     }
 #endif
-    write_physical_memory(physicalAddress, value);
+    write_physical_memory(physical_address, value);
 }
 
 template<typename T>
 void CPU::write_memory(const SegmentDescriptor& descriptor, u32 offset, T value)
 {
-    auto linearAddress = descriptor.linear_address(offset);
+    auto linear_address = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
         validate_address<T>(descriptor, offset, MemoryAccessType::Write);
-    write_memory(linearAddress, value);
+    write_memory(linear_address, value);
 }
 
 template<typename T>
@@ -1584,18 +1584,18 @@ void CPU::write_memory32(SegmentRegisterIndex segment, u32 offset, u32 value) { 
 void CPU::update_default_sizes()
 {
 #ifdef VERBOSE_DEBUG
-    bool oldO32 = m_operandSize32;
-    bool oldA32 = m_addressSize32;
+    bool oldO32 = m_operand_size32;
+    bool oldA32 = m_address_size32;
 #endif
 
-    auto& csDescriptor = cached_descriptor(SegmentRegisterIndex::CS);
-    m_address_size32 = csDescriptor.D();
-    m_operand_size32 = csDescriptor.D();
+    auto& cs_descriptor = cached_descriptor(SegmentRegisterIndex::CS);
+    m_address_size32 = cs_descriptor.d();
+    m_operand_size32 = cs_descriptor.d();
 
 #ifdef VERBOSE_DEBUG
     if (oldO32 != m_operandSize32 || oldA32 != m_addressSize32) {
-        vlog(LogCPU, "updateDefaultSizes PE=%u X:%u O:%u A:%u (newCS: %04X)", getPE(), x16() ? 16 : 32, o16() ? 16 : 32, a16() ? 16 : 32, getCS());
-        dump_descriptor(csDescriptor);
+        vlog(LogCPU, "updateDefaultSizes PE=%u X:%u O:%u A:%u (newCS: %04X)", get_pe(), x16() ? 16 : 32, o16() ? 16 : 32, a16() ? 16 : 32, get_cs());
+        dump_descriptor(cs_descriptor);
     }
 #endif
 }
@@ -1603,15 +1603,15 @@ void CPU::update_default_sizes()
 void CPU::update_stack_size()
 {
 #ifdef VERBOSE_DEBUG
-    bool oldS32 = m_stackSize32;
+    bool old_s32 = m_stack_size32;
 #endif
 
     auto& ssDescriptor = cached_descriptor(SegmentRegisterIndex::SS);
-    m_stackSize32 = ssDescriptor.D();
+    m_stackSize32 = ssDescriptor.d();
 
 #ifdef VERBOSE_DEBUG
-    if (oldS32 != m_stackSize32) {
-        vlog(LogCPU, "updateStackSize PE=%u S:%u (newSS: %04x)", getPE(), s16() ? 16 : 32, getSS());
+    if (old_s32 != m_stack_size32) {
+        vlog(LogCPU, "update_stack_size PE=%u S:%u (newSS: %04x)", get_pe(), s16() ? 16 : 32, get_ss());
         dump_descriptor(ssDescriptor);
     }
 #endif
@@ -1652,13 +1652,13 @@ void CPU::set_gs(u16 value)
     write_segment_register(SegmentRegisterIndex::GS, value);
 }
 
-const u8* CPU::pointer_to_physical_memory(PhysicalAddress physicalAddress)
+const u8* CPU::pointer_to_physical_memory(PhysicalAddress physical_address)
 {
-    if (!validate_physical_address<u8>(physicalAddress, MemoryAccessType::InternalPointer))
+    if (!validate_physical_address<u8>(physical_address, MemoryAccessType::InternalPointer))
         return nullptr;
-    if (auto* provider = memory_provider_for_address(physicalAddress))
-        return provider->memory_pointer(physicalAddress.get());
-    return &m_memory[physicalAddress.get()];
+    if (auto* provider = memory_provider_for_address(physical_address))
+        return provider->memory_pointer(physical_address.get());
+    return &m_memory[physical_address.get()];
 }
 
 const u8* CPU::memory_pointer(SegmentRegisterIndex segreg, u32 offset)
@@ -1668,10 +1668,10 @@ const u8* CPU::memory_pointer(SegmentRegisterIndex segreg, u32 offset)
 
 const u8* CPU::memory_pointer(const SegmentDescriptor& descriptor, u32 offset)
 {
-    auto linearAddress = descriptor.linear_address(offset);
+    auto linear_address = descriptor.linear_address(offset);
     if (get_pe() && !get_vm())
         validate_address<u8>(descriptor, offset, MemoryAccessType::InternalPointer);
-    return memory_pointer(linearAddress);
+    return memory_pointer(linear_address);
 }
 
 const u8* CPU::memory_pointer(LogicalAddress address)
@@ -1679,13 +1679,13 @@ const u8* CPU::memory_pointer(LogicalAddress address)
     return memory_pointer(get_segment_descriptor(address.selector()), address.offset());
 }
 
-const u8* CPU::memory_pointer(LinearAddress linearAddress)
+const u8* CPU::memory_pointer(LinearAddress linear_address)
 {
-    auto physicalAddress = translate_address(linearAddress, MemoryAccessType::InternalPointer);
+    auto physical_address = translate_address(linear_address, MemoryAccessType::InternalPointer);
 #ifdef A20_ENABLED
-    physicalAddress.mask(a20_mask());
+    physical_address.mask(a20_mask());
 #endif
-    return pointer_to_physical_memory(physicalAddress);
+    return pointer_to_physical_memory(physical_address);
 }
 
 template<typename T>
@@ -1800,20 +1800,20 @@ void CPU::doBOUND(Instruction& insn)
     if (insn.modrm().is_register()) {
         throw InvalidOpcode("BOUND with register operand");
     }
-    T arrayIndex = insn.reg32();
-    T lowerBound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset());
-    T upperBound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset() + sizeof(T));
-    bool isWithinBounds = arrayIndex >= lowerBound && arrayIndex <= upperBound;
+    T array_index = insn.reg32();
+    T lower_bound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset());
+    T upper_bound = read_memory<T>(insn.modrm().segment(), insn.modrm().offset() + sizeof(T));
+    bool within_bounds = array_index >= lower_bound && array_index <= upper_bound;
 #ifdef DEBUG_BOUND
     vlog(LogCPU, "BOUND<%u> checking if %d is within [%d, %d]: %s",
         sizeof(T) * 8,
-        arrayIndex,
-        lowerBound,
-        upperBound,
-        isWithinBounds ? "yes" : "no");
+        array_index,
+        lower_bound,
+        upper_bound,
+        within_bounds ? "yes" : "no");
 #endif
-    if (!isWithinBounds)
-        throw BoundRangeExceeded(QString("%1 not within [%2, %3]").arg(arrayIndex).arg(lowerBound).arg(upperBound));
+    if (!within_bounds)
+        throw BoundRangeExceeded(QString("%1 not within [%2, %3]").arg(array_index).arg(lower_bound).arg(upper_bound));
 }
 
 void CPU::_BOUND(Instruction& insn)
