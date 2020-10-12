@@ -261,11 +261,11 @@ void Debugger::handle_command(const QString& raw_command)
     }
 
 #ifdef DISASSEMBLE_EVERYTHING
-    if (lowerCommand == "de1") {
+    if (lower_command == "de1") {
         options.disassemble_everything = true;
         return;
     }
-    if (lowerCommand == "de0") {
+    if (lower_command == "de0") {
         options.disassemble_everything = false;
         return;
     }
