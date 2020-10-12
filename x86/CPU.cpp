@@ -1853,3 +1853,8 @@ void CPU::_UD2(Instruction&)
     throw InvalidOpcode("UD2");
 #endif
 }
+
+void CPU::_BSWAP_reg32(Instruction& insn)
+{
+    insn.reg32() = __builtin_bswap32(insn.reg32());
+}

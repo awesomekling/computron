@@ -1373,6 +1373,8 @@ protected:
     void _MOVSX_reg32_RM8(Instruction&);
     void _MOVSX_reg32_RM16(Instruction&);
 
+    void _BSWAP_reg32(Instruction&);
+
     template<typename T>
     void doLxS(Instruction&, SegmentRegisterIndex);
     void _LFS_reg16_mem16(Instruction&);

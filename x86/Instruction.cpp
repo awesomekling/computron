@@ -817,6 +817,10 @@ void build_opcode_tables_if_needed()
     build_0f(0xBD, "BSR", OP_reg16_RM16, &CPU::_BSR_reg16_RM16, OP_reg32_RM32, &CPU::_BSR_reg32_RM32);
     build_0f(0xBE, "MOVSX", OP_reg16_RM8, &CPU::_MOVSX_reg16_RM8, OP_reg32_RM8, &CPU::_MOVSX_reg32_RM8);
     build_0f(0xBF, "0xBF", OP, nullptr, "MOVSX", OP_reg32_RM16, &CPU::_MOVSX_reg32_RM16);
+
+    for (u8 i = 0xc8; i <= 0xcf; ++i)
+        build_0f(i, "BSWAP", OP_reg32, &CPU::_BSWAP_reg32);
+
     build_0f(0xFF, "UD0", OP, &CPU::_UD0);
 
     has_built_tables = true;
@@ -913,7 +917,10 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
         m_modrm.decode(stream, m_a32);
         m_register_index = (m_modrm.m_rm >> 3) & 7;
     } else {
-        m_register_index = m_op & 7;
+        if (has_sub_op())
+            m_register_index = m_sub_op & 7;
+        else
+            m_register_index = m_op & 7;
     }
 
     bool hasSlash = m_descriptor->format == MultibyteWithSlash;
