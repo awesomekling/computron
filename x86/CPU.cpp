@@ -387,7 +387,7 @@ FLATTEN void CPU::execute_one_instruction()
     try {
         InstructionExecutionContext context(*this);
 #ifdef SYMBOLIC_TRACING
-        auto it = m_symbols.find(getEIP());
+        auto it = m_symbols.find(get_eip());
         if (it != m_symbols.end()) {
             vlog(LogCPU, "\033[34;1m%s\033[0m", qPrintable(*it));
         }
@@ -603,7 +603,7 @@ void CPU::real_mode_far_jump(LogicalAddress address, JumpType type)
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, originalCS, originalEIP, get_ss(), get_esp());
+        vlog(LogCPU, "Push %u-bit cs:eip %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, original_cs, original_eip, get_ss(), get_esp());
 #endif
         push_operand_sized_value(original_cs);
         push_operand_sized_value(original_eip);
@@ -640,7 +640,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
-    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", get_pe(), getPG(), toString(type), get_base_cs(), current_base_instruction_pointer(), selector, offset);
+    vlog(LogCPU, "[PE=%u, PG=%u] %s from %04x:%08x to %04x:%08x", get_pe(), get_pg(), to_string(type), get_base_cs(), current_base_instruction_pointer(), selector, offset);
 #endif
 
     auto descriptor = get_descriptor(selector);
@@ -669,7 +669,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     if (descriptor.is_call_gate()) {
         auto& gate = descriptor.as_gate();
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Gate (%s) to %04x:%08x (count=%u)", gate.typeName(), gate.selector(), gate.offset(), gate.parameterCount());
+        vlog(LogCPU, "Gate (%s) to %04x:%08x (count=%u)", gate.type_name(), gate.selector(), gate.offset(), gate.parameter_count());
 #endif
         if (gate.parameter_count() != 0) {
             // FIXME: Implement gate parameter counts.
@@ -752,7 +752,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
     if (type == JumpType::CALL && gate) {
         if (descriptor.dpl() < original_cpl) {
 #ifdef DEBUG_JUMPS
-            vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL(), descriptor);
+            vlog(LogCPU, "%s escalating privilege from ring%u to ring%u", to_string(type), original_cpl, descriptor.dpl(), descriptor);
 #endif
             auto tss = current_tss();
 
@@ -788,15 +788,15 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
             set_esp(new_esp);
 
 #ifdef DEBUG_JUMPS
-            vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", toString(type), originalSS, originalESP, get_ss(), getSP());
-            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", pushSize, originalSS, originalESP, get_ss(), get_esp());
+            vlog(LogCPU, "%s to inner ring, ss:sp %04x:%04x -> %04x:%04x", to_string(type), original_ss, original_esp, get_ss(), get_sp());
+            vlog(LogCPU, "Push %u-bit ss:sp %04x:%04x @stack{%04x:%08x}", push_size, original_ss, original_esp, get_ss(), get_esp());
 #endif
             push_value_with_size(original_ss, push_size);
             push_value_with_size(original_esp, push_size);
             END_ASSERT_NO_EXCEPTIONS
         } else {
 #ifdef DEBUG_JUMPS
-            vlog(LogCPU, "%s same privilege from ring%u to ring%u", toString(type), originalCPL, descriptor.DPL());
+            vlog(LogCPU, "%s same privilege from ring%u to ring%u", to_string(type), original_cpl, descriptor.dpl());
 #endif
             set_cpl(original_cpl);
         }
@@ -804,7 +804,7 @@ void CPU::protected_mode_far_jump(LogicalAddress address, JumpType type, Gate* g
 
     if (type == JumpType::CALL) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", pushSize, originalCS, originalEIP, get_ss(), get_esp());
+        vlog(LogCPU, "Push %u-bit cs:ip %04x:%04x @stack{%04x:%08x}", push_size, original_cs, original_eip, get_ss(), get_esp());
 #endif
         BEGIN_ASSERT_NO_EXCEPTIONS
         push_value_with_size(original_cs, push_size);
@@ -833,8 +833,8 @@ void CPU::protected_far_return(u16 stack_adjustment)
 #ifdef DEBUG_JUMPS
     u16 originalSS = get_ss();
     u32 originalESP = get_esp();
-    u16 originalCS = getCS();
-    u32 originalEIP = getEIP();
+    u16 originalCS = get_cs();
+    u32 originalEIP = get_eip();
 #endif
 
     TransactionalPopper popper(*this);
@@ -898,8 +898,8 @@ void CPU::protected_far_return(u16 stack_adjustment)
         u32 newESP = popper.pop_operand_sized_value();
         u16 newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjustedStackPointer());
-        vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
+        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjusted_stack_pointer());
+        vlog(LogCPU, "%s from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", "RETF", original_cpl, get_cpl(), originalSS, originalESP, newSS, newESP);
 #endif
 
         set_ss(newSS);
@@ -1207,7 +1207,7 @@ Exception CPU::PageFault(LinearAddress linear_address, PageFaultFlags::Flags fla
         ASSERT_NOT_REACHED();
     }
 #ifdef DEBUG_WARCRAFT2
-    if (getEIP() == 0x100c2f7c) {
+    if (get_eip() == 0x100c2f7c) {
         vlog(LogAlert, "CRASH ON specific #PF");
         ASSERT_NOT_REACHED();
     }

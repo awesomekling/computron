@@ -95,7 +95,7 @@ void CPU::dump_trace()
         "DR0=%08X DR1=%08X DR2=%08X DR3=%08X DR4=%08X DR5=%08X DR6=%08X DR7=%08X "
         "DS=%04X ES=%04X SS=%04X FS=%04X GS=%04X "
         "C=%u P=%u A=%u Z=%u S=%u I=%u D=%u O=%u\n",
-        getCS(), getEIP(),
+        get_cs(), get_eip(),
         get_eax(), get_ebx(), get_ecx(), get_edx(), get_esp(), get_ebp(), get_esi(), get_edi(),
         getCR0(), getCR1(), getCR2(), getCR3(), getCR4(), getCR5(), getCR6(), getCR7(),
         getDR0(), getDR1(), getDR2(), getDR3(), getDR4(), getDR5(), getDR6(), getDR7(),

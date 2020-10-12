@@ -32,7 +32,7 @@ void CPU::_INT_imm8(Instruction& insn)
 {
 #ifdef VMM_TRACING
     if (insn.imm8() == 0x20) {
-        u16 service_id = readMemory16(SegmentRegisterIndex::CS, getEIP());
+        u16 service_id = readMemory16(SegmentRegisterIndex::CS, get_eip());
         if (service_id < m_vmm_names.size())
             vlog(LogCPU, "VMM %04x: %s", service_id, qPrintable(m_vmm_names.at(service_id)));
         else {
@@ -62,7 +62,7 @@ void CPU::iret_from_vm86_mode()
     if (get_iopl() != 3)
         throw GeneralProtectionFault(0, "IRET in VM86 mode with IOPL != 3");
 
-    u8 originalCPL = get_cpl();
+    u8 original_cpl = get_cpl();
 
     TransactionalPopper popper(*this);
     u32 offset = popper.pop_operand_sized_value();
@@ -74,7 +74,7 @@ void CPU::iret_from_vm86_mode()
 
     set_cs(selector);
     set_eip(offset);
-    set_eflags_respectfully(flags, originalCPL);
+    set_eflags_respectfully(flags, original_cpl);
     popper.commit();
 }
 
@@ -85,7 +85,7 @@ void CPU::iret_from_real_mode()
     u32 flags = pop_operand_sized_value();
 
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), currentStackPointer());
+    vlog(LogCPU, "IRET Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), current_stack_pointer());
 #endif
 
     set_cs(selector);
@@ -106,7 +106,7 @@ void CPU::_IRET(Instruction&)
         return;
     }
 
-    u16 originalCPL = get_cpl();
+    u16 original_cpl = get_cpl();
 
     if (get_nt()) {
         auto tss = current_tss();
@@ -123,7 +123,7 @@ void CPU::_IRET(Instruction&)
     u16 selector = popper.pop_operand_sized_value();
     u32 flags = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), popper.adjustedStackPointer());
+    vlog(LogCPU, "Popped %u-bit cs:eip:eflags %04x:%08x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, selector, offset, flags, get_ss(), popper.adjusted_stack_pointer());
 #endif
 
     if (flags & Flag::VM) {
@@ -136,7 +136,7 @@ void CPU::_IRET(Instruction&)
     }
     protected_iret(popper, LogicalAddress(selector, offset));
 
-    set_eflags_respectfully(flags, originalCPL);
+    set_eflags_respectfully(flags, original_cpl);
 }
 
 static u16 makeErrorCode(u16 num, bool idt, CPU::InterruptSource source)
@@ -301,7 +301,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
 
     u16 originalSS = get_ss();
     u32 originalESP = get_esp();
-    u16 originalCPL = get_cpl();
+    u16 original_cpl = get_cpl();
     u16 originalCS = get_cs();
     u32 originalEIP = get_eip();
 
@@ -322,9 +322,9 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         return;
     }
 
-    if (!codeDescriptor.conforming() && descriptor.dpl() < originalCPL) {
+    if (!codeDescriptor.conforming() && descriptor.dpl() < original_cpl) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Interrupt escalating privilege from ring%u to ring%u", originalCPL, descriptor.DPL(), descriptor);
+        vlog(LogCPU, "Interrupt escalating privilege from ring%u to ring%u", original_cpl, descriptor.dpl(), descriptor);
 #endif
         auto tss = current_tss();
 
@@ -364,16 +364,16 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
         push_value_with_size(originalSS, gate.size());
         push_value_with_size(originalESP, gate.size());
         END_ASSERT_NO_EXCEPTIONS
-    } else if (codeDescriptor.conforming() || codeDescriptor.dpl() == originalCPL) {
+    } else if (codeDescriptor.conforming() || codeDescriptor.dpl() == original_cpl) {
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Interrupt same privilege from ring%u to ring%u", originalCPL, descriptor.DPL());
+        vlog(LogCPU, "Interrupt same privilege from ring%u to ring%u", original_cpl, descriptor.dpl());
 #endif
         if (get_vm() && (codeDescriptor.conforming() || codeDescriptor.dpl() != 0)) {
             ASSERT_NOT_REACHED();
             throw GeneralProtectionFault(gate.selector() & ~3, "Interrupt in VM86 mode to code segment with DPL != 0");
         }
 
-        set_cpl(originalCPL);
+        set_cpl(original_cpl);
     } else {
         ASSERT_NOT_REACHED();
         throw GeneralProtectionFault(makeErrorCode(gate.selector(), 0, source), "Interrupt to non-conforming code segment with DPL > CPL");
@@ -505,13 +505,13 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 #ifdef DEBUG_JUMPS
     u16 originalSS = get_ss();
     u32 originalESP = get_esp();
-    u16 originalCS = getCS();
-    u32 originalEIP = getEIP();
+    u16 originalCS = get_cs();
+    u32 originalEIP = get_eip();
 #endif
 
     u16 selector = address.selector();
     u32 offset = address.offset();
-    u16 originalCPL = get_cpl();
+    u16 original_cpl = get_cpl();
     u8 selectorRPL = selector & 3;
 
 #ifdef LOG_FAR_JUMPS
@@ -558,13 +558,13 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
 
     u16 newSS;
     u32 newESP;
-    if (selectorRPL > originalCPL) {
+    if (selectorRPL > original_cpl) {
         BEGIN_ASSERT_NO_EXCEPTIONS
         newESP = popper.pop_operand_sized_value();
         newSS = popper.pop_operand_sized_value();
 #ifdef DEBUG_JUMPS
-        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjustedStackPointer());
-        vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", originalCPL, getCPL(), originalSS, originalESP, newSS, newESP);
+        vlog(LogCPU, "Popped %u-bit ss:esp %04x:%08x @stack{%04x:%08x}", o16() ? 16 : 32, newSS, newESP, get_ss(), popper.adjusted_stack_pointer());
+        vlog(LogCPU, "IRET from ring%u to ring%u, ss:esp %04x:%08x -> %04x:%08x", original_cpl, get_cpl(), originalSS, originalESP, newSS, newESP);
 #endif
         END_ASSERT_NO_EXCEPTIONS
     }
@@ -573,7 +573,7 @@ void CPU::protected_iret(TransactionalPopper& popper, LogicalAddress address)
     set_cs(selector);
     set_eip(offset);
 
-    if (selectorRPL > originalCPL) {
+    if (selectorRPL > original_cpl) {
         set_ss(newSS);
         set_esp(newESP);
 

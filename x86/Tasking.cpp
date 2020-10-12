@@ -300,7 +300,7 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
     }
 
 #ifdef DEBUG_TASK_SWITCH
-    vlog(LogCPU, "Task switched to %08x, cpl=%u, iopl=%u", incomingTSSDescriptor.base(), getCPL(), getIOPL());
+    vlog(LogCPU, "Task switched to %08x, cpl=%u, iopl=%u", incomingTSSDescriptor.base(), get_cpl(), getIOPL());
 #endif
 }
 
