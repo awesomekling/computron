@@ -1091,6 +1091,10 @@ protected:
     void _ADC_RM16_imm16(Instruction&);
     void _ADC_RM16_imm8(Instruction&);
 
+    void _XADD_RM16_reg16(Instruction&);
+    void _XADD_RM32_reg32(Instruction&);
+    void _XADD_RM8_reg8(Instruction&);
+
     void _SBB_RM8_reg8(Instruction&);
     void _SBB_RM16_reg16(Instruction&);
     void _SBB_RM32_reg32(Instruction&);

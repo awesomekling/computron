@@ -240,3 +240,31 @@ void CPU::_NEG_RM32(Instruction& insn)
 {
     doNEG<u32>(insn);
 }
+
+void CPU::_XADD_RM16_reg16(Instruction& insn)
+{
+    auto dest = insn.modrm().read16();
+    auto src = insn.reg16();
+
+    auto result = doADD(dest, src);
+    insn.reg16() = dest;
+    insn.modrm().write16(result);
+}
+
+void CPU::_XADD_RM32_reg32(Instruction& insn)
+{
+    auto dest = insn.modrm().read32();
+    auto src = insn.reg32();
+    auto result = doADD(dest, src);
+    insn.reg32() = dest;
+    insn.modrm().write32(result);
+}
+
+void CPU::_XADD_RM8_reg8(Instruction& insn)
+{
+    auto dest = insn.modrm().read8();
+    auto src = insn.reg8();
+    auto result = doADD(dest, src);
+    insn.reg8() = dest;
+    insn.modrm().write8(result);
+}
