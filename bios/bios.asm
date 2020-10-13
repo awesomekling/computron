@@ -789,9 +789,9 @@ bios_move_extended_block:
     pusha
     push    ds
 
+    push    bp
     mov     bp, sp
-
-    stub 0x15 ; FIXME: remove this when no longer needed for debugging
+    sub     sp, 16
 
     mov     bx, cx
 
@@ -937,6 +937,9 @@ bios_move_extended_block:
     call    a20_set
 
     sti
+
+    mov     sp, bp
+    pop     bp
 
     pop     ds
     popa
