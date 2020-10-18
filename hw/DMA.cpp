@@ -1,5 +1,5 @@
 // Computron x86 PC Emulator
-// Copyright (C) 2003-2018 Andreas Kling <awesomekling@gmail.com>
+// Copyright (C) 2003-2020 Andreas Kling <awesomekling@gmail.com>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -22,55 +22,43 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#include "DMA.h"
 
-#ifndef NDEBUG
-#    include <QtCore/qdebug.h>
-#    include <assert.h>
-#    define ASSERT assert
-#    define ASSERT_NOT_REACHED() ASSERT(false)
-#    define RELEASE_ASSERT assert
-#else
-#    define ASSERT(x)
-#    define ASSERT_NOT_REACHED() CRASH()
-#    define RELEASE_ASSERT(x) \
-        do {                  \
-            if (!(x)) {       \
-                CRASH();      \
-            }                 \
-            while (0)
-#endif
-
-#define BEGIN_ASSERT_NO_EXCEPTIONS try {
-#define END_ASSERT_NO_EXCEPTIONS \
-    }                            \
-    catch (...) { ASSERT_NOT_REACHED(); }
-
-enum VLogChannel {
-    LogInit,
-    LogError,
-    LogExit,
-    LogFPU,
-    LogCPU,
-    LogIO,
-    LogAlert,
-    LogDisk,
-    LogIDE,
-    LogVGA,
-    LogCMOS,
-    LogPIC,
-    LogMouse,
-    LogFDC,
-    LogConfig,
-    LogVomCtl,
-    LogKeyboard,
-    LogDump,
-    LogScreen,
-    LogTimer,
-    LogDMA,
-#ifdef DEBUG_SERENITY
-    LogSerenity,
-#endif
+struct DMA::Private {
 };
 
-void vlog(VLogChannel channel, const char* format, ...);
+DMA::DMA(Machine& machine)
+    : IODevice("DMA", machine)
+    , d(make<Private>())
+{
+    for (size_t i = 0; i <= 0xf; ++i)
+        listen(i, IODevice::ReadWrite);
+    for (size_t i = 0x80; i <= 0x8f; ++i)
+        listen(i, IODevice::ReadWrite);
+    for (size_t i = 0xc0; i <= 0xde; i += 2)
+        listen(i, IODevice::ReadWrite);
+}
+
+DMA::~DMA()
+{
+}
+
+void DMA::reset()
+{
+}
+
+void DMA::out8(u16 port, u8 data)
+{
+    if (port == 0x80) {
+        // Linux uses this port for small delays.
+        return;
+    }
+
+    vlog(LogDMA, "out %04x <- %02x", port, data);
+}
+
+u8 DMA::in8(u16 port)
+{
+    vlog(LogDMA, "in %04x", port);
+    return 0;
+}

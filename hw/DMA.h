@@ -1,5 +1,5 @@
 // Computron x86 PC Emulator
-// Copyright (C) 2003-2018 Andreas Kling <awesomekling@gmail.com>
+// Copyright (C) 2003-2020 Andreas Kling <kling@serenityos.org>
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,53 +24,19 @@
 
 #pragma once
 
-#ifndef NDEBUG
-#    include <QtCore/qdebug.h>
-#    include <assert.h>
-#    define ASSERT assert
-#    define ASSERT_NOT_REACHED() ASSERT(false)
-#    define RELEASE_ASSERT assert
-#else
-#    define ASSERT(x)
-#    define ASSERT_NOT_REACHED() CRASH()
-#    define RELEASE_ASSERT(x) \
-        do {                  \
-            if (!(x)) {       \
-                CRASH();      \
-            }                 \
-            while (0)
-#endif
+#include "OwnPtr.h"
+#include "iodevice.h"
 
-#define BEGIN_ASSERT_NO_EXCEPTIONS try {
-#define END_ASSERT_NO_EXCEPTIONS \
-    }                            \
-    catch (...) { ASSERT_NOT_REACHED(); }
+class DMA final : public IODevice {
+public:
+    explicit DMA(Machine&);
+    virtual ~DMA() override;
 
-enum VLogChannel {
-    LogInit,
-    LogError,
-    LogExit,
-    LogFPU,
-    LogCPU,
-    LogIO,
-    LogAlert,
-    LogDisk,
-    LogIDE,
-    LogVGA,
-    LogCMOS,
-    LogPIC,
-    LogMouse,
-    LogFDC,
-    LogConfig,
-    LogVomCtl,
-    LogKeyboard,
-    LogDump,
-    LogScreen,
-    LogTimer,
-    LogDMA,
-#ifdef DEBUG_SERENITY
-    LogSerenity,
-#endif
+    virtual void reset() override;
+    virtual u8 in8(u16 port) override;
+    virtual void out8(u16 port, u8 data) override;
+
+private:
+    struct Private;
+    OwnPtr<Private> d;
 };
-
-void vlog(VLogChannel channel, const char* format, ...);

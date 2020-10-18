@@ -45,6 +45,7 @@ HEADERS += gui/machinewidget.h \
            gui/screen.h \
            gui/worker.h \
            gui/Renderer.h \
+           hw/DMA.h \
            hw/MemoryProvider.h \
            hw/ROM.h \
            hw/SimpleMemoryProvider.h \
@@ -106,6 +107,7 @@ SOURCES += debug.cpp \
            gui/screen.cpp \
            gui/worker.cpp \
            gui/Renderer.cpp \
+           hw/DMA.cpp \
            hw/busmouse.cpp \
            hw/fdc.cpp \
            hw/ide.cpp \

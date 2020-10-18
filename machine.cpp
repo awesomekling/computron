@@ -24,6 +24,7 @@
 
 #include "machine.h"
 #include "CPU.h"
+#include "DMA.h"
 #include "DiskDrive.h"
 #include "PS2.h"
 #include "busmouse.h"
@@ -79,7 +80,6 @@ Machine::Machine(OwnPtr<Settings>&& settings, QObject* parent)
         IODevice::ignore_port(0x222);
         IODevice::ignore_port(0x223);
         IODevice::ignore_port(0x201); // Gameport.
-        IODevice::ignore_port(0x80);  // Linux outb_p() uses this for small delays.
         IODevice::ignore_port(0x330); // MIDI
         IODevice::ignore_port(0x331); // MIDI
         IODevice::ignore_port(0x334); // SCSI (BusLogic)
@@ -143,6 +143,7 @@ void Machine::make_devices(Badge<Worker>)
 
     m_master_pic = make<PIC>(true, *this);
     m_slave_pic = make<PIC>(false, *this);
+    m_dma = make<DMA>(*this);
     m_busmouse = make<BusMouse>(*this);
     m_cmos = make<CMOS>(*this);
     m_fdc = make<FDC>(*this);

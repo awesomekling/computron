@@ -102,6 +102,9 @@ void vlog(VLogChannel channel, const char* format, ...)
     case LogTimer:
         prefix = "timer";
         break;
+    case LogDMA:
+        prefix = "dma";
+        break;
 #ifdef DEBUG_SERENITY
     case LogSerenity:
         prefix = "serenity";

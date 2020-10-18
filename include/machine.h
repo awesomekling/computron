@@ -38,6 +38,7 @@
 class IODevice;
 class BusMouse;
 class CMOS;
+class DMA;
 class DiskDrive;
 class FDC;
 class IDE;
@@ -137,6 +138,7 @@ private:
     OwnPtr<PIC> m_master_pic;
     OwnPtr<PIC> m_slave_pic;
     OwnPtr<PS2> m_ps2;
+    OwnPtr<DMA> m_dma;
     OwnPtr<VomCtl> m_vomctl;
 
     OwnPtr<DiskDrive> m_floppy0;
