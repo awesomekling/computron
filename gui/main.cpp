@@ -44,9 +44,9 @@ static void sigint_handler(int)
     g_cpu->debugger().enter();
 }
 
-void hard_exit(int exitCode)
+void hard_exit(int exit_code)
 {
-    exit(exitCode);
+    exit(exit_code);
 }
 
 int main(int argc, char** argv)

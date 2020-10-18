@@ -926,20 +926,20 @@ ALWAYS_INLINE Instruction::Instruction(InstructionStream& stream, bool o32, bool
             m_register_index = m_op & 7;
     }
 
-    bool hasSlash = m_descriptor->format == MultibyteWithSlash;
+    bool has_slash = m_descriptor->format == MultibyteWithSlash;
 
-    if (hasSlash) {
+    if (has_slash) {
         m_descriptor = &m_descriptor->slashes[slash()];
     }
 
     if (UNLIKELY(!m_descriptor->impl)) {
         if (m_has_sub_op) {
-            if (hasSlash)
+            if (has_slash)
                 vlog(LogCPU, "Instruction %02X %02X /%u not understood", m_op, m_sub_op, slash());
             else
                 vlog(LogCPU, "Instruction %02X %02X not understood", m_op, m_sub_op);
         } else {
-            if (hasSlash)
+            if (has_slash)
                 vlog(LogCPU, "Instruction %02X /%u not understood", m_op, slash());
             else
                 vlog(LogCPU, "Instruction %02X not understood", m_op);
@@ -999,31 +999,31 @@ QString MemoryOrRegisterReference::to_string_o8() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex8>(m_register_index));
-    return QString("[%1]").arg(toString());
+    return QString("[%1]").arg(to_string());
 }
 
 QString MemoryOrRegisterReference::to_string_o16() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex16>(m_register_index));
-    return QString("[%1]").arg(toString());
+    return QString("[%1]").arg(to_string());
 }
 
 QString MemoryOrRegisterReference::to_string_o32() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
-    return QString("[%1]").arg(toString());
+    return QString("[%1]").arg(to_string());
 }
 
-QString MemoryOrRegisterReference::toString() const
+QString MemoryOrRegisterReference::to_string() const
 {
     if (m_a32)
-        return toStringA32();
-    return toStringA16();
+        return to_string_a32();
+    return to_string_a16();
 }
 
-QString MemoryOrRegisterReference::toStringA16() const
+QString MemoryOrRegisterReference::to_string_a16() const
 {
     QString base;
     bool hasDisplacement = false;
@@ -1075,7 +1075,7 @@ QString MemoryOrRegisterReference::toStringA16() const
     return QString("%1%2").arg(base).arg(disp);
 }
 
-static QString sibToString(u8 rm, u8 sib)
+static QString sib_to_string(u8 rm, u8 sib)
 {
     QString scale;
     QString index;
@@ -1154,7 +1154,7 @@ static QString sibToString(u8 rm, u8 sib)
     return QString("%1+%2%3").arg(base).arg(index).arg(scale);
 }
 
-QString MemoryOrRegisterReference::toStringA32() const
+QString MemoryOrRegisterReference::to_string_a32() const
 {
     if (is_register())
         return CPU::register_name(static_cast<CPU::RegisterIndex32>(m_register_index));
@@ -1195,7 +1195,7 @@ QString MemoryOrRegisterReference::toStringA32() const
             base = "ebp";
         break;
     case 4:
-        base = sibToString(m_rm, m_sib);
+        base = sib_to_string(m_rm, m_sib);
         break;
     }
 

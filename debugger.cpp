@@ -437,8 +437,8 @@ void Debugger::handle_dump_unassembled(const QStringList& arguments)
         offset = arguments.at(1).toUInt(0, 16);
     }
 
-    u32 bytesDisassembled = cpu().dump_disassembled(LogicalAddress(selector, offset), 20);
-    vlog(LogDump, "Next offset: %08x", offset + bytesDisassembled);
+    u32 bytes_disassembled = cpu().dump_disassembled(LogicalAddress(selector, offset), 20);
+    vlog(LogDump, "Next offset: %08x", offset + bytes_disassembled);
 }
 
 void Debugger::handle_dump_segment(const QStringList& arguments)

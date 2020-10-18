@@ -53,17 +53,17 @@ void Worker::shutdown()
     hard_exit(0);
 }
 
-void Worker::exitDebugger()
+void Worker::exit_debugger()
 {
     m_machine.cpu().queue_command(CPU::ExitDebugger);
 }
 
-void Worker::enterDebugger()
+void Worker::enter_debugger()
 {
     m_machine.cpu().queue_command(CPU::EnterDebugger);
 }
 
-void Worker::rebootMachine()
+void Worker::reboot_machine()
 {
     m_machine.cpu().queue_command(CPU::HardReboot);
 }

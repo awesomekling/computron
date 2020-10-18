@@ -319,7 +319,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
     u16 sector = cpu.get_cl() & 0x3f;
     u8 driveIndex = cpu.get_dl();
     u8 head = cpu.get_dh();
-    u16 sectorCount = cpu.get_al();
+    u16 sector_count = cpu.get_al();
     FILE* fp;
     u32 lba;
 
@@ -361,13 +361,13 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
 
     switch (function) {
     case ReadSectors:
-        bios_disk_read(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
+        bios_disk_read(cpu, fp, *drive, cylinder, head, sector, sector_count, cpu.get_es(), cpu.get_bx());
         break;
     case WriteSectors:
-        bios_disk_write(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
+        bios_disk_write(cpu, fp, *drive, cylinder, head, sector, sector_count, cpu.get_es(), cpu.get_bx());
         break;
     case VerifySectors:
-        bios_disk_verify(cpu, fp, *drive, cylinder, head, sector, sectorCount, cpu.get_es(), cpu.get_bx());
+        bios_disk_verify(cpu, fp, *drive, cylinder, head, sector, sector_count, cpu.get_es(), cpu.get_bx());
         break;
     }
 
@@ -377,7 +377,7 @@ void bios_disk_call(CPU& cpu, DiskCallFunction function)
 epilogue:
     if (error == FD_NO_ERROR) {
         cpu.set_cf(0);
-        cpu.set_al(sectorCount);
+        cpu.set_al(sector_count);
     } else {
         cpu.set_cf(1);
         cpu.set_al(0);

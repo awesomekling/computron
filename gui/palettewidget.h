@@ -41,7 +41,7 @@ protected:
     virtual void paintEvent(QPaintEvent*) override;
 
 private slots:
-    void onPaletteChanged();
+    void on_palette_changed();
 
 private:
     struct Private;

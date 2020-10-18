@@ -52,8 +52,8 @@ private:
 class ThreadedTimerHelper : public QObject {
     Q_OBJECT
 public:
-    explicit ThreadedTimerHelper(ThreadedTimer& threadedTimer, int ms)
-        : m_threaded_timer(threadedTimer)
+    explicit ThreadedTimerHelper(ThreadedTimer& threaded_timer, int ms)
+        : m_threaded_timer(threaded_timer)
     {
         startTimer(ms);
     }

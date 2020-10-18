@@ -31,8 +31,8 @@ u64 CPU::doADD(T dest, T src)
     u64 result = (u64)dest + (u64)src;
     math_flags(result, dest, src);
     set_of(((
-               ((result) ^ (dest)) & ((result) ^ (src)))
-              >> (TypeTrivia<T>::bits - 1))
+                ((result) ^ (dest)) & ((result) ^ (src)))
+               >> (TypeTrivia<T>::bits - 1))
         & 1);
     return result;
 }
@@ -44,8 +44,8 @@ u64 CPU::doADC(T dest, T src)
 
     math_flags(result, dest, src);
     set_of(((
-               ((result) ^ (dest)) & ((result) ^ (src)))
-              >> (TypeTrivia<T>::bits - 1))
+                ((result) ^ (dest)) & ((result) ^ (src)))
+               >> (TypeTrivia<T>::bits - 1))
         & 1);
     return result;
 }
@@ -73,14 +73,14 @@ DEFINE_INSTRUCTION_HANDLERS_GRP1(SBB)
 DEFINE_INSTRUCTION_HANDLERS_GRP4_READONLY(SUB, CMP)
 
 template<typename T>
-void CPU::doMUL(T f1, T f2, T& resultHigh, T& resultLow)
+void CPU::doMUL(T f1, T f2, T& result_high, T& result_low)
 {
     typedef typename TypeDoubler<T>::type DT;
     DT result = (DT)f1 * (DT)f2;
-    resultLow = result & TypeTrivia<T>::mask;
-    resultHigh = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
+    result_low = result & TypeTrivia<T>::mask;
+    result_high = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
 
-    if (resultHigh == 0) {
+    if (result_high == 0) {
         set_cf(0);
         set_of(0);
     } else {
@@ -105,12 +105,12 @@ void CPU::_MUL_RM32(Instruction& insn)
 }
 
 template<typename T>
-void CPU::doIMUL(T f1, T f2, T& resultHigh, T& resultLow)
+void CPU::doIMUL(T f1, T f2, T& result_high, T& result_low)
 {
     typedef typename TypeDoubler<T>::type DT;
     DT result = (DT)f1 * (DT)f2;
-    resultLow = result & TypeTrivia<T>::mask;
-    resultHigh = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
+    result_low = result & TypeTrivia<T>::mask;
+    result_high = (result >> TypeTrivia<T>::bits) & TypeTrivia<T>::mask;
 
     if (result > std::numeric_limits<T>::max() || result < std::numeric_limits<T>::min()) {
         set_cf(1);
@@ -128,38 +128,38 @@ void CPU::_IMUL_RM8(Instruction& insn)
 
 void CPU::_IMUL_reg32_RM32_imm8(Instruction& insn)
 {
-    i32 resultHigh;
-    doIMUL<i32>(insn.modrm().read32(), signExtendedTo<i32>(insn.imm8()), resultHigh, (i32&)insn.reg32());
+    i32 result_high;
+    doIMUL<i32>(insn.modrm().read32(), signExtendedTo<i32>(insn.imm8()), result_high, (i32&)insn.reg32());
 }
 
 void CPU::_IMUL_reg32_RM32_imm32(Instruction& insn)
 {
-    i32 resultHigh;
-    doIMUL<i32>(insn.modrm().read32(), insn.imm32(), resultHigh, (i32&)insn.reg32());
+    i32 result_high;
+    doIMUL<i32>(insn.modrm().read32(), insn.imm32(), result_high, (i32&)insn.reg32());
 }
 
 void CPU::_IMUL_reg16_RM16_imm16(Instruction& insn)
 {
-    i16 resultHigh;
-    doIMUL<i16>(insn.modrm().read16(), insn.imm16(), resultHigh, (i16&)insn.reg16());
+    i16 result_high;
+    doIMUL<i16>(insn.modrm().read16(), insn.imm16(), result_high, (i16&)insn.reg16());
 }
 
 void CPU::_IMUL_reg16_RM16(Instruction& insn)
 {
-    i16 resultHigh;
-    doIMUL<i16>(insn.reg16(), insn.modrm().read16(), resultHigh, (i16&)insn.reg16());
+    i16 result_high;
+    doIMUL<i16>(insn.reg16(), insn.modrm().read16(), result_high, (i16&)insn.reg16());
 }
 
 void CPU::_IMUL_reg32_RM32(Instruction& insn)
 {
-    i32 resultHigh;
-    doIMUL<i32>(insn.reg32(), insn.modrm().read32(), resultHigh, (i32&)insn.reg32());
+    i32 result_high;
+    doIMUL<i32>(insn.reg32(), insn.modrm().read32(), result_high, (i32&)insn.reg32());
 }
 
 void CPU::_IMUL_reg16_RM16_imm8(Instruction& insn)
 {
-    i16 resultHigh;
-    doIMUL<i16>(insn.modrm().read16(), signExtendedTo<i16>(insn.imm8()), resultHigh, (i16&)insn.reg16());
+    i16 result_high;
+    doIMUL<i16>(insn.modrm().read16(), signExtendedTo<i16>(insn.imm8()), result_high, (i16&)insn.reg16());
 }
 
 void CPU::_IMUL_RM16(Instruction& insn)

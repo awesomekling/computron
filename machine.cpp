@@ -211,7 +211,7 @@ bool Machine::load_file(u32 address, const QString& fileName)
 bool Machine::load_rom_image(u32 address, const QString& fileName)
 {
     auto rom = make<ROM>(PhysicalAddress(address), fileName);
-    if (!rom->isValid()) {
+    if (!rom->is_valid()) {
         vlog(LogConfig, "Failed to load ROM image %s", qPrintable(fileName));
         return false;
     }
@@ -222,12 +222,12 @@ bool Machine::load_rom_image(u32 address, const QString& fileName)
 
 void Machine::start()
 {
-    worker().exitDebugger();
+    worker().exit_debugger();
 }
 
 void Machine::pause()
 {
-    worker().enterDebugger();
+    worker().enter_debugger();
 }
 
 void Machine::stop()
@@ -237,7 +237,7 @@ void Machine::stop()
 
 void Machine::reboot()
 {
-    worker().rebootMachine();
+    worker().reboot_machine();
 }
 
 void Machine::on_worker_finished()

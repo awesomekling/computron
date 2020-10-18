@@ -39,14 +39,14 @@ PaletteWidget::PaletteWidget(Machine& machine, QWidget* parent)
     , d(make<Private>())
     , m_machine(machine)
 {
-    connect(&m_machine.vga(), SIGNAL(palette_changed()), this, SLOT(onPaletteChanged()));
+    connect(&m_machine.vga(), SIGNAL(palette_changed()), this, SLOT(on_palette_changed()));
 }
 
 PaletteWidget::~PaletteWidget()
 {
 }
 
-void PaletteWidget::onPaletteChanged()
+void PaletteWidget::on_palette_changed()
 {
     for (int i = 0; i < 256; ++i)
         d->color[i] = m_machine.vga().color(i);

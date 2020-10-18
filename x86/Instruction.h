@@ -122,9 +122,9 @@ public:
 private:
     MemoryOrRegisterReference() { }
 
-    QString toString() const;
-    QString toStringA16() const;
-    QString toStringA32() const;
+    QString to_string() const;
+    QString to_string_a16() const;
+    QString to_string_a32() const;
 
     void resolve(CPU&);
     void resolve16();

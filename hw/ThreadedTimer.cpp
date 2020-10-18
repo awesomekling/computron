@@ -39,9 +39,9 @@ ThreadedTimer::~ThreadedTimer()
 
 void ThreadedTimer::run()
 {
-    QEventLoop eventLoop;
+    QEventLoop event_loop;
     ThreadedTimerHelper helper(*this, m_ms);
-    eventLoop.exec();
+    event_loop.exec();
 }
 
 void ThreadedTimer::helper_timer_fired()

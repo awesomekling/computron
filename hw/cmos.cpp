@@ -80,7 +80,7 @@ bool CMOS::in_24_hour_mode() const
     return m_ram[StatusRegisterB] & 0x02;
 }
 
-static QDateTime currentDateTimeForCMOS()
+static QDateTime current_datetime_for_cmos()
 {
 #ifdef CT_DETERMINISTIC
     return QDateTime(QDate(2018, 2, 9), QTime(1, 2, 3, 4));
@@ -101,7 +101,7 @@ void CMOS::update_clock()
     ASSERT(in_24_hour_mode());
 
     m_ram[StatusRegisterA] |= 0x80; // RTC update in progress
-    auto now = currentDateTimeForCMOS();
+    auto now = current_datetime_for_cmos();
     m_ram[RTCSecond] = to_current_clock_format(now.time().second());
     m_ram[RTCMinute] = to_current_clock_format(now.time().minute());
     m_ram[RTCHour] = to_current_clock_format(now.time().hour());

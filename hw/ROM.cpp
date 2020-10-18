@@ -28,11 +28,11 @@
 #include "debugger.h"
 #include <QFile>
 
-ROM::ROM(PhysicalAddress baseAddress, const QString& fileName)
-    : MemoryProvider(baseAddress)
+ROM::ROM(PhysicalAddress base_address, const QString& file_name)
+    : MemoryProvider(base_address)
 {
-    QFile file(fileName);
-    vlog(LogConfig, "Build ROM for %08x with file %s", baseAddress, qPrintable(fileName));
+    QFile file(file_name);
+    vlog(LogConfig, "Build ROM for %08x with file %s", base_address, qPrintable(file_name));
     if (!file.open(QIODevice::ReadOnly)) {
         return;
     }
@@ -45,7 +45,7 @@ ROM::~ROM()
 {
 }
 
-bool ROM::isValid() const
+bool ROM::is_valid() const
 {
     return !m_data.isNull();
 }

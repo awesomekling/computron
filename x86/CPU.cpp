@@ -49,7 +49,7 @@
 //#define DEBUG_BOUND
 
 #ifdef MEMORY_DEBUGGING
-static bool shouldLogAllMemoryAccesses(PhysicalAddress address)
+static bool should_log_all_memory_accesses(PhysicalAddress address)
 {
     UNUSED_PARAM(address);
 #    ifdef CT_DETERMINISTIC
@@ -60,14 +60,14 @@ static bool shouldLogAllMemoryAccesses(PhysicalAddress address)
 
 static bool should_log_memory_write(PhysicalAddress address)
 {
-    if (shouldLogAllMemoryAccesses(address))
+    if (should_log_all_memory_accesses(address))
         return true;
     return false;
 }
 
 static bool should_log_memory_read(PhysicalAddress address)
 {
-    if (shouldLogAllMemoryAccesses(address))
+    if (should_log_all_memory_accesses(address))
         return true;
     return false;
 }
@@ -90,12 +90,12 @@ void CPU::write_register_for_address_size(int register_index, u32 data)
         m_gpr[register_index].low_u16 = data;
 }
 
-void CPU::step_register_for_address_size(int register_index, u32 stepSize)
+void CPU::step_register_for_address_size(int register_index, u32 step_size)
 {
     if (a32())
-        m_gpr[register_index].full_u32 += get_df() ? -stepSize : stepSize;
+        m_gpr[register_index].full_u32 += get_df() ? -step_size : step_size;
     else
-        m_gpr[register_index].low_u16 += get_df() ? -stepSize : stepSize;
+        m_gpr[register_index].low_u16 += get_df() ? -step_size : step_size;
 }
 
 bool CPU::decrement_cx_for_address_size()
@@ -124,7 +124,7 @@ FLATTEN void CPU::decodeNext()
 
 #ifdef CRASH_ON_EXECUTE_00000000
     if (UNLIKELY(current_base_instruction_pointer() == 0 && (get_pe() || !get_base_cs()))) {
-        dumpAll();
+        dump_all();
         vlog(LogCPU, "It seems like we've jumped to 00000000 :(");
         ASSERT_NOT_REACHED();
     }
@@ -194,7 +194,7 @@ void CPU::_VKILL(Instruction&)
         throw InvalidOpcode("VKILL (0xf1) is an invalid opcode outside of auto-test mode!");
     }
     vlog(LogCPU, "0xF1: Secret shutdown command received!");
-    //dumpAll();
+    //dump_all();
     hard_exit(0);
 }
 
@@ -526,7 +526,7 @@ FLATTEN void CPU::main_loop()
 
 #ifdef CT_DETERMINISTIC
         if (getIF() && ((cycle() + 1) % 100 == 0)) {
-            machine().pit().raiseIRQ();
+            machine().pit().raise_irq();
         }
 #endif
     }

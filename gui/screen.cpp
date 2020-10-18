@@ -291,13 +291,13 @@ static void add_key(const QString& key_name, u16 normal, u16 shift, u16 ctrl, u1
 
 bool Screen::load_keymap(const QString& filename)
 {
-    QFile keymapFile(filename);
-    if (!keymapFile.open(QIODevice::ReadOnly))
+    QFile keymap_file(filename);
+    if (!keymap_file.open(QIODevice::ReadOnly))
         return false;
 
-    while (!keymapFile.atEnd()) {
-        QByteArray rawLine = keymapFile.readLine();
-        QString line = QString::fromLatin1(rawLine);
+    while (!keymap_file.atEnd()) {
+        QByteArray raw_line = keymap_file.readLine();
+        QString line = QString::fromLatin1(raw_line);
         QStringList pieces = line.split(QChar(' '));
 
         if (line.startsWith('#'))
@@ -313,11 +313,11 @@ bool Screen::load_keymap(const QString& filename)
         else
             native_key = pieces[1].toUInt(&ok);
         if (!ok) {
-            printf("Invalid keymap line: '%s'\n", rawLine.data());
+            printf("Invalid keymap line: '%s'\n", raw_line.data());
             continue;
         }
 
-        //printf("Pieces: %02X => '%s'\n", nativeKey, qPrintable(pieces[0]));
+        //printf("Pieces: %02X => '%s'\n", native_key, qPrintable(pieces[0]));
 
         // FIXME: Check that the key name is valid.
         m_key_mappings[native_key] = pieces[0];
@@ -474,10 +474,10 @@ QString Screen::key_name_from_key_event(const QKeyEvent* event) const
         return "LShift";
     }
 
-    int nativeKey = native_key_from_key_event(event);
-    if (!m_key_mappings.contains(nativeKey))
+    int native_key = native_key_from_key_event(event);
+    if (!m_key_mappings.contains(native_key))
         return "(unmapped)";
-    return m_key_mappings[nativeKey];
+    return m_key_mappings[native_key];
 }
 
 void Screen::keyPressEvent(QKeyEvent* event)
@@ -507,7 +507,7 @@ void Screen::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    //qDebug() << "KeyPress:" << nativeKeyFromKeyEvent(event) << "mapped to" << key_name << "modifiers" << event->modifiers() << "scancode:" << scancode;
+    //qDebug() << "KeyPress:" << native_key_from_key_event(event) << "mapped to" << key_name << "modifiers" << event->modifiers() << "scancode:" << scancode;
 
     if (key_name == "F11")
         grabMouse(QCursor(Qt::BlankCursor));

@@ -30,7 +30,7 @@
 #include <stdio.h>
 
 struct VomCtl::Private {
-    QString consoleWriteBuffer;
+    QString console_write_buffer;
 };
 
 VomCtl::VomCtl(Machine& machine)
@@ -62,7 +62,7 @@ VomCtl::~VomCtl()
 void VomCtl::reset()
 {
     m_register_index = 0;
-    d->consoleWriteBuffer = QString();
+    d->console_write_buffer = QString();
 }
 
 u8 VomCtl::in8(u16 port)
@@ -83,8 +83,8 @@ u8 VomCtl::in8(u16 port)
         vlog(LogVomCtl, "Invalid register %02X read", m_register_index);
         return IODevice::JunkValue;
     case 0xD7: // VOMCTL_CONSOLE_WRITE
-        vlog(LogVomCtl, "%s", d->consoleWriteBuffer.toLatin1().constData());
-        d->consoleWriteBuffer.clear();
+        vlog(LogVomCtl, "%s", d->console_write_buffer.toLatin1().constData());
+        d->console_write_buffer.clear();
         return IODevice::JunkValue;
     default:
         return IODevice::in8(port);
@@ -101,7 +101,7 @@ void VomCtl::out8(u16 port, u8 data)
         m_register_index = data;
         break;
     case 0xD7: // VOMCTL_CONSOLE_WRITE
-        d->consoleWriteBuffer += QChar::fromLatin1(data);
+        d->console_write_buffer += QChar::fromLatin1(data);
         break;
     case 0xE0:
     case 0xE2:

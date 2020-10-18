@@ -44,15 +44,15 @@ struct WatchedAddress {
         : name(n)
         , address(a)
         , size(s)
-        , breakOnChange(b)
+        , break_on_change(b)
     {
     }
     QString name;
     PhysicalAddress address { 0xBEEFBABE };
     ValueSize size { ByteSize };
-    bool breakOnChange { false };
-    static const u64 neverSeen = 0xFFFFFFFFFFFFFFFF;
-    u64 lastSeenValue { neverSeen };
+    bool break_on_change { false };
+    static const u64 never_seen = 0xFFFFFFFFFFFFFFFF;
+    u64 last_seen_value { never_seen };
 };
 
 enum class JumpType {
@@ -95,7 +95,7 @@ public:
         : m_num(num)
         , m_code(code)
         , m_address(address)
-        , m_hasCode(true)
+        , m_has_code(true)
         , m_reason(reason)
     {
     }
@@ -103,14 +103,14 @@ public:
     Exception(u8 num, u16 code, const QString& reason)
         : m_num(num)
         , m_code(code)
-        , m_hasCode(true)
+        , m_has_code(true)
         , m_reason(reason)
     {
     }
 
     Exception(u8 num, const QString& reason)
         : m_num(num)
-        , m_hasCode(false)
+        , m_has_code(false)
         , m_reason(reason)
     {
     }
@@ -119,7 +119,7 @@ public:
 
     u8 num() const { return m_num; }
     u16 code() const { return m_code; }
-    bool hasCode() const { return m_hasCode; }
+    bool has_code() const { return m_has_code; }
     u32 address() const { return m_address; }
     QString reason() const { return m_reason; }
 
@@ -127,7 +127,7 @@ private:
     u8 m_num { 0 };
     u16 m_code { 0 };
     u32 m_address { 0 };
-    bool m_hasCode { false };
+    bool m_has_code { false };
     QString m_reason;
 };
 
@@ -710,7 +710,7 @@ public:
 
     u32 read_register_for_address_size(int register_index);
     void write_register_for_address_size(int register_index, u32);
-    void step_register_for_address_size(int register_index, u32 stepSize);
+    void step_register_for_address_size(int register_index, u32 step_size);
     bool decrement_cx_for_address_size();
 
     template<typename T>
@@ -911,7 +911,7 @@ protected:
     void _XCHG_reg32_RM32(Instruction&);
 
     template<typename F>
-    void doOnceOrRepeatedly(Instruction&, bool careAboutZF, F);
+    void doOnceOrRepeatedly(Instruction&, bool care_about_zf, F);
     template<typename T>
     void doLODS(Instruction&);
     template<typename T>
@@ -1499,9 +1499,9 @@ private:
     template<typename T>
     u64 doSBB(T, T);
     template<typename T>
-    void doIMUL(T f1, T f2, T& resultHigh, T& resultLow);
+    void doIMUL(T f1, T f2, T& result_high, T& result_low);
     template<typename T>
-    void doMUL(T f1, T f2, T& resultHigh, T& resultLow);
+    void doMUL(T f1, T f2, T& result_high, T& result_low);
     template<typename T>
     void doDIV(T dividendHigh, T dividendLow, T divisor, T& quotient, T& remainder);
     template<typename T>

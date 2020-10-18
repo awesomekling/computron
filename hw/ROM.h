@@ -32,7 +32,7 @@ public:
     ROM(PhysicalAddress base_address, const QString& file_name);
     virtual ~ROM();
 
-    bool isValid() const;
+    bool is_valid() const;
 
     virtual const u8* memory_pointer(u32 address) const override;
     virtual u8 read_memory8(u32 address) override;

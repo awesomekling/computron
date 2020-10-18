@@ -52,8 +52,8 @@ private:
     void set_using_dma(bool);
     void reset_controller(ResetSource);
     void reset_controller_soon();
-    void generate_fdc_interrupt(bool seekCompleted = false);
-    void update_status(bool seekCompleted = false);
+    void generate_fdc_interrupt(bool seek_completed = false);
+    void update_status(bool seek_completed = false);
 
     void execute_command_soon();
     void execute_command();

@@ -52,19 +52,19 @@ void CPU::_LTR_RM16(Instruction& insn)
     if (!descriptor.is_tss())
         throw GeneralProtectionFault(selector & 0xfffc, "LTR with non-TSS descriptor");
 
-    auto& tssDescriptor = descriptor.as_tss_descriptor();
-    if (tssDescriptor.is_busy())
+    auto& tss_descriptor = descriptor.as_tss_descriptor();
+    if (tss_descriptor.is_busy())
         throw GeneralProtectionFault(selector & 0xfffc, "LTR with busy TSS");
-    if (!tssDescriptor.present())
+    if (!tss_descriptor.present())
         throw NotPresent(selector & 0xfffc, "LTR with non-present TSS");
 
-    tssDescriptor.set_busy();
-    write_to_gdt(tssDescriptor);
+    tss_descriptor.set_busy();
+    write_to_gdt(tss_descriptor);
 
     m_tr.selector = selector;
-    m_tr.base = tssDescriptor.base();
-    m_tr.limit = tssDescriptor.limit();
-    m_tr.is_32bit = tssDescriptor.is_32bit();
+    m_tr.base = tss_descriptor.base();
+    m_tr.limit = tss_descriptor.limit();
+    m_tr.is_32bit = tss_descriptor.is_32bit();
 #ifdef DEBUG_TASK_SWITCH
     vlog(LogAlert, "LTR { segment: %04x => base:%08x, limit:%08x }", TR.selector, TR.base.get(), TR.limit);
 #endif
@@ -77,42 +77,42 @@ void CPU::_LTR_RM16(Instruction& insn)
         }                                           \
     } while (0)
 
-void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, JumpType source)
+void CPU::task_switch(u16 task_selector, TSSDescriptor& incoming_tss_descriptor, JumpType source)
 {
-    ASSERT(incomingTSSDescriptor.is_32bit());
+    ASSERT(incoming_tss_descriptor.is_32bit());
 
-    EXCEPTION_ON(GeneralProtectionFault, 0, incomingTSSDescriptor.is_null(), "Incoming TSS descriptor is null");
+    EXCEPTION_ON(GeneralProtectionFault, 0, incoming_tss_descriptor.is_null(), "Incoming TSS descriptor is null");
 
-    if (!incomingTSSDescriptor.is_global()) {
+    if (!incoming_tss_descriptor.is_global()) {
         if (source == JumpType::IRET)
             throw InvalidTSS(task_selector & 0xfffc, "Incoming TSS descriptor is not from GDT");
         throw GeneralProtectionFault(task_selector & 0xfffc, "Incoming TSS descriptor is not from GDT");
     }
-    EXCEPTION_ON(NotPresent, task_selector & 0xfffc, !incomingTSSDescriptor.present(), "Incoming TSS descriptor is not present");
+    EXCEPTION_ON(NotPresent, task_selector & 0xfffc, !incoming_tss_descriptor.present(), "Incoming TSS descriptor is not present");
 
-    u32 minimum_tss_limit = incomingTSSDescriptor.is_32bit() ? 108 : 44;
-    EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, incomingTSSDescriptor.limit() < minimum_tss_limit, "Incoming TSS descriptor limit too small");
+    u32 minimum_tss_limit = incoming_tss_descriptor.is_32bit() ? 108 : 44;
+    EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, incoming_tss_descriptor.limit() < minimum_tss_limit, "Incoming TSS descriptor limit too small");
 
     if (source == JumpType::IRET) {
-        EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, !incomingTSSDescriptor.is_busy(), "Incoming TSS descriptor is not busy");
+        EXCEPTION_ON(InvalidTSS, task_selector & 0xfffc, !incoming_tss_descriptor.is_busy(), "Incoming TSS descriptor is not busy");
     } else {
-        EXCEPTION_ON(GeneralProtectionFault, task_selector & 0xfffc, incomingTSSDescriptor.is_busy(), "Incoming TSS descriptor is busy");
+        EXCEPTION_ON(GeneralProtectionFault, task_selector & 0xfffc, incoming_tss_descriptor.is_busy(), "Incoming TSS descriptor is busy");
     }
 
-    auto outgoingDescriptor = get_descriptor(m_tr.selector);
-    if (!outgoingDescriptor.is_tss()) {
+    auto outgoing_descriptor = get_descriptor(m_tr.selector);
+    if (!outgoing_descriptor.is_tss()) {
         // Hmm, what have we got ourselves into now?
         vlog(LogCPU, "Switching tasks and outgoing TSS is not a TSS:");
-        dump_descriptor(outgoingDescriptor);
+        dump_descriptor(outgoing_descriptor);
     }
 
-    TSSDescriptor outgoingTSSDescriptor = outgoingDescriptor.as_tss_descriptor();
-    ASSERT(outgoingTSSDescriptor.is_tss());
+    TSSDescriptor outgoing_tss_descriptor = outgoing_descriptor.as_tss_descriptor();
+    ASSERT(outgoing_tss_descriptor.is_tss());
 
-    if (outgoingTSSDescriptor.base() == incomingTSSDescriptor.base())
-        vlog(LogCPU, "Switching to same TSS (%08x)", incomingTSSDescriptor.base().get());
+    if (outgoing_tss_descriptor.base() == incoming_tss_descriptor.base())
+        vlog(LogCPU, "Switching to same TSS (%08x)", incoming_tss_descriptor.base().get());
 
-    TSS outgoingTSS(*this, m_tr.base, outgoingTSSDescriptor.is_32bit());
+    TSS outgoingTSS(*this, m_tr.base, outgoing_tss_descriptor.is_32bit());
 
     outgoingTSS.set_eax(get_eax());
     outgoingTSS.set_ebx(get_ebx());
@@ -124,8 +124,8 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
     outgoingTSS.set_edi(get_edi());
 
     if (source == JumpType::JMP || source == JumpType::IRET) {
-        outgoingTSSDescriptor.set_available();
-        write_to_gdt(outgoingTSSDescriptor);
+        outgoing_tss_descriptor.set_available();
+        write_to_gdt(outgoing_tss_descriptor);
     }
 
     u32 outgoingEFlags = get_eflags();
@@ -148,7 +148,7 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
     if (get_pg())
         outgoingTSS.set_cr3(get_cr3());
 
-    TSS incomingTSS(*this, incomingTSSDescriptor.base(), incomingTSSDescriptor.is_32bit());
+    TSS incoming_tss(*this, incoming_tss_descriptor.base(), incoming_tss_descriptor.is_32bit());
 
 #ifdef DEBUG_TASK_SWITCH
     vlog(LogCPU, "Outgoing TSS @ %08x:", outgoingTSSDescriptor.base());
@@ -158,20 +158,20 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
 #endif
 
     // First, load all registers from TSS without validating contents.
-    m_cr3 = incomingTSS.get_cr3();
+    m_cr3 = incoming_tss.get_cr3();
 
-    m_ldtr.set_selector(incomingTSS.get_ldt());
+    m_ldtr.set_selector(incoming_tss.get_ldt());
     m_ldtr.set_base(LinearAddress());
     m_ldtr.set_limit(0);
 
-    m_cs = incomingTSS.get_cs();
-    m_ds = incomingTSS.get_ds();
-    m_es = incomingTSS.get_es();
-    m_fs = incomingTSS.get_fs();
-    m_gs = incomingTSS.get_gs();
-    m_ss = incomingTSS.get_ss();
+    m_cs = incoming_tss.get_cs();
+    m_ds = incoming_tss.get_ds();
+    m_es = incoming_tss.get_es();
+    m_fs = incoming_tss.get_fs();
+    m_gs = incoming_tss.get_gs();
+    m_ss = incoming_tss.get_ss();
 
-    u32 incomingEFlags = incomingTSS.get_eflags();
+    u32 incomingEFlags = incoming_tss.get_eflags();
 
     if (incomingEFlags & Flag::VM) {
         vlog(LogCPU, "Incoming task is in VM86 mode, this needs work!");
@@ -182,42 +182,42 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
         incomingEFlags |= Flag::NT;
     }
 
-    if (incomingTSS.is_32bit())
+    if (incoming_tss.is_32bit())
         set_eflags(incomingEFlags);
     else
         set_flags(incomingEFlags);
 
-    set_eax(incomingTSS.get_eax());
-    set_ebx(incomingTSS.get_ebx());
-    set_ecx(incomingTSS.get_ecx());
-    set_edx(incomingTSS.get_edx());
-    set_ebp(incomingTSS.get_ebp());
-    set_esp(incomingTSS.get_esp());
-    set_esi(incomingTSS.get_esi());
-    set_edi(incomingTSS.get_edi());
+    set_eax(incoming_tss.get_eax());
+    set_ebx(incoming_tss.get_ebx());
+    set_ecx(incoming_tss.get_ecx());
+    set_edx(incoming_tss.get_edx());
+    set_ebp(incoming_tss.get_ebp());
+    set_esp(incoming_tss.get_esp());
+    set_esi(incoming_tss.get_esi());
+    set_edi(incoming_tss.get_edi());
 
     if (source == JumpType::CALL || source == JumpType::INT) {
-        incomingTSS.set_backlink(m_tr.selector);
+        incoming_tss.set_backlink(m_tr.selector);
     }
 
-    m_tr.selector = incomingTSSDescriptor.index();
-    m_tr.base = incomingTSSDescriptor.base();
-    m_tr.limit = incomingTSSDescriptor.limit();
-    m_tr.is_32bit = incomingTSSDescriptor.is_32bit();
+    m_tr.selector = incoming_tss_descriptor.index();
+    m_tr.base = incoming_tss_descriptor.base();
+    m_tr.limit = incoming_tss_descriptor.limit();
+    m_tr.is_32bit = incoming_tss_descriptor.is_32bit();
 
     if (source != JumpType::IRET) {
-        incomingTSSDescriptor.set_busy();
-        write_to_gdt(incomingTSSDescriptor);
+        incoming_tss_descriptor.set_busy();
+        write_to_gdt(incoming_tss_descriptor);
     }
 
     m_cr0 |= CR0::TS; // Task Switched
 
     // Now, let's validate!
-    auto ldtDescriptor = get_descriptor(m_ldtr.selector());
-    if (!ldtDescriptor.is_null()) {
-        if (!ldtDescriptor.is_global())
+    auto ldt_descriptor = get_descriptor(m_ldtr.selector());
+    if (!ldt_descriptor.is_null()) {
+        if (!ldt_descriptor.is_global())
             throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not in GDT");
-        if (!ldtDescriptor.is_ldt())
+        if (!ldt_descriptor.is_ldt())
             throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not an LDT");
     }
 
@@ -247,8 +247,8 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
             throw InvalidTSS(get_ss() & 0xfffc, QString("SS DPL(%1) != CPL(%2)").arg(ss_descriptor.dpl()).arg(incoming_cpl));
     }
 
-    if (!ldtDescriptor.is_null()) {
-        if (!ldtDescriptor.present())
+    if (!ldt_descriptor.is_null()) {
+        if (!ldt_descriptor.present())
             throw InvalidTSS(m_ldtr.selector() & 0xfffc, "Incoming LDT is not present");
     }
 
@@ -282,14 +282,14 @@ void CPU::task_switch(u16 task_selector, TSSDescriptor& incomingTSSDescriptor, J
 
     EXCEPTION_ON(GeneralProtectionFault, 0, get_eip() > cached_descriptor(SegmentRegisterIndex::CS).effective_limit(), "Task switch to EIP outside CS limit");
 
-    set_ldt(incomingTSS.get_ldt());
-    set_cs(incomingTSS.get_cs());
-    set_es(incomingTSS.get_es());
-    set_ds(incomingTSS.get_ds());
-    set_fs(incomingTSS.get_fs());
-    set_gs(incomingTSS.get_gs());
-    set_ss(incomingTSS.get_ss());
-    set_eip(incomingTSS.get_eip());
+    set_ldt(incoming_tss.get_ldt());
+    set_cs(incoming_tss.get_cs());
+    set_es(incoming_tss.get_es());
+    set_ds(incoming_tss.get_ds());
+    set_fs(incoming_tss.get_fs());
+    set_gs(incoming_tss.get_gs());
+    set_ss(incoming_tss.get_ss());
+    set_eip(incoming_tss.get_eip());
 
     if (get_tf()) {
         vlog(LogCPU, "Leaving task switch with TF=1");

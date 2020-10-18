@@ -328,7 +328,7 @@ void CPU::raise_exception(const Exception& e)
 
     try {
         set_eip(current_base_instruction_pointer());
-        if (e.hasCode()) {
+        if (e.has_code()) {
             interrupt(e.num(), InterruptSource::External, e.code());
         } else {
             interrupt(e.num(), InterruptSource::External);

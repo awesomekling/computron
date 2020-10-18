@@ -279,7 +279,7 @@ u8 FDC::in8(u16 port)
     return data;
 }
 
-static bool isReadDataCommand(u8 b)
+static bool is_read_data_command(u8 b)
 {
     return (b & 0x1f) == 0x06;
 }
@@ -327,7 +327,7 @@ void FDC::out8(u16 port, u8 data)
             d->main_status_register &= FDC_MSR_DIO;
             d->main_status_register |= FDC_MSR_RQM | FDC_MSR_CMDBSY;
             // Determine the command length
-            if (isReadDataCommand(data)) {
+            if (is_read_data_command(data)) {
                 d->command_size = 9;
             } else {
                 switch (data) {
@@ -450,7 +450,7 @@ void FDC::execute_command_internal()
     vlog(LogFDC, "Executing command %02x", d->command[0]);
     d->command_result.clear();
 
-    if (isReadDataCommand(d->command[0]))
+    if (is_read_data_command(d->command[0]))
         return execute_read_data_command();
 
     switch (d->command[0]) {

@@ -26,7 +26,7 @@
 #include "pic.h"
 
 template<typename F>
-void CPU::doOnceOrRepeatedly(Instruction& insn, bool careAboutZF, F func)
+void CPU::doOnceOrRepeatedly(Instruction& insn, bool care_about_zf, F func)
 {
     if (!insn.has_rep_prefix()) {
         func();
@@ -39,7 +39,7 @@ void CPU::doOnceOrRepeatedly(Instruction& insn, bool careAboutZF, F func)
         func();
         ++m_cycle;
         decrement_cx_for_address_size();
-        if (careAboutZF) {
+        if (care_about_zf) {
             if (insn.rep_prefix() == Prefix::REPZ && !get_zf())
                 break;
             if (insn.rep_prefix() == Prefix::REPNZ && get_zf())

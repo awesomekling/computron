@@ -54,7 +54,7 @@ public:
     virtual void out32(u16 port, u32 data) override;
 
 private:
-    void executeCommand(IDEController&, u8);
+    void execute_command(IDEController&, u8);
     Status status(const IDEController&) const;
 
     struct Private;

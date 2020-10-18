@@ -236,26 +236,26 @@ void CPU::dump_watches()
     for (WatchedAddress& watch : m_watches) {
         if (watch.size == ByteSize) {
             auto data = read_physical_memory<u8>(watch.address);
-            if (data != watch.lastSeenValue) {
+            if (data != watch.last_seen_value) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %02X", watch.address, qPrintable(watch.name), data);
-                watch.lastSeenValue = data;
-                if (cycle() > 1 && watch.breakOnChange)
+                watch.last_seen_value = data;
+                if (cycle() > 1 && watch.break_on_change)
                     debugger().enter();
             }
         } else if (watch.size == WordSize) {
             auto data = read_physical_memory<u16>(watch.address);
-            if (data != watch.lastSeenValue) {
+            if (data != watch.last_seen_value) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %04X", watch.address, qPrintable(watch.name), data);
-                watch.lastSeenValue = data;
-                if (cycle() > 1 && watch.breakOnChange)
+                watch.last_seen_value = data;
+                if (cycle() > 1 && watch.break_on_change)
                     debugger().enter();
             }
         } else if (watch.size == DWordSize) {
             auto data = read_physical_memory<u32>(watch.address);
-            if (data != watch.lastSeenValue) {
+            if (data != watch.last_seen_value) {
                 vlog(LogDump, "\033[32;1m%08X\033[0m [%-16s] %08X", watch.address, qPrintable(watch.name), data);
-                watch.lastSeenValue = data;
-                if (cycle() > 1 && watch.breakOnChange)
+                watch.last_seen_value = data;
+                if (cycle() > 1 && watch.break_on_change)
                     debugger().enter();
             }
         }
@@ -399,12 +399,12 @@ void CPU::dump_memory(LogicalAddress address, int rows)
     return dump_memory(descriptor, address.offset(), rows);
 }
 
-static inline u16 isrSegment(CPU& cpu, u8 isr)
+static inline u16 isr_segment(CPU& cpu, u8 isr)
 {
     return cpu.get_real_mode_interrupt_vector(isr).selector();
 }
 
-static inline u16 isrOffset(CPU& cpu, u8 isr)
+static inline u16 isr_offset(CPU& cpu, u8 isr)
 {
     return cpu.get_real_mode_interrupt_vector(isr).offset();
 }
@@ -415,10 +415,10 @@ void CPU::dump_ivt()
     for (int i = 0; i < 0xFF; i += 4) {
         vlog(LogDump,
             "%02x>  %04x:%04x\t%02x>  %04x:%04x\t%02x>  %04x:%04x\t%02X>  %04x:%04x",
-            i + 0, isrSegment(*this, i + 0), isrOffset(*this, i + 0),
-            i + 1, isrSegment(*this, i + 1), isrOffset(*this, i + 1),
-            i + 2, isrSegment(*this, i + 2), isrOffset(*this, i + 2),
-            i + 3, isrSegment(*this, i + 3), isrOffset(*this, i + 3));
+            i + 0, isr_segment(*this, i + 0), isr_offset(*this, i + 0),
+            i + 1, isr_segment(*this, i + 1), isr_offset(*this, i + 1),
+            i + 2, isr_segment(*this, i + 2), isr_offset(*this, i + 2),
+            i + 3, isr_segment(*this, i + 3), isr_offset(*this, i + 3));
     }
 }
 

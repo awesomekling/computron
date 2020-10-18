@@ -31,36 +31,40 @@
 
 //#define PIT_DEBUG
 
-static const double baseFrequency = 1193.1816666; // 1.193182 MHz
+static const double base_frequency = 1193.1816666; // 1.193182 MHz
 
-enum DecrementMode { DecrementBinary = 0,
-    DecrementBCD = 1 };
-enum CounterAccessState { ReadLatchedLSB,
+enum DecrementMode {
+    DecrementBinary = 0,
+    DecrementBCD = 1
+};
+enum CounterAccessState {
+    ReadLatchedLSB,
     ReadLatchedMSB,
     AccessMSBOnly,
     AccessLSBOnly,
     AccessLSBThenMSB,
-    AccessMSBThenLSB };
+    AccessMSBThenLSB
+};
 
 struct CounterInfo {
-    u16 startValue { 0xffff };
+    u16 start_value { 0xffff };
     u16 reload { 0xffff };
     u16 value();
     u8 mode { 0 };
-    DecrementMode decrementMode { DecrementBinary };
-    u16 latchedValue { 0xffff };
-    CounterAccessState accessState { ReadLatchedLSB };
+    DecrementMode decrement_mode { DecrementBinary };
+    u16 latched_value { 0xffff };
+    CounterAccessState access_state { ReadLatchedLSB };
     u8 format { 0 };
     QElapsedTimer qtimer;
 
     void check(PIT&);
-    bool rolledOver { false };
+    bool rolled_over { false };
 };
 
 struct PIT::Private {
     CounterInfo counter[3];
     int frequency { 0 };
-    OwnPtr<ThreadedTimer> threadedTimer;
+    OwnPtr<ThreadedTimer> threaded_timer;
 };
 
 PIT::PIT(Machine& machine)
@@ -90,37 +94,37 @@ void PIT::reset()
 u16 CounterInfo::value()
 {
     double nsec = qtimer.nsecsElapsed() / 1000;
-    int ticks = floor(nsec * baseFrequency);
+    int ticks = floor(nsec * base_frequency);
 
-    int currentValue = startValue - ticks;
-    if (currentValue >= reload) {
-        vlog(LogTimer, "Current value{%d} >= reload{%d}", currentValue, reload);
+    int current_value = start_value - ticks;
+    if (current_value >= reload) {
+        vlog(LogTimer, "Current value{%d} >= reload{%d}", current_value, reload);
         if (reload == 0)
-            currentValue = 0;
+            current_value = 0;
         else
-            currentValue %= reload;
-        rolledOver = true;
-    } else if (currentValue < 0) {
+            current_value %= reload;
+        rolled_over = true;
+    } else if (current_value < 0) {
         if (reload == 0)
-            currentValue = 0;
+            current_value = 0;
         else
-            currentValue = currentValue % reload + reload;
-        rolledOver = true;
+            current_value = current_value % reload + reload;
+        rolled_over = true;
     }
 
 #ifdef PIT_DEBUG
     vlog(LogTimer, "nsec elapsed: %g, ticks: %g, value: %u", nsec, ticks, currentValue);
 #endif
-    return currentValue;
+    return current_value;
 }
 
 void CounterInfo::check(PIT& pit)
 {
     value();
-    if (rolledOver) {
+    if (rolled_over) {
         if (mode == 0)
             pit.raise_irq();
-        rolledOver = false;
+        rolled_over = false;
     }
 }
 
@@ -132,7 +136,7 @@ void PIT::reconfigure_timer(u8 index)
 
 void PIT::boot()
 {
-    d->threadedTimer = make<ThreadedTimer>(*this, 5);
+    d->threaded_timer = make<ThreadedTimer>(*this, 5);
 
     // FIXME: This should be done by the BIOS instead.
     reconfigure_timer(0);
@@ -153,28 +157,28 @@ u8 PIT::read_counter(u8 index)
 {
     auto& counter = d->counter[index];
     u8 data = 0;
-    switch (counter.accessState) {
+    switch (counter.access_state) {
     case ReadLatchedLSB:
-        data = least_significant<u8>(counter.latchedValue);
-        counter.accessState = ReadLatchedMSB;
+        data = least_significant<u8>(counter.latched_value);
+        counter.access_state = ReadLatchedMSB;
         break;
     case ReadLatchedMSB:
-        data = most_significant<u8>(counter.latchedValue);
-        counter.accessState = ReadLatchedLSB;
+        data = most_significant<u8>(counter.latched_value);
+        counter.access_state = ReadLatchedLSB;
         break;
     case AccessLSBOnly:
-        data = least_significant<u8>(counter.latchedValue);
+        data = least_significant<u8>(counter.latched_value);
         break;
     case AccessMSBOnly:
-        data = most_significant<u8>(counter.latchedValue);
+        data = most_significant<u8>(counter.latched_value);
         break;
     case AccessLSBThenMSB:
         data = least_significant<u8>(counter.value());
-        counter.accessState = AccessMSBThenLSB;
+        counter.access_state = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
         data = most_significant<u8>(counter.value());
-        counter.accessState = AccessLSBThenMSB;
+        counter.access_state = AccessLSBThenMSB;
         break;
     }
     return data;
@@ -183,7 +187,7 @@ u8 PIT::read_counter(u8 index)
 void PIT::write_counter(u8 index, u8 data)
 {
     auto& counter = d->counter[index];
-    switch (counter.accessState) {
+    switch (counter.access_state) {
     case ReadLatchedLSB:
     case ReadLatchedMSB:
         break;
@@ -197,11 +201,11 @@ void PIT::write_counter(u8 index, u8 data)
         break;
     case AccessLSBThenMSB:
         counter.reload = weld<u16>(most_significant<u8>(counter.reload), data);
-        counter.accessState = AccessMSBThenLSB;
+        counter.access_state = AccessMSBThenLSB;
         break;
     case AccessMSBThenLSB:
         counter.reload = weld<u16>(data, least_significant<u8>(counter.reload));
-        counter.accessState = AccessLSBThenMSB;
+        counter.access_state = AccessLSBThenMSB;
         reconfigure_timer(index);
         break;
     }
@@ -244,47 +248,47 @@ void PIT::out8(u16 port, u8 data)
     }
 }
 
-void PIT::mode_control(int timerIndex, u8 data)
+void PIT::mode_control(int timer_index, u8 data)
 {
-    ASSERT(timerIndex == 0 || timerIndex == 1);
+    ASSERT(timer_index == 0 || timer_index == 1);
 
-    u8 counterIndex = (data >> 6);
+    u8 counter_index = (data >> 6);
 
-    if (counterIndex > 2) {
-        vlog(LogTimer, "Invalid counter index %d specified.", counterIndex);
+    if (counter_index > 2) {
+        vlog(LogTimer, "Invalid counter index %d specified.", counter_index);
         return;
     }
 
-    ASSERT(counterIndex <= 2);
-    CounterInfo& counter = d->counter[counterIndex];
+    ASSERT(counter_index <= 2);
+    CounterInfo& counter = d->counter[counter_index];
 
-    counter.decrementMode = static_cast<DecrementMode>(data & 1);
+    counter.decrement_mode = static_cast<DecrementMode>(data & 1);
     counter.mode = (data >> 1) & 7;
 
     counter.format = (data >> 4) & 3;
     switch (counter.format) {
     case 0:
-        counter.accessState = ReadLatchedLSB;
-        counter.latchedValue = counter.value();
+        counter.access_state = ReadLatchedLSB;
+        counter.latched_value = counter.value();
         break;
     case 1:
-        counter.accessState = AccessMSBOnly;
+        counter.access_state = AccessMSBOnly;
         break;
     case 2:
-        counter.accessState = AccessLSBOnly;
+        counter.access_state = AccessLSBOnly;
         break;
     case 3:
-        counter.accessState = AccessLSBThenMSB;
+        counter.access_state = AccessLSBThenMSB;
         break;
     }
 
 #ifdef PIT_DEBUG
     vlog(LogTimer, "Setting mode for counter %u { dec: %s, mode: %u, fmt: %02x }",
-        counterIndex,
+        counter_index,
         (counter.decrementMode == DecrementBCD) ? "BCD" : "binary",
         counter.mode,
         counter.format);
 #endif
 
-    reconfigure_timer(counterIndex);
+    reconfigure_timer(counter_index);
 }

@@ -98,13 +98,13 @@ void MainWindow::on_leds_changed(int leds)
     palette_for_led[0].setColor(d->scroll_lock_label->backgroundRole(), Qt::gray);
     palette_for_led[1].setColor(d->scroll_lock_label->backgroundRole(), Qt::green);
 
-    bool scrollLock = leds & Keyboard::LED::ScrollLock;
-    bool numLock = leds & Keyboard::LED::NumLock;
-    bool capsLock = leds & Keyboard::LED::CapsLock;
+    bool scroll_lock = leds & Keyboard::LED::ScrollLock;
+    bool num_lock = leds & Keyboard::LED::NumLock;
+    bool caps_lock = leds & Keyboard::LED::CapsLock;
 
-    d->scroll_lock_label->setPalette(palette_for_led[scrollLock]);
-    d->num_lock_label->setPalette(palette_for_led[numLock]);
-    d->caps_lock_label->setPalette(palette_for_led[capsLock]);
+    d->scroll_lock_label->setPalette(palette_for_led[scroll_lock]);
+    d->num_lock_label->setPalette(palette_for_led[num_lock]);
+    d->caps_lock_label->setPalette(palette_for_led[caps_lock]);
 }
 
 void MainWindow::update_ips()

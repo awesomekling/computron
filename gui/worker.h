@@ -34,9 +34,9 @@ public:
     explicit Worker(Machine&);
     virtual ~Worker() override;
 
-    void enterDebugger();
-    void exitDebugger();
-    void rebootMachine();
+    void enter_debugger();
+    void exit_debugger();
+    void reboot_machine();
 
 public slots:
     void run() override;

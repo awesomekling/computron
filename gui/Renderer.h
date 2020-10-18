@@ -67,12 +67,12 @@ public:
     virtual void paint(QPainter&) override;
 
 private:
-    void putCharacter(QPainter&, int row, int column, u8 color, u8 character);
+    void put_character(QPainter&, int row, int column, u8 color, u8 character);
 
     int m_rows { 25 };
     int m_columns { 80 };
-    int m_characterWidth { 8 };
-    int m_characterHeight { 16 };
+    int m_character_width { 8 };
+    int m_character_height { 16 };
 
     QBitmap m_character[256];
     QBrush m_brush[16];
@@ -100,7 +100,7 @@ public:
 
 protected:
     explicit BufferedRenderer(Screen&, int width, int height, int scale = 1);
-    u8* bufferBits() { return m_buffer.bits(); }
+    u8* buffer_bits() { return m_buffer.bits(); }
 
     QImage m_buffer;
     int m_scale { 1 };
