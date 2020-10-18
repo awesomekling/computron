@@ -179,8 +179,8 @@ void FDC::reset_controller(ResetSource reset_source)
 
         // FIXME: I think we should pretend the disks are changed.
         // However I'm not sure when exactly to mark them as unchanged. Need to figure out.
-        //d->drive[0].digitalInputRegister = 0x80;
-        //d->drive[1].digitalInputRegister = 0x80;
+        //d->drive[0].digital_input_register = 0x80;
+        //d->drive[1].digital_input_register = 0x80;
     }
 
     d->has_pending_reset = false;
@@ -304,7 +304,7 @@ void FDC::out8(u16 port, u8 data)
 
         vlog(LogFDC, "  Current drive: %u", d->drive_index);
         vlog(LogFDC, "  FDC enabled:   %s", d->enabled ? "yes" : "no");
-        vlog(LogFDC, "  DMA+I/O mode:  %s", using_dma() ? "yes" : "no");
+        vlog(LogFDC, "  DMA mode:      %s", using_dma() ? "yes" : "no");
 
         vlog(LogFDC, "  Motors:        %u %u", d->drive[0].motor, d->drive[1].motor);
 
@@ -468,13 +468,13 @@ void FDC::execute_command_internal()
         break;
     case SenseInterruptStatus:
         vlog(LogFDC, "SenseInterruptStatus");
-        d->command_result.append(d->status_register[0]);
+        d->command_result.append(1 << 5);
         d->command_result.append(d->current_drive().cylinder);
         // Linux sends 4 SenseInterruptStatus commands after a controller reset because of "drive polling"
         if (d->expected_sense_interrupt_count) {
-            u8 driveIndex = 4 - d->expected_sense_interrupt_count;
+            u8 drive_index = 4 - d->expected_sense_interrupt_count;
             d->status_register[0] &= 0xf8;
-            d->status_register[0] |= (d->drive[driveIndex].head << 2) | driveIndex;
+            d->status_register[0] |= (d->drive[drive_index].head << 2) | drive_index;
             --d->expected_sense_interrupt_count;
         } else if (!is_irq_raised()) {
             d->status_register[0] = 0x80;
@@ -482,6 +482,8 @@ void FDC::execute_command_internal()
         break;
     case Recalibrate:
         d->drive_index = d->command[1] & 3;
+        d->current_drive().cylinder = 0;
+        d->main_status_register |= (1 << d->drive_index);
         generate_fdc_interrupt();
         vlog(LogFDC, "Recalibrate { drive:%u }", d->drive_index);
         break;
