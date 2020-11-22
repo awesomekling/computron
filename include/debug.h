@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "Common.h"
+
 #ifndef NDEBUG
 #    include <QtCore/qdebug.h>
 #    include <assert.h>

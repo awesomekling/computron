@@ -32,6 +32,10 @@
 //#define VMM_TRACING
 //#define SYMBOLIC_TRACING
 
+#if __has_include("../serenity/Kernel/API/Syscall.h")
+#    define DEBUG_SERENITY
+#endif
+
 #include "types.h"
 #include <QString>
 

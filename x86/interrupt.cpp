@@ -223,7 +223,7 @@ void CPU::protected_mode_interrupt(u8 isr, InterruptSource source, QVariant erro
 {
     ASSERT(get_pe());
 
-#if DEBUG_SERENITY
+#ifdef DEBUG_SERENITY
     bool logAsSyscall = options.trapint && options.serenity && isr == 0x80;
 
     if (logAsSyscall)
